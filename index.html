@@ -40,9 +40,9 @@ body::after{content:"";position:fixed;left:0;right:0;height:120px;pointer-events
    metal qui traverse l'ecran de temps en temps. Tintee par --hue comme tout le reste. */
 body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:
   radial-gradient(1100px 560px at 78% -12%,hsl(var(--hue) 60% 54% / .035),transparent 62%),
-  repeating-linear-gradient(45deg,rgba(255,255,255,.012) 0 2px,transparent 2px 5px),
-  repeating-linear-gradient(-45deg,rgba(255,255,255,.012) 0 2px,transparent 2px 5px),
-  repeating-linear-gradient(0deg,hsl(var(--hue) 30% 4% / .4) 0 6px,transparent 6px 12px);
+  repeating-linear-gradient(45deg,rgba(255,255,255,.024) 0 2px,transparent 2px 5px),
+  repeating-linear-gradient(-45deg,rgba(255,255,255,.024) 0 2px,transparent 2px 5px),
+  repeating-linear-gradient(0deg,hsl(var(--hue) 30% 4% / .5) 0 6px,transparent 6px 12px);
   animation:weave 34s ease-in-out infinite}
 @keyframes weave{0%,100%{background-position:0 0,0 0,0 0,0 0}
   50%{background-position:0 0,5px 5px,-5px -5px,0 0}}
@@ -52,6 +52,13 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;bac
   animation:metsheen 44s linear infinite}
 @keyframes metsheen{0%{background-position:-150% 0}50%{background-position:250% 0}100%{background-position:250% 0}}
 @media (prefers-reduced-motion:reduce){.msheen{display:none}body::before{animation:none}}
+
+/* ── filigrane C2FF, facon fond de messagerie ── */
+/* tuile SVG repetee : le logo C2FF pose partout sur le carbone, en 6 polices
+   differentes (serif, mono, sans, cursive, fantaisie, contour). Blanc tres
+   transparent : lisible sur toutes les teintes, jamais en concurrence avec le texte. */
+.wm{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cg fill='%23ffffff' fill-opacity='.06'%3E%3Ctext x='18' y='64' font-family='serif' font-weight='700' font-size='30' letter-spacing='2' transform='rotate(-14 18 64)'%3EC2FF%3C/text%3E%3Ctext x='140' y='124' font-family='monospace' font-weight='800' font-size='24' letter-spacing='6' transform='rotate(9 140 124)'%3EC2FF%3C/text%3E%3Ctext x='26' y='206' font-family='sans-serif' font-weight='900' font-size='18' transform='rotate(-24 26 206)'%3EC2FF%3C/text%3E%3Ctext x='150' y='248' font-family='cursive' font-size='26' transform='rotate(6 150 248)'%3EC2FF%3C/text%3E%3Ctext x='52' y='148' font-family='fantasy' font-size='20' transform='rotate(24 52 148)'%3EC2FF%3C/text%3E%3Ctext x='196' y='34' font-family='serif' font-style='italic' font-size='22' transform='rotate(18 196 34)'%3EC2FF%3C/text%3E%3C/g%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.05'%3E%3Ctext x='186' y='178' font-family='monospace' font-size='15' letter-spacing='8' transform='rotate(-8 186 178)'%3EC2FF%3C/text%3E%3C/g%3E%3C/svg%3E") 0 0/280px 280px repeat}
 
 /* ── bords de metal ── */
 /* le cadre de chaque carte est un degradé metal brossé dont l'angle tourne tres
@@ -230,6 +237,7 @@ header,nav{border-bottom-color:transparent;
 </head>
 <body>
 <div class="msheen" aria-hidden="true"></div>
+<div class="wm" aria-hidden="true"></div>
 <div class="wrap">
 <header>
   <a class="logo" href="/"><span class="mark">C2</span><h1>C2<b>FF</b></h1></a>
