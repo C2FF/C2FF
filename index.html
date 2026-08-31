@@ -207,6 +207,7 @@ footer b{color:var(--green);font-weight:700;text-shadow:0 0 10px rgba(57,255,20,
   <button class="navbtn" data-tab="programs"><span data-i="navp">Programmes</span> <small id="nProg"></small></button>
   <button class="navbtn" data-tab="ai"><span data-i="navai">IA</span></button>
   <button class="navbtn" data-tab="team"><span data-i="navt">Team</span></button>
+  <button class="navbtn" data-tab="term"><span data-i="navtrm">TERM</span></button>
   <button class="navbtn" data-tab="chat"><span data-i="navc">Coordination</span> <small id="nChat"></small></button>
 </nav>
 <div class="stats">
@@ -328,6 +329,22 @@ footer b{color:var(--green);font-weight:700;text-shadow:0 0 10px rgba(57,255,20,
       <small id="tmTunnelInfo" style="color:var(--muted);font-size:11.5px;flex:1;min-width:200px"></small>
       <button class="go" id="tmTunnelCopy" data-i="tm_copy" hidden style="flex:none;padding:5px 12px;font-size:11.5px">Copier</button>
     </div>
+  </div>
+</section>
+
+<section class="view" id="v-term">
+  <h2 data-i="term_h2">Terminal - shell de travail, direct dans la console</h2>
+  <div id="termwrap" style="border:1px solid var(--line);border-radius:7px;background:#010603;overflow:hidden">
+    <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;border-bottom:1px solid var(--line);background:var(--panel2)">
+      <span class="pill p-live" id="termPill">SHELL</span>
+      <small style="color:var(--faint);flex:1" data-i="term_p">bash reel - history fleches, Ctrl+C interrompt, Ctrl+D ferme</small>
+      <button class="ghost" id="termRestart" data-i="term_restart">Reinitialiser</button>
+    </div>
+    <pre id="termOut" style="margin:0;padding:12px;height:56vh;overflow-y:auto;color:#71e38a;font-size:12px;line-height:1.45;white-space:pre-wrap;word-break:break-all"></pre>
+    <form id="termForm" style="display:flex;gap:0;border-top:1px solid var(--line);background:var(--panel2)">
+      <span style="padding:8px 4px 8px 12px;color:var(--green)">&gt;</span>
+      <input type="text" id="termIn" autocomplete="off" spellcheck="false" style="flex:1;border:none;background:transparent;border-radius:0;font-size:12.5px;color:#9ff5ae" placeholder="ls, curl, whois…">
+    </form>
   </div>
 </section>
 

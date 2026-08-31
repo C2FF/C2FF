@@ -45,6 +45,9 @@ const LANGS = [
 ];
 const I18N = {
   fr: {
+    term_denied: 'terminal refuse ou indisponible : localhost requis, ou salle OUVERTE en tant qu admin',
+    term_p: 'bash reel - history fleches, Ctrl+C interrompt, Ctrl+D ferme', term_restart: 'Reinitialiser',
+    navtrm: 'TERM', term_h2: 'Terminal - shell de travail, direct dans la console',
     fl_off: 'FLEET : ARRETE', fl_paused: 'FLEET : EN PAUSE', fl_active: 'FLEET : ACTIF ({n} cycles)',
     fl_last: 'dernier cycle', fl_none: 'aucun cycle encore', fl_info: 'intervalle {i} min, budget {b} req/cycle',
     sub_ttl: 'command & control framework',
@@ -101,6 +104,9 @@ const I18N = {
     w_me: 'OPERATOR', w_claude: 'CLAUDE', w_ia: 'IA', w_launch: '⚡ LANCEMENT',
   },
   en: {
+    term_denied: 'terminal denied or unavailable: localhost required, or an OPEN room as admin',
+    term_p: 'real bash - arrow-up history, Ctrl+C interrupts, Ctrl+D closes', term_restart: 'Reset',
+    navtrm: 'TERM', term_h2: 'Terminal - working shell, right in the console',
     fl_off: 'FLEET : STOPPED', fl_paused: 'FLEET : PAUSED', fl_active: 'FLEET : ACTIVE ({n} cycles)',
     fl_last: 'last cycle', fl_none: 'no cycle yet', fl_info: 'interval {i} min, budget {b} req/cycle',
     sub_ttl: 'command & control framework',
@@ -157,6 +163,9 @@ const I18N = {
     tm_mic_denied: 'microphone denied or unavailable: HTTPS required (WORLD tunnel or localhost) and permission must be granted',
   },
   es: {
+    term_denied: 'terminal denegado o no disponible: se requiere localhost, o sala ABIERTA como admin',
+    term_p: 'bash real - historial con flechas, Ctrl+C interrumpe, Ctrl+D cierra', term_restart: 'Reiniciar',
+    navtrm: 'TERM', term_h2: 'Terminal - shell de trabajo, en la propia consola',
     sub_ttl: 'command & control framework',
     fl_off: 'FLOTA : DETENIDA', fl_paused: 'FLOTA : EN PAUSA', fl_active: 'FLOTA : ACTIVA ({n} ciclos)',
     fl_last: 'último ciclo', fl_none: 'ningún ciclo aún', fl_info: 'intervalo {i} min, presupuesto {b} req/ciclo',
@@ -213,6 +222,9 @@ const I18N = {
     tm_mic_denied: 'micrófono denegado o no disponible: se requiere HTTPS (túnel MUNDO o localhost) y conceder el permiso',
   },
   de: {
+    term_denied: 'Terminal verweigert oder nicht verfügbar: localhost nötig, oder offener Raum als Admin',
+    term_p: 'echte Bash - Verlauf mit Pfeiltasten, Ctrl+C bricht ab, Ctrl+D schließt', term_restart: 'Zurücksetzen',
+    navtrm: 'TERM', term_h2: 'Terminal - Arbeitsshell direkt in der Konsole',
     sub_ttl: 'command & control framework',
     fl_off: 'FLOTTE : GESTOPPT', fl_paused: 'FLOTTE : PAUSE', fl_active: 'FLOTTE : AKTIV ({n} Zyklen)',
     fl_last: 'letzter Zyklus', fl_none: 'noch kein Zyklus', fl_info: 'Intervall {i} Min, Budget {b} Anf/Zyklus',
@@ -267,6 +279,9 @@ const I18N = {
     tm_mic_denied: 'Mikrofon verweigert oder nicht verfügbar: HTTPS nötig (WELT-Tunnel oder localhost) und Berechtigung erteilen',
   },
   pt: {
+    term_denied: 'terminal recusado ou indisponível: localhost necessário, ou sala ABERTA como admin',
+    term_p: 'bash real - histórico com setas, Ctrl+C interrompe, Ctrl+D fecha', term_restart: 'Reiniciar',
+    navtrm: 'TERM', term_h2: 'Terminal - shell de trabalho, na própria consola',
     sub_ttl: 'command & control framework',
     fl_off: 'ESQUADRÃO : PARADO', fl_paused: 'ESQUADRÃO : EM PAUSA', fl_active: 'ESQUADRÃO : ATIVO ({n} ciclos)',
     fl_last: 'último ciclo', fl_none: 'nenhum ciclo ainda', fl_info: 'intervalo {i} min, orçamento {b} req/ciclo',
@@ -321,6 +336,9 @@ const I18N = {
     tm_mic_denied: 'microfone recusado ou indisponível: HTTPS obrigatório (túnel MUNDO ou localhost) e conceder a permissão',
   },
   it: {
+    term_denied: 'terminale negato o non disponibile: serve localhost, o stanza APERTA come admin',
+    term_p: 'bash reale - cronologia con frecce, Ctrl+C interrompe, Ctrl+D chiude', term_restart: 'Reimposta',
+    navtrm: 'TERM', term_h2: 'Terminale - shell di lavoro, direttamente nella console',
     sub_ttl: 'command & control framework',
     fl_off: 'FLOTTA : ARRESTATO', fl_paused: 'FLOTTA : IN PAUSA', fl_active: 'FLOTTA : ATTIVO ({n} cicli)',
     fl_last: 'ultimo ciclo', fl_none: 'nessun ciclo ancora', fl_info: 'intervallo {i} min, budget {b} req/ciclo',
@@ -375,6 +393,9 @@ const I18N = {
     tm_mic_denied: 'microfono negato o non disponibile: serve HTTPS (tunnel MONDO o localhost) e concedere il permesso',
   },
   ar: {
+    term_denied: 'الطرفية مرفوضة أو غير متاحة: localhost مطلوب، أو غرفة مفتوحة بصلاحية مشرف',
+    term_p: 'bash حقيقي - السجل بالأسهم، Ctrl+C يقطع، Ctrl+D يغلق', term_restart: 'إعادة تعيين',
+    navtrm: 'طرفية', term_h2: 'الطرفية - قشرة عمل في الكونسول مباشرة',
     sub_ttl: 'command & control framework',
     fl_off: 'الأسطول : متوقف', fl_paused: 'الأسطول : موقوف مؤقتاً', fl_active: 'الأسطول : نشط ({n} دورات)',
     fl_last: 'آخر دورة', fl_none: 'لا دورة بعد', fl_info: 'الفاصل {i} دقيقة، الميزانية {b} طلب/دورة',
@@ -429,6 +450,9 @@ const I18N = {
     tm_mic_denied: 'الميكروفون مرفوض أو غير متاح: HTTPS مطلوب (نفق عالم أو localhost) مع منح الإذن',
   },
   zh: {
+    term_denied: '终端被拒绝或不可用：需要 localhost，或以管理员身份开启房间',
+    term_p: '真实 bash - 方向键调历史, Ctrl+C 中断, Ctrl+D 关闭', term_restart: '重置',
+    navtrm: '终端', term_h2: '终端 - 直接在控制台里的工作 shell',
     sub_ttl: 'command & control framework',
     fl_off: '舰队 : 已停止', fl_paused: '舰队 : 已暂停', fl_active: '舰队 : 活跃（{n} 个循环）',
     fl_last: '上次循环', fl_none: '尚无循环', fl_info: '间隔 {i} 分钟，预算 {b} 请求/循环',
@@ -483,6 +507,9 @@ const I18N = {
     tm_mic_denied: '麦克风被拒绝或不可用：需要 HTTPS（世界隧道或 localhost）并授权麦克风',
   },
   ru: {
+    term_denied: 'терминал отклонён или недоступен: нужен localhost или открытая комната с ролью админ',
+    term_p: 'настоящий bash - история стрелками, Ctrl+C прерывает, Ctrl+D закрывает', term_restart: 'Сброс',
+    navtrm: 'ТЕРМИНАЛ', term_h2: 'Терминал - рабочая оболочка прямо в консоли',
     sub_ttl: 'command & control framework',
     fl_off: 'ФЛОТ : ОСТАНОВЛЕН', fl_paused: 'ФЛОТ : НА ПАУЗЕ', fl_active: 'ФЛОТ : АКТИВЕН ({n} цикл.)',
     fl_last: 'последний цикл', fl_none: 'циклов пока нет', fl_info: 'интервал {i} мин, бюджет {b} запр/цикл',
@@ -537,6 +564,9 @@ const I18N = {
     tm_mic_denied: 'микрофон отклонён или недоступен: требуется HTTPS (мировой туннель или localhost) и разрешение доступа',
   },
   ja: {
+    term_denied: 'ターミナル拒否か利用不可：localhost か管理者としてルームを開く必要あり',
+    term_p: '本物の bash - 履歴は矢印キー、Ctrl+C で中断、Ctrl+D で終了', term_restart: 'リセット',
+    navtrm: 'ターミナル', term_h2: 'ターミナル - コンソール内の作業シェル',
     sub_ttl: 'command & control framework',
     fl_off: '艦隊 : 停止', fl_paused: '艦隊 : 一時停止', fl_active: '艦隊 : 稼働中（{n} サイクル）',
     fl_last: '前回のサイクル', fl_none: 'サイクルなし', fl_info: '間隔 {i} 分、予算 {b} リクエスト/サイクル',
@@ -591,6 +621,9 @@ const I18N = {
     tm_mic_denied: 'マイクが拒否か利用不可：HTTPS（ワールドトンネルか localhost）と権限の許可が必要',
   },
   ko: {
+    term_denied: '터미널 거부 또는 불가: localhost 또는 관리자로 연 방 필요',
+    term_p: '진짜 bash - 화살표로 히스토리, Ctrl+C 중단, Ctrl+D 종료', term_restart: '초기화',
+    navtrm: '터미널', term_h2: '터미널 - 콘솔 안의 작업 셸',
     sub_ttl: 'command & control framework',
     fl_off: '함대 : 정지', fl_paused: '함대 : 일시정지', fl_active: '함대 : 활성 ({n} 주기)',
     fl_last: '마지막 주기', fl_none: '아직 주기 없음', fl_info: '간격 {i}분, 예산 {b} 요청/주기',
@@ -645,6 +678,9 @@ const I18N = {
     tm_mic_denied: '마이크 거부 또는 불가: HTTPS(월드 터널 또는 localhost)와 권한 허용 필요',
   },
   hi: {
+    term_denied: 'टर्मिनल अस्वीकृत या अनुपलब्ध: localhost या एडमिन के रूप में खुला कमरा चाहिए',
+    term_p: 'असली bash - तीर से हिस्ट्री, Ctrl+C रोकें, Ctrl+D बंद करें', term_restart: 'रीसेट',
+    navtrm: 'टर्मिनल', term_h2: 'टर्मिनल - कंसोल में ही काम का शेल',
     sub_ttl: 'command & control framework',
     fl_off: 'बेड़ा : बंद', fl_paused: 'बेड़ा : विराम', fl_active: 'बेड़ा : सक्रिय ({n} चक्र)',
     fl_last: 'अंतिम चक्र', fl_none: 'अभी कोई चक्र नहीं', fl_info: 'अंतराल {i} मिनट, बजट {b} अनुरोध/चक्र',
@@ -751,6 +787,7 @@ function setTab(t) {
   document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'v-' + t));
   if (t === 'chat') { state.unread = 0; }
+  if (t === 'term' && typeof termConnect === 'function') termConnect();
 }
 
 // ---------- toasts ----------
@@ -1214,11 +1251,84 @@ const _initEntry = LANGS.find(x => x[0] === LANG);
 document.documentElement.dir = (_initEntry && _initEntry[2] === 'rtl') ? 'rtl' : 'ltr';
 applyI18n();
 
+// ---------- terminal de travail ----------
+// shell reel cote serveur (1 par identite), output en SSE, input en POST ligne par ligne.
+const TERM = { es: null, errs: 0, hi: 0, hist: [] };
+try { TERM.hist = JSON.parse(localStorage.getItem('c2ff-term-hist') || '[]'); } catch (e) { TERM.hist = []; }
+const termHandle = () => HANDLE || 'OPERATOR';
+const termClean = s => String(s)
+  .replace(/\r\n/g, '\n').replace(/\r/g, '')
+  .replace(/\x1b\][^\x07]*\x07/g, '')
+  .replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '')
+  .replace(/[\x00-\x08\x0b-\x1a\x1c-\x1f\x7f]/g, '');
+function termAppend(t) {
+  const el = $('termOut');
+  if (!el) return;
+  el.textContent += t;
+  if (el.textContent.length > 60000) el.textContent = el.textContent.slice(-45000);
+  el.scrollTop = el.scrollHeight;
+}
+function termKBody(extra) {
+  return Object.assign({ handle: termHandle() }, TEAMKEY ? { _k: TEAMKEY } : {}, extra || {});
+}
+function termConnect() {
+  if (TERM.es) return;
+  if (!('EventSource' in window)) return;
+  const q = '/api/term/stream?handle=' + encodeURIComponent(termHandle()) + (TEAMKEY ? '&k=' + encodeURIComponent(TEAMKEY) : '');
+  TERM.es = new EventSource(q);
+  TERM.es.onopen = () => { TERM.errs = 0; };
+  TERM.es.onmessage = ev => {
+    let t;
+    try { t = termClean(JSON.parse(ev.data)); } catch (e) { return; }
+    if (!t) return;
+    termAppend(t);
+  };
+  TERM.es.onerror = () => {
+    try { TERM.es.close(); } catch (e) {}
+    TERM.es = null;
+    TERM.errs++;
+    if (TERM.errs >= 3) { toast('TERM', T('term_denied'), 'P2'); return; }
+    if (state.tab === 'term') setTimeout(termConnect, 2000);
+  };
+}
+$('termForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = $('termIn').value;
+  if (!v) return;
+  TERM.hist.push(v);
+  if (TERM.hist.length > 200) TERM.hist.shift();
+  TERM.hi = TERM.hist.length;
+  try { localStorage.setItem('c2ff-term-hist', JSON.stringify(TERM.hist.slice(-100))); } catch (x) {}
+  $('termIn').value = '';
+  jpost('/api/term', { handle: termHandle(), op: 'write', data: v + '\n' }).catch(() => {});
+});
+$('termIn').addEventListener('keydown', e => {
+  const h = TERM.hist;
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (!h.length) return;
+    TERM.hi = e.key === 'ArrowUp' ? Math.max(0, (TERM.hi || h.length) - 1) : Math.min(h.length, (TERM.hi || h.length) + 1);
+    $('termIn').value = TERM.hi === h.length ? '' : h[TERM.hi] || '';
+    return;
+  }
+  if (e.ctrlKey && e.key === 'c') { e.preventDefault(); jpost('/api/term', { handle: termHandle(), op: 'write', data: '\x03' }).catch(() => {}); }
+  if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); $('termOut').textContent = ''; }
+  if (e.ctrlKey && (e.key === 'd' || e.key === 'D')) { e.preventDefault(); jpost('/api/term', { handle: termHandle(), op: 'write', data: 'exit\n' }).catch(() => {}); }
+});
+$('termRestart').addEventListener('click', () => {
+  jpost('/api/term', { handle: termHandle(), op: 'exit' })
+    .then(() => jpost('/api/term', { handle: termHandle(), op: 'start' }))
+    .catch(() => {});
+  $('termOut').textContent = '';
+  TERM.errs = 0;
+  termConnect();
+});
+
 // ---------- nav / poll ----------
-document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => { setTab(b.dataset.tab); if (b.dataset.tab === 'term') termConnect(); }));
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') { if (e.key === 'Escape') e.target.blur(); return; }
-  const m = { '1': 'live', '2': 'findings', '3': 'programs', '4': 'ai', '5': 'team', '6': 'chat' }[e.key];
+  const m = { '1': 'live', '2': 'findings', '3': 'programs', '4': 'ai', '5': 'team', '6': 'term', '7': 'chat' }[e.key];
   if (m) setTab(m);
 });
 setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);

@@ -154,6 +154,64 @@ function rtcList(now) {
   return out.slice(-200);
 }
 
+// ---------- terminal de travail ----------
+// un shell reel par identite (loopback = 'local', distant = handle admin).
+// script(1) donne un PTY complet (prompt, couleurs, readline) ; fallback bash -i.
+// acces : loopback toujours ; reseau uniquement si salle ON + role admin + non banni.
+const TERMS = new Map(); // id -> { proc, buf: string, clients: Set, dead: bool, t0 }
+const TERM_MAX_SESSIONS = 4;
+const TERM_BUF_MAX = 160000;
+
+const termId = (req, h) => (isLoopback(req) ? 'local' : cleanHandle(h) || '');
+function termTermAllowed(req, h) {
+  if (isLoopback(req)) return true;
+  const t = teamCfg();
+  if (!t.enabled) return false;           // pas de shell expose en reseau sans salle
+  if (t.blocked.includes(h)) return false;
+  return roleOf(req, h) === 'admin';
+}
+function termBroadcast(ts, text) {
+  ts.buf = (ts.buf + text).slice(-TERM_BUF_MAX);
+  for (const c of ts.clients) {
+    try { c.res.write('data: ' + JSON.stringify(text) + '\n\n'); } catch (e) {}
+  }
+}
+function termSpawn(id) {
+  const old = TERMS.get(id);
+  if (old && !old.dead) return null; // deja vivant
+  const env = { ...process.env, TERM: 'xterm-256color', COLUMNS: '110', LINES: '32' };
+  let proc;
+  try {
+    if (process.platform !== 'win32' && fs.existsSync('/usr/bin/script')) {
+      proc = require('child_process').spawn('/usr/bin/script', ['-qfc', process.env['SHELL'] || '/bin/bash', '/dev/null'], { env, stdio: ['pipe', 'pipe', 'pipe'] });
+    } else {
+      proc = require('child_process').spawn(process.env['SHELL'] || '/bin/bash', ['-i'], { env, stdio: ['pipe', 'pipe', 'pipe'] });
+    }
+  } catch (e) { return null; }
+  const ts = { proc, buf: '', clients: new Set(), dead: false, t0: Date.now() };
+  const feed = d => termBroadcast(ts, String(d));
+  proc.stdout.on('data', feed);
+  proc.stderr.on('data', feed);
+  proc.on('error', () => { ts.dead = true; termBroadcast(ts, '\r\n[shell indisponible]\r\n'); });
+  proc.on('exit', code => {
+    if (TERMS.get(id) !== ts) return;
+    ts.dead = true;
+    termBroadcast(ts, '\r\n[shell termine (exit ' + code + ') - relance avec la commande start]\r\n');
+    if (!ts.clients.size) TERMS.delete(id);
+  });
+  TERMS.set(id, ts);
+  return ts;
+}
+// limite globale : vieux shells sans client fermes
+setInterval(() => {
+  for (const [id, ts] of TERMS) {
+    if (ts.dead && !ts.clients.size) { TERMS.delete(id); continue; }
+    if (!ts.dead && !ts.clients.size && Date.now() - ts.t0 > 3600000) {
+      try { ts.proc.kill('SIGHUP'); } catch (e) {}
+    }
+  }
+}, 60000);
+
 // ---------- programmes ----------
 const DEFAULT_PROGRAMS = [
   { id: 'exemple', name: 'Exemple Program', platform: 'Bugcrowd', header: 'X-Bug-Bounty: <ton-handle>', scope: ['*.exemple.com'], creds: '', runs: [] },
@@ -533,6 +591,31 @@ const MAIN = (req, res) => {
         }
         return sendJson(res, { ok: false, error: 'unknown op' });
       }
+      if (p === '/api/term') {
+        const h = cleanHandle(body.handle || '');
+        if (!termTermAllowed(req, h)) return sendJson(res, { ok: false, error: 'terminal reserved: localhost or room admin' });
+        const id = termId(req, h);
+        if (body.op === 'start') {
+          const ts = termSpawn(id);
+          return sendJson(res, ts ? { ok: true } : { ok: false, error: 'cannot spawn shell' });
+        }
+        if (body.op === 'write') {
+          const ts = TERMS.get(id);
+          if (!ts || ts.dead) return sendJson(res, { ok: false, error: 'no shell - send op start first' });
+          const data = String(body.data || '').slice(0, 4000);
+          try { ts.proc.stdin.write(data); return sendJson(res, { ok: true }); }
+          catch (e) { return sendJson(res, { ok: false, error: 'shell stdin closed' }); }
+        }
+        if (body.op === 'exit') {
+          const ts = TERMS.get(id);
+          if (ts) { try { ts.proc.kill('SIGHUP'); } catch (e) {} }
+          for (const c of ts ? ts.clients : []) { try { c.res.end(); } catch (e) {} }
+          if (ts) ts.clients.clear();
+          TERMS.delete(id);
+          return sendJson(res, { ok: true });
+        }
+        return sendJson(res, { ok: false, error: 'unknown op' });
+      }
       if (p === '/api/chat') {
         appendJsonl(CHAT_FILE, { t: Date.now(), from: 'user', name: cleanHandle(body.name) || 'OPERATOR', kind: body.kind === 'team' ? 'team' : 'chat', text: trunc(body.text || '', 4000) });
         return sendJson(res, { ok: true });
@@ -634,6 +717,21 @@ const MAIN = (req, res) => {
   }
 
   if (p === '/api/state') return apiState(res, req);
+  if (p === '/api/term/stream') {
+    // SSE : replay du buffer puis output live. Distant : admin non banni seulement.
+    const h = cleanHandle(url.searchParams.get('handle') || '');
+    if (!termTermAllowed(req, h)) return send(res, 403, 'text/plain', 'terminal reserved: localhost or room admin');
+    const id = termId(req, h);
+    const ts = TERMS.get(id) || termSpawn(id);
+    if (!ts) return send(res, 500, 'text/plain', 'cannot spawn shell');
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+    if (ts.buf) res.write('data: ' + JSON.stringify(ts.buf) + '\n\n');
+    const client = { res };
+    ts.clients.add(client);
+    const beat = setInterval(() => { try { res.write(': ping\n\n'); } catch (e) {} }, 15000);
+    req.on('close', () => { clearInterval(beat); ts.clients.delete(client); });
+    return;
+  }
   if (p === '/app.js') return send(res, 200, 'application/javascript; charset=utf-8', fs.readFileSync(path.join(ROOT, 'app.js')));
   if (p === '/banner.png') return send(res, 200, 'image/png', fs.readFileSync(path.join(ROOT, 'docs', 'assets', 'banner.png')));
   if (p === '/banner_app.gif') return send(res, 200, 'image/gif', fs.readFileSync(path.join(ROOT, 'docs', 'assets', 'banner_app.gif')));
