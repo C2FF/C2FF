@@ -988,11 +988,17 @@ $('tmRegen').addEventListener('click', () => {
 $('tmCopy').addEventListener('click', () => {
   const t = $('tmInvite').textContent;
   if (!t) return;
+  const ok = () => toast('SESSION', T('tm_copied'), 'HIT');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(ok).catch(() => copyFallback(t, ok));
+  } else copyFallback(t, ok);
+});
+function copyFallback(t, ok) {
   const ta = document.createElement('textarea');
   ta.value = t; document.body.appendChild(ta); ta.select();
-  try { document.execCommand('copy'); toast('TEAM', T('tm_copied'), 'HIT'); } catch (e) {}
+  try { document.execCommand('copy'); ok(); } catch (e) {}
   ta.remove();
-});
+}
 
 // ---------- langue / init i18n ----------
 $('langSel').innerHTML = LANGS.map(l => '<option value="' + l[0] + '"' + (l[0] !== 'fr' && !I18N[l[0]] ? ' disabled' : '') + '>' + l[1] + (l[0] !== 'fr' && !I18N[l[0]] ? ' ·' : '') + '</option>').join('');
