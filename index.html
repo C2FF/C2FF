@@ -39,6 +39,30 @@ body::after{content:"";position:fixed;left:0;right:0;height:120px;pointer-events
 @media (prefers-reduced-motion:reduce){body::after{display:none}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important}}
 
+/* ── carbone anime ── */
+/* armure croisee tissee (2 faisceaux diagonaux) qui respire doucement + balayage
+   metal qui traverse l'ecran de temps en temps. Tintee par --hue comme tout le reste. */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:
+  radial-gradient(1100px 560px at 78% -12%,hsl(var(--hue) 97% 54% / .055),transparent 62%),
+  repeating-linear-gradient(45deg,rgba(255,255,255,.017) 0 2px,transparent 2px 5px),
+  repeating-linear-gradient(-45deg,rgba(255,255,255,.017) 0 2px,transparent 2px 5px),
+  repeating-linear-gradient(0deg,hsl(var(--hue) 30% 4% / .55) 0 6px,transparent 6px 12px);
+  animation:weave 22s ease-in-out infinite}
+@keyframes weave{0%,100%{background-position:0 0,0 0,0 0,0 0}
+  50%{background-position:0 0,7px 7px,-7px -7px,0 0}}
+.msheen{position:fixed;inset:0;pointer-events:none;z-index:0;background:
+  linear-gradient(115deg,transparent 36%,hsl(var(--hue) 18% 55% / .04) 45%,hsl(var(--hue) 45% 88% / .09) 50%,hsl(var(--hue) 18% 55% / .04) 55%,transparent 64%) no-repeat;
+  background-size:300% 100%;background-position:-150% 0;
+  animation:metsheen 34s linear infinite}
+@keyframes metsheen{0%{background-position:-150% 0}58%{background-position:250% 0}100%{background-position:250% 0}}
+@media (prefers-reduced-motion:reduce){.msheen{display:none}body::before{animation:none}}
+
+/* ── bords de metal ── */
+/* le cadre de chaque carte est un degradé metal brossé dont l'angle tourne tres
+   lentement : les aretes accrochent la lumiere et la rendent, comme une piece usinée. */
+@property --mdir{syntax:"<angle>";inherits:false;initial-value:135deg}
+@keyframes metaledge{0%{--mdir:135deg}100%{--mdir:495deg}}
+
 /* ── header ── */
 .wrap{max-width:1440px;margin:0 auto;padding:0 22px 40px;overflow-x:hidden;position:relative;z-index:1}
 header{display:flex;align-items:center;gap:13px;padding:14px 0 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
@@ -190,9 +214,25 @@ footer b{color:var(--green);font-weight:700;text-shadow:0 0 10px hsl(var(--hue) 
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-thumb{background:var(--panel3);border:1px solid var(--line);border-radius:5px}
 ::-webkit-scrollbar-track{background:transparent}
+/* ── bords de metal (override final, gagne sur les shorthands ci-dessus) ── */
+/* le cadre de chaque carte est un degradé metal brossé dont l'angle tourne tres
+   lentement : les aretes accrochent la lumiere et la rendent, comme une piece usinée. */
+.card{border-color:transparent;
+  background-image:linear-gradient(180deg,var(--panel2),var(--panel)),
+    linear-gradient(var(--mdir),hsl(var(--hue) 16% 48%),hsl(var(--hue) 8% 13%) 24%,hsl(var(--hue) 20% 35%) 52%,hsl(var(--hue) 6% 11%) 76%,hsl(var(--hue) 16% 46%));
+  background-origin:padding-box,border-box;background-clip:padding-box,border-box;
+  animation:metaledge 26s linear infinite}
+.stat{border-color:transparent;
+  background-image:linear-gradient(180deg,var(--panel2),var(--panel)),
+    linear-gradient(135deg,hsl(var(--hue) 15% 44%),hsl(var(--hue) 8% 13%) 26%,hsl(var(--hue) 18% 32%) 55%,hsl(var(--hue) 6% 11%) 78%,hsl(var(--hue) 15% 42%));
+  background-origin:padding-box,border-box;background-clip:padding-box,border-box}
+header,nav{border-bottom-color:transparent;
+  border-image:linear-gradient(90deg,hsl(var(--hue) 8% 8%),hsl(var(--hue) 14% 40%) 50%,hsl(var(--hue) 8% 8%)) 1}
+.card.glow{border-color:transparent;box-shadow:0 0 26px hsl(var(--hue) 97% 54% / .14)}
 </style>
 </head>
 <body>
+<div class="msheen" aria-hidden="true"></div>
 <div class="wrap">
 <header>
   <a class="logo" href="/"><span class="mark">C2</span><h1>C2<b>FF</b></h1></a>
@@ -344,7 +384,7 @@ footer b{color:var(--green);font-weight:700;text-shadow:0 0 10px hsl(var(--hue) 
       <small style="color:var(--faint);flex:1" data-i="term_p">bash reel - history fleches, Ctrl+C interrompt, Ctrl+D ferme</small>
       <button class="ghost" id="termRestart" data-i="term_restart">Reinitialiser</button>
     </div>
-    <pre id="termOut" style="margin:0;padding:12px;height:56vh;overflow-y:auto;color:#71e38a;font-size:12px;line-height:1.45;white-space:pre-wrap;word-break:break-all"></pre>
+    <pre id="termOut" style="margin:0;padding:12px;height:56vh;overflow-y:auto;color:var(--green);font-size:12px;line-height:1.45;white-space:pre-wrap;word-break:break-all;background:var(--bg);border:1px solid var(--line)"></pre>
     <form id="termForm" style="display:flex;gap:0;border-top:1px solid var(--line);background:var(--panel2)">
       <span style="padding:8px 4px 8px 12px;color:var(--green)">&gt;</span>
       <input type="text" id="termIn" autocomplete="off" spellcheck="false" style="flex:1;border:none;background:transparent;border-radius:0;font-size:12.5px;color:#9ff5ae" placeholder="ls, curl, whois…">
