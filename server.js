@@ -2,6 +2,7 @@
 // ── C2FF : poste de chasse autonome multi-programmes ──────────────────
 // 100% local. Moteur FLEET-MODE sans tokens. Optional: Claude coordination.
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -278,6 +279,8 @@ function persistFindings() {
 // ---------- moteur local FLEET-MODE (100% local, sans tokens) ----------
 const fleet = require('./fleet.js');
 const RECON = require('./recon.js');
+const ATTACK = require('./attack.js');
+const PLAN = require('./plan.js');
 fleet.init({
   file: FLEET_FILE,
   onFinding: (f) => {
@@ -480,6 +483,33 @@ const MAIN = (req, res) => {
     try { return sendJson(res, JSON.parse(fs.readFileSync(f, 'utf8'))); } catch (e) { return sendJson(res, {}); }
   }
 
+  if (req.method === 'GET' && p === '/api/attack') {
+    const f = path.join(DATA, 'attack.json');
+    try { return sendJson(res, JSON.parse(fs.readFileSync(f, 'utf8'))); } catch (e) { return sendJson(res, {}); }
+  }
+
+  // ---- PLAN : hypotheses executables + statuts persistes par programme ----
+  function hypProgram(name) {
+    const progs = (() => { try { return JSON.parse(fs.readFileSync(PROGRAMS_FILE, 'utf8')); } catch (e) { return []; } })();
+    const prog = progs.find(x => x.id === String(name || '').toLowerCase());
+    if (!prog) return null;
+    let surf = {}; try { surf = JSON.parse(fs.readFileSync(path.join(DATA, 'surface.json'), 'utf8'))[prog.id] || {}; } catch (e) {}
+    if (!surf.host) return { prog, surf: null };
+    return { prog, surf };
+  }
+  if (req.method === 'GET' && p === '/api/plan') {
+    const h = hypProgram(url.searchParams.get('program'));
+    if (!h || !h.surf) return sendJson(res, { items: [] });
+    let st = {}; try { st = JSON.parse(fs.readFileSync(path.join(DATA, 'plan.json'), 'utf8'))[h.prog.id] || {}; } catch (e) {}
+    const items = PLAN.plan(h.surf, h.prog).map(it => {
+      const r = st[it.k];
+      it.status = r ? (r.status || '') : '';
+      it.ev = r ? (r.ev || null) : null;
+      return it;
+    });
+    return sendJson(res, { items });
+  }
+
   if (req.method === 'POST') {
     readBody(req, async body => {
       if (p === '/api/team') {
@@ -647,6 +677,73 @@ const MAIN = (req, res) => {
           sev: ['P1', 'P2', 'P3', 'HIT', 'SIG'].includes(body.sev) ? body.sev : 'HIT',
           text: trunc(body.text || '', 400), status: 'analyse',
         });
+        return sendJson(res, { ok: true });
+      }
+      // ---- ATTACK : probes ciblees sur la surface reconnee, candidates avec preuve ----
+      if (p === '/api/attack') {
+        const name = String(body.name || '').toLowerCase();
+        const progs = (() => { try { return JSON.parse(fs.readFileSync(PROGRAMS_FILE, 'utf8')); } catch (e) { return []; } })();
+        const prog = progs.find(x => x.id === name) || progs.find(x => String(x.name || '').toLowerCase() === name);
+        if (!prog) return sendJson(res, { ok: false, err: 'programme introuvable' });
+        let surf = {}; try { surf = JSON.parse(fs.readFileSync(path.join(DATA, 'surface.json'), 'utf8'))[prog.id] || null; } catch (e) {}
+        if (!surf) return sendJson(res, { ok: false, err: 'recon requis : lance RECON avant ATTACK' });
+        let hh = {};
+        if (prog.header && prog.header.includes(':')) { const i2 = prog.header.indexOf(':'); hh[prog.header.slice(0, i2).trim()] = prog.header.slice(i2 + 1).trim(); }
+        ATTACK.attack(surf, hh, null).then(a => {
+          a.host = surf.host; a.program = prog.id;
+          // injection des P1/P2 dans les findings (dossiers du programme), le texte porte la preuve
+          for (const f of (a.findings || []).filter(x => x.sev === 'P1' || x.sev === 'P2')) {
+            const key = 'atk:' + f.sev + ':' + f.mod + ':' + Buffer.from(f.title).toString('hex').slice(0, 24);
+            if (state.findings.some(x => x.key === key)) continue;
+            state.seq++;
+            state.findings.unshift({
+              key, id: 'F' + String(state.seq).padStart(4, '0'), t: Date.now(),
+              program: prog.id, run: 'ATK', agent: 'C2FF', sev: f.sev, status: 'analyse',
+              text: trunc('[' + f.mod + '] ' + f.title + '\nPoC (3 etapes) : 1) curl -si "' + surf.host + f.req.slice(3) + '" 2) observe la reponse : ' + f.res + ' 3) confirme l exploitabilite (validite du secret / acces authentifie)', 400),
+            });
+            persistFindings();
+          }
+          const f2 = path.join(DATA, 'attack.json');
+          let store = {}; try { store = JSON.parse(fs.readFileSync(f2, 'utf8')); } catch (e) {}
+          store[prog.id] = a;
+          try { fs.writeFileSync(f2, JSON.stringify(store, null, 1)); } catch (e) {}
+          sendJson(res, { ok: true, attack: a });
+        }).catch(() => sendJson(res, { ok: false, err: 'attack echouee' }));
+        return;
+      }
+      // ---- PLAN : hypotheses du RECON, exec GET only + preuve capturee ----
+      if (p === '/api/planrun') {
+        const h = hypProgram(body.name);
+        if (!h) return sendJson(res, { ok: false, err: 'programme introuvable' });
+        if (!h.surf) return sendJson(res, { ok: false, err: 'recon requis' });
+        const it = PLAN.plan(h.surf, h.prog).find(x => x.k === String(body.k || ''));
+        if (!it || !it.run) return sendJson(res, { ok: false, err: 'hypothesis non executable' });
+        let hh = { 'user-agent': 'Mozilla/5.0 (C2FF-plan)' };
+        if (h.prog.header && h.prog.header.includes(':')) { const i2 = h.prog.header.indexOf(':'); hh[h.prog.header.slice(0, i2).trim()] = h.prog.header.slice(i2 + 1).trim(); }
+        for (const line of it.hdrs || []) { const i3 = line.indexOf(':'); if (i3 > 0) hh[line.slice(0, i3).trim()] = line.slice(i3 + 1).trim(); }
+        const url2 = 'https://' + h.surf.host + it.u;
+        https.get(url2, { headers: hh, timeout: 6000 }, r => {
+          let raw = ''; let len2 = 0;
+          r.on('data', d => { len2 += d.length; if (len2 <= 60000) raw += d; else r.destroy(); });
+          r.on('end', () => {
+            const ev = { code: r.statusCode || 0, len: len2, res: trunc(String(raw).replace(/\s+/g, ' ').trim(), 200), u: it.u, t: Date.now() };
+            const s = (() => { try { return JSON.parse(fs.readFileSync(path.join(DATA, 'plan.json'), 'utf8')); } catch (e) { return {}; } })();
+            s[h.prog.id] = s[h.prog.id] || {}; s[h.prog.id][it.k] = s[h.prog.id][it.k] || {};
+            s[h.prog.id][it.k].ev = ev;
+            try { fs.writeFileSync(path.join(DATA, 'plan.json'), JSON.stringify(s, null, 1)); } catch (e) {}
+            sendJson(res, { ok: true, ev });
+          });
+          r.on('error', () => sendJson(res, { ok: false, err: 'injoignable' }));
+        }).on('error', () => sendJson(res, { ok: false, err: 'injoignable' }));
+        return;
+      }
+      if (p === '/api/planpatch') {
+        const prog = String(body.name || ''), k = String(body.k || '');
+        if (!prog || !k) return sendJson(res, { ok: false });
+        const s = (() => { try { return JSON.parse(fs.readFileSync(path.join(DATA, 'plan.json'), 'utf8')); } catch (e) { return {}; } })();
+        s[prog] = s[prog] || {}; s[prog][k] = s[prog][k] || {};
+        if (typeof body.status === 'string') s[prog][k].status = body.status;
+        try { fs.writeFileSync(path.join(DATA, 'plan.json'), JSON.stringify(s, null, 1)); } catch (e) {}
         return sendJson(res, { ok: true });
       }
       if (p === '/api/programs') {

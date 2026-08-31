@@ -45,6 +45,8 @@ const LANGS = [
 ];
 const I18N = {
   fr: {
+    pl_title: 'Plan de travail', pl_empty: 'pas encore de plan : lance RECON dans la carte du dessus, les hypotheses tombent ici (statuts persistes)', pl_run: 'Lancer', pl_reflect: 'canary reflechi', st_do: 'a faire', st_test: 'teste', st_signal: 'signal', st_valid: 'valide', st_void: 'rien',
+    atk_btn: 'ATTACK', atk_start: 'attack de la surface : endpoints, docs exposes, JWT, secrets...', atk_fail: 'attack impossible : lance RECON d abord', atk_none: 'aucun signal', atk_findings: 'candidats', atk_done: 'ATTACK : {n} candidates P1/P2 injectees dans les findings avec preuve', atk_empty: 'pas encore d attack : lance RECON puis ATTACK - les candidates avec preuve req/res tombent ici',
     navh: 'HUNT', h2hunt: 'HUNT - surface reelle et preuves', h_ready: 'pret', h_empty: 'aucune surface connue : lance RECON pour cartographier pages, endpoints API, params, bundles JS et sous-domaines', h_fnd: 'Findings du programme', h_nofnd: 'aucun finding sur ce programme',
     rc_btn: 'RECON', rc_start: 'recon de la surface en cours : pages, bundles JS, endpoints, params...',
     rc_done: 'surface cartographiee : endpoints, params et sous-domaines listes dans la carte du programme', rc_fail: 'recon echoue : host injoignable ou scope vide', rc_surface: 'surface :',
@@ -113,6 +115,8 @@ const I18N = {
     w_me: 'OPERATOR', w_claude: 'CLAUDE', w_ia: 'IA', w_launch: '⚡ LANCEMENT',
   },
   en: {
+    pl_title: 'Work plan', pl_empty: 'no plan yet: run RECON in the card above, hypotheses land here (statuses persist)', pl_run: 'Run', pl_reflect: 'canary reflected', st_do: 'todo', st_test: 'tested', st_signal: 'signal', st_valid: 'confirmed', st_void: 'nothing',
+    atk_btn: 'ATTACK', atk_start: 'attacking the surface: endpoints, exposed docs, JWT, secrets...', atk_fail: 'attack failed: run RECON first', atk_none: 'no signal', atk_findings: 'candidates', atk_done: 'ATTACK: {n} P1/P2 candidates injected into findings with proof', atk_empty: 'no attack yet: run RECON then ATTACK - req/res proof candidates land here',
     navh: 'HUNT', h2hunt: 'HUNT - real surface and findings', h_ready: 'ready', h_empty: 'no surface yet: run RECON to map pages, API endpoints, params, JS bundles and subdomains', h_fnd: 'Program findings', h_nofnd: 'no findings for this program',
     rc_btn: 'RECON', rc_start: 'recon of the attack surface: pages, JS bundles, endpoints, params...',
     rc_done: 'surface mapped: endpoints, params and subdomains listed in the program card', rc_fail: 'recon failed: host unreachable or empty scope', rc_surface: 'surface:',
@@ -181,6 +185,8 @@ const I18N = {
     tm_mic_denied: 'microphone denied or unavailable: HTTPS required (WORLD tunnel or localhost) and permission must be granted',
   },
   es: {
+    pl_title: 'Plan de trabajo', pl_empty: 'sin plan todavía: lanza RECON en la tarjeta de arriba, las hipótesis caen aquí (estados persisten)', pl_run: 'Lanzar', pl_reflect: 'canary reflejado', st_do: 'por hacer', st_test: 'probado', st_signal: 'señal', st_valid: 'confirmado', st_void: 'nada',
+    atk_btn: 'ATTACK', atk_start: 'atacando la superficie: endpoints, docs expuestos, JWT, secretos...', atk_fail: 'ataque falló: lanza RECON primero', atk_none: 'sin señales', atk_findings: 'candidatos', atk_done: 'ATTACK: {n} candidatos P1/P2 inyectados en hallazgos con prueba', atk_empty: 'sin ataque todavía: lanza RECON luego ATTACK - los candidatos con prueba req/res caen aquí',
     navh: 'HUNT', h2hunt: 'HUNT - superficie real y hallazgos', h_ready: 'listo', h_empty: 'sin superficie todavía: lanza RECON para mapear páginas, endpoints API, parámetros, bundles JS y subdominios', h_fnd: 'Hallazgos del programa', h_nofnd: 'sin hallazgos para este programa',
     rc_btn: 'RECON', rc_start: 'recon de la superficie: páginas, bundles JS, endpoints, parámetros...',
     rc_done: 'superficie cartografiada: endpoints, parámetros y subdominios listados en la tarjeta', rc_fail: 'recon falló: host inaccesible o scope vacío', rc_surface: 'superficie:',
@@ -249,6 +255,8 @@ const I18N = {
     tm_mic_denied: 'micrófono denegado o no disponible: se requiere HTTPS (túnel MUNDO o localhost) y conceder el permiso',
   },
   de: {
+    pl_title: 'Arbeitsplan', pl_empty: 'noch kein Plan: RECON in der Karte oben starten, Hypothesen landen hier (Status bleiben erhalten)', pl_run: 'Starten', pl_reflect: 'Kanary reflektiert', st_do: 'offen', st_test: 'getestet', st_signal: 'Signal', st_valid: 'bestätigt', st_void: 'nichts',
+    atk_btn: 'ATTACK', atk_start: 'Angriff auf die Fläche: Endpoints, offene Docs, JWT, Secrets...', atk_fail: 'Angriff fehlgeschlagen: erst RECON starten', atk_none: 'kein Signal', atk_findings: 'Kandidaten', atk_done: 'ATTACK: {n} P1/P2-Kandidaten mit Beweis in die Funde injiziert', atk_empty: 'noch kein Angriff: erst RECON dann ATTACK - Kandidaten mit req/res-Beweis landen hier',
     navh: 'HUNT', h2hunt: 'HUNT - echte Fläche und Funde', h_ready: 'bereit', h_empty: 'noch keine Fläche: RECON starten, um Seiten, API-Endpoints, Parameter, JS-Bundles und Subdomains zu kartieren', h_fnd: 'Funde des Programms', h_nofnd: 'keine Funde für dieses Programm',
     rc_btn: 'RECON', rc_start: 'Recon der Angriffsfläche: Seiten, JS-Bundles, Endpoints, Parameter...',
     rc_done: 'Fläche kartiert: Endpoints, Parameter und Subdomains in der Karte gelistet', rc_fail: 'Recon fehlgeschlagen: Host nicht erreichbar oder Scope leer', rc_surface: 'Fläche:',
@@ -315,6 +323,8 @@ const I18N = {
     tm_mic_denied: 'Mikrofon verweigert oder nicht verfügbar: HTTPS nötig (WELT-Tunnel oder localhost) und Berechtigung erteilen',
   },
   pt: {
+    pl_title: 'Plano de trabalho', pl_empty: 'sem plano ainda: rode RECON no cartão acima, as hipóteses caem aqui (estados persistem)', pl_run: 'Executar', pl_reflect: 'canary refletido', st_do: 'a fazer', st_test: 'testado', st_signal: 'sinal', st_valid: 'validado', st_void: 'nada',
+    atk_btn: 'ATTACK', atk_start: 'atacando a superfície: endpoints, docs expostos, JWT, segredos...', atk_fail: 'ataque falhou: execute RECON primeiro', atk_none: 'sem sinais', atk_findings: 'candidatos', atk_done: 'ATTACK: {n} candidatos P1/P2 injetados nos achados com prova', atk_empty: 'sem ataque ainda: rode RECON depois ATTACK - candidatos com prova req/res caem aqui',
     navh: 'HUNT', h2hunt: 'HUNT - superfície real e achados', h_ready: 'pronto', h_empty: 'sem superfície ainda: execute RECON para mapear páginas, endpoints de API, parâmetros, bundles JS e subdomínios', h_fnd: 'Achados do programa', h_nofnd: 'nenhum achado neste programa',
     rc_btn: 'RECON', rc_start: 'recon da superfície: páginas, bundles JS, endpoints, parâmetros...',
     rc_done: 'superfície mapeada: endpoints, parâmetros e subdomínios listados no cartão', rc_fail: 'recon falhou: host inacessível ou escopo vazio', rc_surface: 'superfície:',
@@ -381,6 +391,8 @@ const I18N = {
     tm_mic_denied: 'microfone recusado ou indisponível: HTTPS obrigatório (túnel MUNDO ou localhost) e conceder a permissão',
   },
   it: {
+    pl_title: 'Piano di lavoro', pl_empty: 'nessun piano ancora: avvia RECON nella scheda sopra, le ipotesi arrivano qui (stati persistiti)', pl_run: 'Esegui', pl_reflect: 'canary riflesso', st_do: 'da fare', st_test: 'testato', st_signal: 'segnale', st_valid: 'confermato', st_void: 'niente',
+    atk_btn: 'ATTACK', atk_start: 'attacco alla superficie: endpoint, documenti esposti, JWT, segreti...', atk_fail: 'attacco fallito: avvia prima RECON', atk_none: 'nessun segnale', atk_findings: 'candidati', atk_done: 'ATTACK: {n} candidati P1/P2 iniettati nei reperti con prova', atk_empty: 'nessun attacco ancora: avvia RECON poi ATTACK - i candidati con prova req/res arrivano qui',
     navh: 'HUNT', h2hunt: 'HUNT - superficie reale e reperti', h_ready: 'pronto', h_empty: 'nessuna superficie: avvia RECON per mappare pagine, endpoint API, parametri, bundle JS e sottodomini', h_fnd: 'Reperti del programma', h_nofnd: 'nessun reperto per questo programma',
     rc_btn: 'RECON', rc_start: 'recon della superficie: pagine, bundle JS, endpoint, parametri...',
     rc_done: 'superficie mappata: endpoint, parametri e sottodomini elencati nella scheda', rc_fail: 'recon fallito: host irraggiungibile o scope vuoto', rc_surface: 'superficie:',
@@ -447,6 +459,8 @@ const I18N = {
     tm_mic_denied: 'microfono negato o non disponibile: serve HTTPS (tunnel MONDO o localhost) e concedere il permesso',
   },
   ar: {
+    pl_title: 'خطة العمل', pl_empty: 'لا خطة بعد : شغّل الاستكشاف في البطاقة أعلاه، الفرضيات تظهر هنا (الحالات محفوظة)', pl_run: 'تشغيل', pl_reflect: 'القنارة منعكسة', st_do: 'للتنفيذ', st_test: 'مختبَر', st_signal: 'إشارة', st_valid: 'مؤكد', st_void: 'لا شيء',
+    atk_btn: 'هجوم', atk_start: 'مهاجمة السطح : نقاط النهاية، المستندات المكشوفة، JWT، الأسرار...', atk_fail: 'فشل الهجوم : شغّل الاستكشاف أولا', atk_none: 'لا إشارات', atk_findings: 'مرشحون', atk_done: 'هجوم : {n} مرشح P1/P2 أُدرج في النتائج مع الدليل', atk_empty: 'لا هجوم بعد : شغّل الاستكشاف ثم الهجوم - المرشحون مع دليل req/res يظهرون هنا',
     navh: 'الصيد', h2hunt: 'الصيد - السطح الحقيقي والنتائج', h_ready: 'جاهز', h_empty: 'لا يوجد سطح بعد : شغّل الاستكشاف لرسم الصفحات ونقاط النهاية والمعاملات وحزم JS والنطاقات الفرعية', h_fnd: 'نتائج البرنامج', h_nofnd: 'لا نتائج لهذا البرنامج',
     rc_btn: 'استكشاف', rc_start: 'استكشاف السطح : الصفحات، حزم JS، نقاط النهاية، المعاملات...',
     rc_done: 'تم رسم السطح : نقاط النهاية والمعاملات والنطاقات الفرعية في البطاقة', rc_fail: 'فشل الاستكشاف : المضيف غير متاح أو النطاق فارغ', rc_surface: 'السطح:',
@@ -513,6 +527,8 @@ const I18N = {
     tm_mic_denied: 'الميكروفون مرفوض أو غير متاح: HTTPS مطلوب (نفق عالم أو localhost) مع منح الإذن',
   },
   zh: {
+    pl_title: '工作计划', pl_empty: '尚无计划 : 在上方卡片运行侦察，假设落在这里（状态持久保留）', pl_run: '运行', pl_reflect: '金丝雀被反射', st_do: '待办', st_test: '已测试', st_signal: '信号', st_valid: '已确认', st_void: '无结果',
+    atk_btn: '攻击', atk_start: '正在攻击攻击面：端点、暴露文档、JWT、机密...', atk_fail: '攻击失败 : 先运行侦察', atk_none: '无信号', atk_findings: '候选', atk_done: '攻击 : {n} 个 P1/P2 候选已带证据注入发现', atk_empty: '尚未攻击 : 先侦察再攻击 - 带 req/res 证据的候选落在这里',
     navh: '狩猎', h2hunt: '狩猎 - 真实攻击面与发现', h_ready: '就绪', h_empty: '尚无攻击面 : 运行侦察以绘制页面、API 端点、参数、JS 包和子域', h_fnd: '项目发现', h_nofnd: '该项目暂无发现',
     rc_btn: '侦察', rc_start: '正在侦察攻击面：页面、JS 包、端点、参数...',
     rc_done: '攻击面已测绘：端点、参数和子域已列入卡片', rc_fail: '侦察失败：主机不可达或范围 为空', rc_surface: '攻击面:',
@@ -579,6 +595,8 @@ const I18N = {
     tm_mic_denied: '麦克风被拒绝或不可用：需要 HTTPS（世界隧道或 localhost）并授权麦克风',
   },
   ru: {
+    pl_title: 'План работы', pl_empty: 'плана ещё нет : запустите рекон в карточке выше, гипотезы упадут здесь (статусы сохраняются)', pl_run: 'Запуск', pl_reflect: 'канарейка отражена', st_do: 'к выполнению', st_test: 'проверено', st_signal: 'сигнал', st_valid: 'подтверждено', st_void: 'пусто',
+    atk_btn: 'АТАКА', atk_start: 'атака на поверхность: эндпоинты, открытые доки, JWT, секреты...', atk_fail: 'атака не удалась : сначала запустите рекон', atk_none: 'сигналов нет', atk_findings: 'кандидаты', atk_done: 'АТАКА : {n} кандидатов P1/P2 влиты в находки с доказательством', atk_empty: 'атаки ещё не было : сначала рекон потом атака - кандидаты с доказательством req/res падают здесь',
     navh: 'ХАНТ', h2hunt: 'ХАНТ - реальная поверхность и находки', h_ready: 'готов', h_empty: 'поверхности нет : запустите рекон, чтобы собрать страницы, эндпоинты API, параметры, JS-бандлы и субдомены', h_fnd: 'Находки программы', h_nofnd: 'нет находок по этой программе',
     rc_btn: 'РЕКОН', rc_start: 'рекон поверхности: страницы, JS-бандлы, эндпоинты, параметры...',
     rc_done: 'поверхность закартографирована: эндпоинты, параметры и субдомены в карточке', rc_fail: 'рекон не удался: хост недоступен или scope пуст', rc_surface: 'поверхность:',
@@ -645,6 +663,8 @@ const I18N = {
     tm_mic_denied: 'микрофон отклонён или недоступен: требуется HTTPS (мировой туннель или localhost) и разрешение доступа',
   },
   ja: {
+    pl_title: '作業プラン', pl_empty: 'プラン未作成 : 上のカードで偵察を実行すると仮説がここに落ちる（ステータスは保持）', pl_run: '実行', pl_reflect: 'カナリア反映あり', st_do: '未着手', st_test: 'テスト済み', st_signal: 'シグナル', st_valid: '確定', st_void: '無し',
+    atk_btn: 'アタック', atk_start: '攻撃面を攻撃中 : エンドポイント、公開ドキュメント、JWT、シークレット...', atk_fail: '攻撃失敗 : まず偵察を実行', atk_none: '信号なし', atk_findings: '候補', atk_done: 'アタック : {n} 件の P1/P2 候補を証明付きで発見へ注入', atk_empty: 'アタック未実行 : 偵察→アタックの順で - req/res 証明付き候補がここに落ちる',
     navh: 'ハント', h2hunt: 'ハント - 実攻撃面と発見', h_ready: '準備完了', h_empty: '攻撃面なし : 偵察を実行してページ・APIエンドポイント・パラメータ・JSバンドル・サブドメインを収集', h_fnd: 'プログラムの発見', h_nofnd: 'このプログラムの発見なし',
     rc_btn: 'RECON', rc_start: '攻撃面を偵察中：ページ、JSバンドル、エンドポイント、パラメータ...',
     rc_done: '攻撃面をマッピング完了：エンドポイント・パラメータ・サブドメインをカードに表示', rc_fail: '偵察失敗：ホストに到達不可能かスコープが空', rc_surface: '攻撃面:',
@@ -711,6 +731,8 @@ const I18N = {
     tm_mic_denied: 'マイクが拒否か利用不可：HTTPS（ワールドトンネルか localhost）と権限の許可が必要',
   },
   ko: {
+    pl_title: '작업 플랜', pl_empty: '플랜 없음 : 위 카드에서 정찰 실행, 가설이 여기에 떨어짐 (상태 유지)', pl_run: '실행', pl_reflect: '카나리아 반사됨', st_do: '할 일', st_test: '테스트됨', st_signal: '시그널', st_valid: '확정', st_void: '없음',
+    atk_btn: '어택', atk_start: '공격면 공격 중: 엔드포인트, 노출 문서, JWT, 시크릿...', atk_fail: '어택 실패 : 먼저 정찰 실행', atk_none: '신호 없음', atk_findings: '후보', atk_done: '어택 : P1/P2 후보 {n} 건 증명과 함께 발견에 주입됨', atk_empty: '아직 어택 없음 : 정찰 후 어택 - req/res 증거가 붙은 후보가 여기에 떨어짐',
     navh: '헌트', h2hunt: '헌트 - 실제 공격면과 발견', h_ready: '준비됨', h_empty: '공격면 없음 : 정찰을 실행해 페이지·API 엔드포인트·파라미터·JS 번들·서브도메인을 수집', h_fnd: '프로그램 발견', h_nofnd: '이 프로그램의 발견 없음',
     rc_btn: '정찰', rc_start: '공격면 정찰 중: 페이지, JS 번들, 엔드포인트, 파라미터...',
     rc_done: '공격면 매핑 완료: 엔드포인트·파라미터·서브도메인이 카드에 표시됨', rc_fail: '정찰 실패: 호스트 접근 불가 또는 범위 비어 있음', rc_surface: '공격면:',
@@ -777,6 +799,8 @@ const I18N = {
     tm_mic_denied: '마이크 거부 또는 불가: HTTPS(월드 터널 또는 localhost)와 권한 허용 필요',
   },
   hi: {
+    pl_title: 'कार्य योजना', pl_empty: 'कोई योजना नहीं : ऊपर कार्ड में रीकॉन चलाएँ, परिकल्पनाएँ यहाँ आती हैं (स्टेटस संरक्षित रहते हैं)', pl_run: 'चलाएँ', pl_reflect: 'कैनरी रिफ्लेक्टेड', st_do: 'करना है', st_test: 'टेस्टेड', st_signal: 'सिग्नल', st_valid: 'पक्का', st_void: 'कुछ नहीं',
+    atk_btn: 'अटैक', atk_start: 'सरफ़ेस पर अटैक : एंडपॉइंट, खुले डॉक्स, JWT, सीक्रेट्स...', atk_fail: 'अटैक विफल : पहले रीकॉन चलाएँ', atk_none: 'कोई सिग्नल नहीं', atk_findings: 'कैंडिडेट', atk_done: 'अटैक : {n} P1/P2 कैंडिडेट प्रमाण सहित फाइंडिंग्स में डाले गए', atk_empty: 'अटैक बाकी : पहले रीकॉन फिर अटैक - req/res प्रमाण वाले कैंडिडेट यहाँ आते हैं',
     navh: 'हंट', h2hunt: 'हंट - वास्तविक सरफ़ेस और फाइंडिंग्स', h_ready: 'तैयार', h_empty: 'कोई सरफ़ेस नहीं : पेज, API एंडपॉइंट, पैरामीटर, JS बंडल और सबडोमेन मैप करने के लिए रीकॉन चलाएँ', h_fnd: 'प्रोग्राम फाइंडिंग्स', h_nofnd: 'इस प्रोग्राम की कोई फाइंडिंग नहीं',
     rc_btn: 'रीकॉन', rc_start: 'सरफ़ेस रीकॉन चल रहा है : पेज, JS बंडल, एंडपॉइंट, पैरामीटर...',
     rc_done: 'सरफ़ेस मैप हो गया : एंडपॉइंट, पैरामीटर और सबडोमेन कार्ड में सूचीबद्ध', rc_fail: 'रीकॉन विफल : होस्ट अनुपलब्ध या स्कोप खाली', rc_surface: 'सरफ़ेस:',
@@ -1048,7 +1072,7 @@ function drawPrograms() {
 }
 
 // ---------- HUNT tab : surface reelle + preuves du programme ----------
-let huntSel = '', SURF = {}, SURF_READY = false;
+let huntSel = '', SURF = {}, SURF_READY = false, ATKS = {}, ATKS_READY = false;
 function surfFor(id) {
   if (!SURF_READY && !SURF[id]) {
     SURF_READY = true;
@@ -1056,10 +1080,17 @@ function surfFor(id) {
   }
   return SURF[id];
 }
+function atkFor(id) {
+  if (!ATKS_READY && !ATKS[id]) {
+    ATKS_READY = true;
+    fetch('/api/attack').then(r => r.json()).then(a => { ATKS = a || {}; if (state.tab === 'hunt') { drawn.hunt = ''; drawHunt(); } }).catch(() => {});
+  }
+  return ATKS[id];
+}
 function drawHunt() {
   const progs = state.data.programs;
   if (!huntSel || !progs.some(p => p.id === huntSel)) huntSel = progs.length ? progs[0].id : '';
-  const sig = JSON.stringify([progs.map(p => p.id), huntSel, SURF_READY ? '1' : '0', state.data.findings.length]);
+  const sig = JSON.stringify([progs.map(p => p.id), huntSel, SURF_READY ? '1' : '0', ATKS_READY ? '1' : '0', state.data.findings.length]);
   if (sig === drawn.hunt && !forceDraw) return;
   if (focusInside('huntProg')) return;
   drawn.hunt = sig;
@@ -1085,6 +1116,30 @@ function drawHunt() {
       rows('JS', (s.jsfiles || []).map(x => x.replace(/^https?:\/\//, '')), 15) +
       rows('SUBS', s.subs, 25);
   }
+  // attack : candidates avec preuve
+  const a = atkFor(huntSel);
+  const aOut = $('huntAtkOut');
+  if (a && a.findings) {
+    const sevColor = { P1: 'var(--danger)', P2: 'var(--warn)' };
+    aOut.innerHTML =
+      '<div class="card" style="margin-top:12px">' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline">' +
+      '<b style="color:var(--green);font-size:12.5px">⚔ ATTACK</b>' +
+      '<small style="color:var(--faint)">' + esc(a.reqs || 0) + ' req · ' + (a.ep || 0) + ' endpoints · ' + (a.js || 0) + ' bundles · ' + Math.round((a.ms || 0) / 100) / 10 + ' s · ' + esc(a.ts ? a.ts.slice(0, 16).replace('T', ' ') : '') + '</small>' +
+      '<span class="pill" style="color:' + ((a.findings || []).some(f => f.sev === 'P1' || f.sev === 'P2') ? 'var(--warn)' : 'var(--green)') + '">' + (a.findings.length ? a.findings.length + ' ' + T('atk_findings') : T('atk_none')) + '</span></div>' +
+      (a.findings.map(f =>
+        '<div class="fnd S-' + esc(f.sev) + '" style="margin-top:7px"><div class="fh">' +
+        '<span class="sev">' + esc(f.sev) + '</span><span class="pill">' + esc(f.mod) + '</span>' +
+        '<small style="color:var(--dim)">' + esc(f.title) + '</small></div>' +
+        '<div class="txt" style="font-family:monospace;font-size:10px;white-space:pre-wrap">req : ' + esc(f.req) + '\nres : ' + esc(f.res) + '</div></div>').join('') || '') +
+      '</div>';
+  } else if (huntSel) {
+    aOut.innerHTML = '<div class="card" style="margin-top:12px"><div class="subtle" style="color:var(--faint);font-size:11px">' + T('atk_empty') + '</div></div>';
+  } else aOut.innerHTML = '';
+
+  // plan de travail
+  drawPlanCard();
+
   // findings du programme
   const mine = state.data.findings.filter(f => (f.program || '').toLowerCase() === huntSel.toLowerCase());
   $('huntFnd').innerHTML =
@@ -1094,6 +1149,69 @@ function drawHunt() {
       '<small style="color:var(--dim)">' + esc(f.id) + ' · ' + esc(f.run) + ' · ' + esc(f.agent) + ' · ' + new Date(f.t).toLocaleTimeString('fr-FR') + '</small></div>' +
       '<div class="txt">' + hl(f.text) + '</div></div>').join('') ||
       '<div class="subtle" style="color:var(--faint);font-size:11px">' + T('h_nofnd') + '</div>');
+}
+// ---- plan de travail : hypotheses du recon, exec + statuts persistes ----
+let PLAN_ITEMS = null, PLAN_SEL = '';
+const PL_ST = () => [['', '▶ ' + T('st_do')], ['test', '⟳ ' + T('st_test')], ['signal', '⭐ ' + T('st_signal')], ['valide', '✔ ' + T('st_valid')], ['void', '✗ ' + T('st_void')]];
+function renderPlan() {
+  const box = $('huntPlan');
+  if (!huntSel) { box.innerHTML = ''; return; }
+  if (!PLAN_ITEMS) { box.innerHTML = '<div class="card" style="margin-top:12px"><div class="subtle" style="color:var(--faint);font-size:11px">⟳ ' + T('pl_title') + '…</div></div>'; return; }
+  if (!PLAN_ITEMS.length) { box.innerHTML = '<div class="card" style="margin-top:12px"><div class="subtle" style="color:var(--faint);font-size:11px">' + T('pl_empty') + '</div></div>'; return; }
+  box.innerHTML =
+    '<h2 style="margin:14px 0 6px">☰ ' + T('pl_title') + ' <small style="color:var(--faint)">(' + PLAN_ITEMS.length + ')</small></h2>' +
+    PLAN_ITEMS.map(it =>
+      '<div class="card" style="padding:9px 11px;margin-bottom:7px' + (it.status === 'valide' ? ';border-color:var(--green)' : it.status === 'signal' ? ';border-color:var(--warn)' : it.status === 'void' ? ';opacity:.55' : '') + '">' +
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+      '<span class="pill">' + esc(it.cat) + '</span>' +
+      (it.status === 'valide' ? '<span class="pill" style="color:var(--green)">✔ ' + T('st_valid') + '</span>' : '') +
+      (it.status === 'signal' ? '<span class="pill" style="color:var(--warn)">⭐ ' + T('st_signal') + '</span>' : '') +
+      '<small style="color:var(--dim);font-size:10.5px;flex:1;min-width:200px">' + esc(it.why) + '</small>' +
+      '<select class="plstat" data-k="' + esc(it.k) + '" style="width:120px;padding:4px 6px">' +
+      PL_ST().map(s => '<option value="' + s[0] + '"' + (it.status === s[0] ? ' selected' : '') + '>' + s[1] + '</option>').join('') + '</select>' +
+      '<button class="ghost plcopy" data-k="' + esc(it.k) + '" style="padding:4px 8px">⧉</button>' +
+      (it.run ? '<button class="go plrun" data-k="' + esc(it.k) + '" style="padding:4px 10px;font-size:10.5px">' + T('pl_run') + ' ›</button>' : '') +
+      '</div>' +
+      '<div style="margin-top:5px;font-family:monospace;font-size:10px;color:hsl(var(--hue) 55% 80%);word-break:break-all;cursor:pointer" class="plcopy" data-k="' + esc(it.k) + '">' + esc(it.curl) + '</div>' +
+      (it.ev ? '<div style="margin-top:4px;font-family:monospace;font-size:10px;color:var(--dim);white-space:pre-wrap">' +
+        (it.ev.res && it.ev.res.toLowerCase().includes('c2ff9q81z') ? '⚠ ' + T('pl_reflect') + ' - ' : '') +
+        esc(it.ev.code) + ' · ' + esc(it.ev.len) + ' o<br>' + esc(it.ev.res) + '</div>' : '') +
+      '</div>'
+    ).join('');
+}
+function planItem(k) { return (PLAN_ITEMS || []).find(x => x.k === k); }
+$('huntPlan').addEventListener('click', e => {
+  const c = e.target.closest('.plcopy'); if (!c) return;
+  const it = planItem(c.dataset.k); if (it) copyText(it.curl);
+});
+$('huntPlan').addEventListener('change', e => {
+  const s = e.target.closest('.plstat'); if (!s) return;
+  const it = planItem(s.dataset.k); if (!it) return;
+  it.status = s.value;
+  jpost('/api/planpatch', { name: huntSel, k: it.k, status: it.status });
+  drawn.hunt = ''; renderPlan();
+});
+$('huntPlan').addEventListener('click', e => {
+  const b = e.target.closest('.plrun'); if (!b) return;
+  const it = planItem(b.dataset.k); if (!it) return;
+  b.disabled = true; b.textContent = '⟳';
+  jpost('/api/planrun', { name: huntSel, k: it.k }).then(r => r.json()).then(j => {
+    b.disabled = false; b.textContent = T('pl_run') + ' ›';
+    if (!j.ok || !j.ev) { toast('PLAN', j.err || T('atk_fail'), 'P2'); sndPlay('err'); return; }
+    it.ev = j.ev;
+    const refl = j.ev.res && j.ev.res.toLowerCase().includes('c2ff9q81z');
+    if (refl) sndPlay('p2'); else sndPlay('click');
+    drawn.hunt = ''; renderPlan();
+  }).catch(() => { b.disabled = false; b.textContent = T('pl_run') + ' ›'; sndPlay('err'); });
+});
+function drawPlanCard() {
+  // plan charge une seule fois par programme, persiste cote serveur entre les visites
+  if (huntSel && PLAN_SEL !== huntSel) {
+    PLAN_SEL = huntSel; PLAN_ITEMS = null;
+    fetch('/api/plan?program=' + encodeURIComponent(huntSel)).then(r => r.json()).then(j => { PLAN_ITEMS = (j.items || []); drawn.hunt = ''; drawHunt(); }).catch(() => { PLAN_ITEMS = []; drawn.hunt = ''; });
+  }
+  if (!$('huntPlan') || (PLAN_ITEMS !== null && PLAN_SEL !== huntSel)) return;
+  renderPlan();
 }
 $('huntProg').addEventListener('change', () => { huntSel = $('huntProg').value; drawn.hunt = ''; drawHunt(); });
 $('huntRecon').addEventListener('click', () => {
@@ -1106,6 +1224,20 @@ $('huntRecon').addEventListener('click', () => {
     if (!j.ok || !j.surface) { $('huntSt').textContent = '✖'; sndPlay('err'); toast('RECON', T('rc_fail'), 'P2'); return; }
     SURF[p] = j.surface;
     sndPlay('hit'); toast('RECON', T('rc_done'), 'HIT');
+    drawn.hunt = ''; drawHunt();
+  }).catch(() => { b.disabled = false; $('huntSt').textContent = '✖'; sndPlay('err'); });
+});
+$('huntAtk').addEventListener('click', () => {
+  const p = huntSel; if (!p) return;
+  const b = $('huntAtk');
+  $('huntSt').textContent = '⚔'; $('huntSt').setAttribute('data-i', '');
+  b.disabled = true;
+  jpost('/api/attack', { name: p }).then(r => r.json()).then(j => {
+    b.disabled = false;
+    if (!j.ok || !j.attack) { $('huntSt').textContent = '✖'; sndPlay('err'); toast('ATTACK', T('atk_fail'), 'P2'); return; }
+    ATKS[p] = j.attack;
+    const n = (j.attack.findings || []).filter(f => f.sev === 'P1' || f.sev === 'P2').length;
+    sndPlay(n ? 'p1' : 'hit'); toast('ATTACK', n ? TF('atk_done', { n : String(n) }) : T('rc_done'), n ? 'P2' : 'HIT');
     drawn.hunt = ''; drawHunt();
   }).catch(() => { b.disabled = false; $('huntSt').textContent = '✖'; sndPlay('err'); });
 });
