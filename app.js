@@ -45,6 +45,8 @@ const LANGS = [
 ];
 const I18N = {
   fr: {
+    nt_on: 'NOTIFS : ON', nt_off: 'NOTIFS : OFF', nt_ok: 'notifications navigateur activees - bip sur P1 et P2',
+    nt_denied: 'notifications bloquees par le navigateur : autorise-les dans les reglages du site',
     term_denied: 'terminal refuse ou indisponible : localhost requis, ou salle OUVERTE en tant qu admin',
     term_p: 'bash reel - history fleches, Ctrl+C interrompt, Ctrl+D ferme', term_restart: 'Reinitialiser',
     navtrm: 'TERM', term_h2: 'Terminal - shell de travail, direct dans la console',
@@ -104,6 +106,8 @@ const I18N = {
     w_me: 'OPERATOR', w_claude: 'CLAUDE', w_ia: 'IA', w_launch: '⚡ LANCEMENT',
   },
   en: {
+    nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'browser notifications enabled - P1 and P2 beeped',
+    nt_denied: 'notifications blocked by the browser: allow them in the site settings',
     term_denied: 'terminal denied or unavailable: localhost required, or an OPEN room as admin',
     term_p: 'real bash - arrow-up history, Ctrl+C interrupts, Ctrl+D closes', term_restart: 'Reset',
     navtrm: 'TERM', term_h2: 'Terminal - working shell, right in the console',
@@ -163,6 +167,8 @@ const I18N = {
     tm_mic_denied: 'microphone denied or unavailable: HTTPS required (WORLD tunnel or localhost) and permission must be granted',
   },
   es: {
+    nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'notificaciones del navegador activadas - bip en P1 y P2',
+    nt_denied: 'notificaciones bloqueadas por el navegador: permítelas en los ajustes del sitio',
     term_denied: 'terminal denegado o no disponible: se requiere localhost, o sala ABIERTA como admin',
     term_p: 'bash real - historial con flechas, Ctrl+C interrumpe, Ctrl+D cierra', term_restart: 'Reiniciar',
     navtrm: 'TERM', term_h2: 'Terminal - shell de trabajo, en la propia consola',
@@ -222,6 +228,8 @@ const I18N = {
     tm_mic_denied: 'micrófono denegado o no disponible: se requiere HTTPS (túnel MUNDO o localhost) y conceder el permiso',
   },
   de: {
+    nt_on: 'NOTIFS: AN', nt_off: 'NOTIFS: AUS', nt_ok: 'Browser-Benachrichtigungen aktiv - Piepen bei P1 und P2',
+    nt_denied: 'Benachrichtigungen vom Browser blockiert: in den Seiteneinstellungen erlauben',
     term_denied: 'Terminal verweigert oder nicht verfügbar: localhost nötig, oder offener Raum als Admin',
     term_p: 'echte Bash - Verlauf mit Pfeiltasten, Ctrl+C bricht ab, Ctrl+D schließt', term_restart: 'Zurücksetzen',
     navtrm: 'TERM', term_h2: 'Terminal - Arbeitsshell direkt in der Konsole',
@@ -279,6 +287,8 @@ const I18N = {
     tm_mic_denied: 'Mikrofon verweigert oder nicht verfügbar: HTTPS nötig (WELT-Tunnel oder localhost) und Berechtigung erteilen',
   },
   pt: {
+    nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'notificações do navegador ativas - bip em P1 e P2',
+    nt_denied: 'notificações bloqueadas pelo navegador: permita-as nas configurações do site',
     term_denied: 'terminal recusado ou indisponível: localhost necessário, ou sala ABERTA como admin',
     term_p: 'bash real - histórico com setas, Ctrl+C interrompe, Ctrl+D fecha', term_restart: 'Reiniciar',
     navtrm: 'TERM', term_h2: 'Terminal - shell de trabalho, na própria consola',
@@ -336,6 +346,8 @@ const I18N = {
     tm_mic_denied: 'microfone recusado ou indisponível: HTTPS obrigatório (túnel MUNDO ou localhost) e conceder a permissão',
   },
   it: {
+    nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'notifiche del browser attive - bip su P1 e P2',
+    nt_denied: 'notifiche bloccate dal browser: autorizzale nelle impostazioni del sito',
     term_denied: 'terminale negato o non disponibile: serve localhost, o stanza APERTA come admin',
     term_p: 'bash reale - cronologia con frecce, Ctrl+C interrompe, Ctrl+D chiude', term_restart: 'Reimposta',
     navtrm: 'TERM', term_h2: 'Terminale - shell di lavoro, direttamente nella console',
@@ -393,6 +405,8 @@ const I18N = {
     tm_mic_denied: 'microfono negato o non disponibile: serve HTTPS (tunnel MONDO o localhost) e concedere il permesso',
   },
   ar: {
+    nt_on: 'الإشعارات: تشغيل', nt_off: 'الإشعارات: إيقاف', nt_ok: 'تم تفعيل إشعارات المتصفح - نغمة على P1 و P2',
+    nt_denied: 'الإشعارات محجوبة من المتصفح: اسمح بها من إعدادات الموقع',
     term_denied: 'الطرفية مرفوضة أو غير متاحة: localhost مطلوب، أو غرفة مفتوحة بصلاحية مشرف',
     term_p: 'bash حقيقي - السجل بالأسهم، Ctrl+C يقطع، Ctrl+D يغلق', term_restart: 'إعادة تعيين',
     navtrm: 'طرفية', term_h2: 'الطرفية - قشرة عمل في الكونسول مباشرة',
@@ -450,6 +464,8 @@ const I18N = {
     tm_mic_denied: 'الميكروفون مرفوض أو غير متاح: HTTPS مطلوب (نفق عالم أو localhost) مع منح الإذن',
   },
   zh: {
+    nt_on: '通知: 开', nt_off: '通知: 关', nt_ok: '浏览器通知已开启 - P1 和 P2 会有提示音',
+    nt_denied: '浏览器通知被拦截：请在站点设置中允许',
     term_denied: '终端被拒绝或不可用：需要 localhost，或以管理员身份开启房间',
     term_p: '真实 bash - 方向键调历史, Ctrl+C 中断, Ctrl+D 关闭', term_restart: '重置',
     navtrm: '终端', term_h2: '终端 - 直接在控制台里的工作 shell',
@@ -507,6 +523,8 @@ const I18N = {
     tm_mic_denied: '麦克风被拒绝或不可用：需要 HTTPS（世界隧道或 localhost）并授权麦克风',
   },
   ru: {
+    nt_on: 'NOTIFS: ВКЛ', nt_off: 'NOTIFS: ВЫКЛ', nt_ok: 'уведомления браузера включены - писк на P1 и P2',
+    nt_denied: 'уведомления заблокированы браузером: разрешите в настройках сайта',
     term_denied: 'терминал отклонён или недоступен: нужен localhost или открытая комната с ролью админ',
     term_p: 'настоящий bash - история стрелками, Ctrl+C прерывает, Ctrl+D закрывает', term_restart: 'Сброс',
     navtrm: 'ТЕРМИНАЛ', term_h2: 'Терминал - рабочая оболочка прямо в консоли',
@@ -564,6 +582,8 @@ const I18N = {
     tm_mic_denied: 'микрофон отклонён или недоступен: требуется HTTPS (мировой туннель или localhost) и разрешение доступа',
   },
   ja: {
+    nt_on: '通知: ON', nt_off: '通知: OFF', nt_ok: 'ブラウザ通知を有効化 - P1 と P2 でビープ',
+    nt_denied: '通知がブラウザでブロック：サイト設定で許可して',
     term_denied: 'ターミナル拒否か利用不可：localhost か管理者としてルームを開く必要あり',
     term_p: '本物の bash - 履歴は矢印キー、Ctrl+C で中断、Ctrl+D で終了', term_restart: 'リセット',
     navtrm: 'ターミナル', term_h2: 'ターミナル - コンソール内の作業シェル',
@@ -621,6 +641,8 @@ const I18N = {
     tm_mic_denied: 'マイクが拒否か利用不可：HTTPS（ワールドトンネルか localhost）と権限の許可が必要',
   },
   ko: {
+    nt_on: '알림: ON', nt_off: '알림: OFF', nt_ok: '브라우저 알림 활성화 - P1과 P2에 삑',
+    nt_denied: '알림이 브라우저에서 차단됨: 사이트 설정에서 허용',
     term_denied: '터미널 거부 또는 불가: localhost 또는 관리자로 연 방 필요',
     term_p: '진짜 bash - 화살표로 히스토리, Ctrl+C 중단, Ctrl+D 종료', term_restart: '초기화',
     navtrm: '터미널', term_h2: '터미널 - 콘솔 안의 작업 셸',
@@ -678,6 +700,8 @@ const I18N = {
     tm_mic_denied: '마이크 거부 또는 불가: HTTPS(월드 터널 또는 localhost)와 권한 허용 필요',
   },
   hi: {
+    nt_on: 'सूचनाएं: ON', nt_off: 'सूचनाएं: OFF', nt_ok: 'ब्राउज़र सूचनाएं चालू - P1 और P2 पर बीप',
+    nt_denied: 'सूचनाएं ब्राउज़र में ब्लॉक हैं: साइट सेटिंग्स में अनुमति दें',
     term_denied: 'टर्मिनल अस्वीकृत या अनुपलब्ध: localhost या एडमिन के रूप में खुला कमरा चाहिए',
     term_p: 'असली bash - तीर से हिस्ट्री, Ctrl+C रोकें, Ctrl+D बंद करें', term_restart: 'रीसेट',
     navtrm: 'टर्मिनल', term_h2: 'टर्मिनल - कंसोल में ही काम का शेल',
@@ -1251,6 +1275,68 @@ const _initEntry = LANGS.find(x => x[0] === LANG);
 document.documentElement.dir = (_initEntry && _initEntry[2] === 'rtl') ? 'rtl' : 'ltr';
 applyI18n();
 
+// ---------- notifications navigateur ----------
+// popups OS (toutes les sevs + coordination + chat de session), bip sur P1 et P2.
+const NOTIF = { on: false, sound: true, lastTeamT: 0 };
+try { NOTIF.on = localStorage.getItem('c2ff-notifs') === 'on'; } catch (e) {}
+try { NOTIF.sound = localStorage.getItem('c2ff-notifs-sound') !== 'off'; } catch (e) {}
+let AC = null;
+const beep = freqs => {
+  if (!NOTIF.sound) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+    freqs.forEach((f, i) => {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.type = 'square'; o.frequency.value = f;
+      o.connect(g); g.connect(AC.destination);
+      const t0 = AC.currentTime + i * 0.18;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.12, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+      o.start(t0); o.stop(t0 + 0.18);
+    });
+  } catch (e) {}
+};
+const canNotify = () => 'Notification' in window && Notification.permission === 'granted';
+function popNotify(title, text, sev) {
+  if (sev === 'P1') beep([880, 1180]);
+  else if (sev === 'P2') beep([760]);
+  if (!canNotify()) return;
+  try {
+    const n = new Notification(title + ' - C2FF', { body: (text || '').slice(0, 160) });
+    n.addEventListener('click', () => { try { window.focus(); n.close(); } catch (e) {} });
+    setTimeout(() => { try { n.close(); } catch (e) {} }, 8000);
+  } catch (e) {}
+}
+function drawNotifBtn() {
+  const b = $('notifBtn');
+  if (!b) return;
+  b.textContent = NOTIF.on ? '🔔 ' + T('nt_on') : T('nt_off');
+  b.classList.toggle('mic-live', NOTIF.on);
+}
+$('notifBtn').addEventListener('click', () => {
+  if (!NOTIF.on) {
+    if (!('Notification' in window)) { toast('NOTIFS', 'Notification API absente', 'P3'); return; }
+    if (Notification.permission === 'denied') { toast('NOTIFS', T('nt_denied'), 'P2'); return; }
+    Notification.requestPermission().then(p => {
+      if (p === 'granted') {
+        NOTIF.on = true;
+        try { localStorage.setItem('c2ff-notifs', 'on'); } catch (e) {}
+        toast('NOTIFS', T('nt_ok'), 'HIT');
+        popNotify('C2FF', T('nt_ok'), '');
+      } else toast('NOTIFS', T('nt_denied'), 'P2');
+      drawNotifBtn();
+    });
+    return;
+  }
+  NOTIF.on = false;
+  try { localStorage.setItem('c2ff-notifs', 'off'); } catch (e) {}
+  toast('NOTIFS', T('nt_off'), '');
+  drawNotifBtn();
+});
+drawNotifBtn();
+
 // ---------- terminal de travail ----------
 // shell reel cote serveur (1 par identite), output en SSE, input en POST ligne par ligne.
 const TERM = { es: null, errs: 0, hi: 0, hist: [] };
@@ -1343,13 +1429,23 @@ async function refresh() {
     state.data = d;
     const topChat = d.chat[d.chat.length - 1];
     if (!state.firstLoad && d.chat.length > prevChat && topChat && topChat.kind === 'chat') {
-      toast('COORDINATION', (topChat.from === 'claude' ? T('w_claude') : esc(topChat.name) || T('w_me')) + ' : ' + (topChat.text || ''), '');
+      const who = topChat.from === 'claude' ? T('w_claude') : (topChat.name || T('w_me'));
+      toast('COORDINATION', who + ' : ' + (topChat.text || ''), '');
+      if (NOTIF.on) popNotify('COORDINATION · ' + who, topChat.text || '', '');
     }
     if (!state.firstLoad) {
       d.findings.slice(0, Math.max(0, d.findings.length - prevFnd)).forEach(f => {
+        if (NOTIF.on) popNotify('[' + (f.program || '').toUpperCase() + '] ' + f.run + ' · ' + f.agent, (f.sev || '') + ' - ' + (f.text || ''), f.sev);
         if (['P1', 'P2', 'HIT'].includes(f.sev)) toast('[' + (f.program || '').toUpperCase() + '] ' + f.run + ' · ' + f.agent, f.text, f.sev === 'P1' ? 'P1' : f.sev);
       });
     }
+    // notifications du chat de session (room active, messages des autres membres)
+    const tmc = (d.team || {}).chat || [];
+    const ttop = tmc[tmc.length - 1];
+    if (!state.firstLoad && (d.team || {}).enabled && ttop && ttop.t > (NOTIF.lastTeamT || 0) && ttop.name !== HANDLE) {
+      popNotify('SESSION · ' + (ttop.name || '?'), ttop.text || '', '');
+    }
+    if (ttop) NOTIF.lastTeamT = ttop.t;
     drawRuns(d.runs); drawFindings(); drawPrograms(); drawChat(); drawFleet(); drawAI(); drawTeam();
     // presence team : battement toutes les ~5 s (3 polls)
     if (state.tick % 3 === 0 && HANDLE) {
