@@ -43,6 +43,9 @@ h1 b{color:var(--green);font-weight:800}
 .sub{color:var(--muted);font-size:11.5px;letter-spacing:.4px;text-transform:uppercase}
 .clock{margin-left:auto;color:var(--faint);font-variant-numeric:tabular-nums}
 
+/* ── banner ── */
+.banner{width:100%;height:150px;object-fit:cover;object-position:center 30%;display:block;border-bottom:1px solid var(--line);margin-top:-1px}
+
 /* ── nav ── */
 nav{display:flex;gap:1px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:10}
 .navbtn{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);
@@ -165,6 +168,7 @@ footer b{color:var(--green);font-weight:700}
   <span class="sub">command &amp; control framework</span>
   <span class="clock" id="clock"></span>
 </header>
+<img class="banner" src="/banner.png" alt="C2FF command & control framework" height="150">
 <nav>
   <button class="navbtn active" data-tab="live">Flotte <small id="nRun"></small></button>
   <button class="navbtn" data-tab="findings">Findings <small id="nFnd"></small></button>

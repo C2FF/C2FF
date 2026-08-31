@@ -335,6 +335,7 @@ const server = http.createServer((req, res) => {
 
   if (p === '/api/state') return apiState(res);
   if (p === '/app.js') return send(res, 200, 'application/javascript; charset=utf-8', fs.readFileSync(path.join(ROOT, 'app.js')));
+  if (p === '/banner.png') return send(res, 200, 'image/png', fs.readFileSync(path.join(ROOT, 'docs', 'assets', 'banner.png')));
   if (p === '/' || p === '/index.html') return send(res, 200, 'text/html; charset=utf-8', fs.readFileSync(path.join(ROOT, 'index.html')));
   send(res, 404, 'text/plain', 'not found');
 });
