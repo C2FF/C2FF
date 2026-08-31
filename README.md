@@ -6,10 +6,10 @@
 
 Fleet probing engine, findings database, program management and agent coordination - in a single Node process, with no API tokens, no quotas and no cloud.
 
-[![License](https://img.shields.io/badge/license-MIT-3b82f6)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-39ff14)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-2ea043)](https://nodejs.org)
-[![Dependencies](https://img.shields.io/badge/dependencies-0-8a94a6)](#architecture)
-[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS-8a94a6)](#)
+[![Dependencies](https://img.shields.io/badge/dependencies-0-2a7a3d)](#architecture)
+[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS-2a7a3d)](#)
 
 [Overview](#overview) · [Features](#features) · [The engine](#the-engine) · [Quick start](#quick-start) · [Architecture](#architecture) · [Configuration](#configuration) · [Agent integration](#agent-integration) · [Security & ethics](#security--ethics) · [Roadmap](#roadmap) · [Contributing](#contributing)
 

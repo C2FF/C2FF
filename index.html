@@ -3,144 +3,167 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>C2FF - plateforme de chasse bug bounty</title>
+<title>C2FF - Command & Control Framework</title>
 <style>
 :root{
   color-scheme:dark;
-  --bg:#0b0e14;--surface:#11151c;--surface2:#151a23;--surface3:#1a212c;
-  --border:#232a36;--border-hi:#2f3947;
-  --text:#dde3ea;--muted:#8a94a6;--faint:#5b6675;
-  --accent:#3b82f6;--accent-soft:rgba(59,130,246,.12);
-  --ok:#2ea043;--warn:#d29922;--danger:#e5534b;--info:#58a6ff;
+  --bg:#020603;
+  --panel:#04110a;
+  --panel2:#06170d;
+  --panel3:#082012;
+  --line:#154222;
+  --line-hi:#2a7a3d;
+  --green:#39ff14;
+  --green-soft:rgba(57,255,20,.09);
+  --green-dim:#6fdc55;
+  --text:#e9ffe9;
+  --muted:#7fae8d;
+  --faint:#4e7a5c;
+  --warn:#ffb020;
+  --danger:#ff4d4d;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);
-  font:14px/1.55 -apple-system,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+  font:13px/1.55 "JetBrains Mono","Fira Code",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   -webkit-font-smoothing:antialiased}
-code,.mono,small{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:
+  radial-gradient(1100px 560px at 78% -12%,rgba(57,255,20,.055),transparent 62%),
+  repeating-linear-gradient(0deg,transparent 0 39px,rgba(57,255,20,.022) 39px 40px),
+  repeating-linear-gradient(90deg,transparent 0 39px,rgba(57,255,20,.022) 39px 40px)}
 
 /* ── header ── */
-.wrap{max-width:1440px;margin:0 auto;padding:0 24px 40px;overflow-x:hidden}
-header{display:flex;align-items:center;gap:14px;padding:14px 0 12px;border-bottom:1px solid var(--border);flex-wrap:wrap}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo .mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;font-weight:700;font-size:11px;color:#fff}
-h1{font-size:15.5px;font-weight:650;letter-spacing:.2px;margin:0;color:var(--text)}
-.vtag{font-size:10.5px;color:var(--muted);border:1px solid var(--border);border-radius:20px;padding:1px 8px}
-.sub{color:var(--muted);font-size:12.5px}
-.clock{margin-left:auto;color:var(--faint);font-size:12px;font-variant-numeric:tabular-nums}
+.wrap{max-width:1440px;margin:0 auto;padding:0 22px 40px;overflow-x:hidden;position:relative;z-index:1}
+header{display:flex;align-items:center;gap:13px;padding:14px 0 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:9px;text-decoration:none}
+.logo .mark{width:26px;height:26px;border-radius:6px;border:1.5px solid var(--green);display:grid;place-items:center;
+  color:var(--green);font-weight:700;font-size:10px;background:var(--green-soft)}
+h1{font-size:16px;font-weight:800;letter-spacing:1px;margin:0;color:var(--text)}
+h1 b{color:var(--green);font-weight:800}
+.vtag{color:var(--faint);font-size:10.5px;letter-spacing:.5px}
+.sub{color:var(--muted);font-size:11.5px;letter-spacing:.4px;text-transform:uppercase}
+.clock{margin-left:auto;color:var(--faint);font-variant-numeric:tabular-nums}
 
 /* ── nav ── */
-nav{display:flex;gap:2px;margin:0;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10}
+nav{display:flex;gap:1px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:10}
 .navbtn{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);
-  padding:10px 14px;cursor:pointer;font:inherit;font-size:13px;font-weight:500;letter-spacing:.1px}
+  padding:10px 15px;cursor:pointer;font:inherit;font-size:12px;font-weight:600;letter-spacing:.8px;text-transform:uppercase}
+.navbtn::before{content:"> ";color:var(--faint)}
 .navbtn:hover{color:var(--text)}
-.navbtn.active{color:var(--text);border-bottom-color:var(--accent)}
-.navbtn small{color:var(--faint);margin-left:5px;font-size:11px}
+.navbtn.active{color:var(--green);border-bottom-color:var(--green)}
+.navbtn.active::before{color:var(--green)}
+.navbtn small{color:var(--faint);margin-left:6px}
 
 /* ── stats ── */
 .stats{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 4px}
-.stat{border:1px solid var(--border);border-radius:10px;padding:10px 16px;min-width:130px;background:var(--surface)}
-.stat .k{color:var(--muted);font-size:10.5px;letter-spacing:.6px;text-transform:uppercase}
-.stat .v{font-size:20px;font-weight:600;color:var(--text);margin-top:2px;font-variant-numeric:tabular-nums}
+.stat{border:1px solid var(--line);border-radius:7px;padding:9px 15px;min-width:132px;background:var(--panel)}
+.stat .k{color:var(--faint);font-size:9.5px;letter-spacing:1.1px;text-transform:uppercase}
+.stat .k::before{content:"> "}
+.stat .v{font-size:20px;font-weight:700;color:var(--green);margin-top:2px;font-variant-numeric:tabular-nums;text-shadow:0 0 12px rgba(57,255,20,.35)}
 
 /* ── views ── */
 .view{display:none;padding:16px 0}
 .view.active{display:block}
-h2{font-size:12px;color:var(--muted);letter-spacing:.7px;text-transform:uppercase;font-weight:600;margin:8px 0 12px}
+h2{font-size:11px;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase;font-weight:600;margin:8px 0 12px}
+h2::before{content:"> ";color:var(--green)}
 
 /* ── cards ── */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
-.card{border:1px solid var(--border);border-radius:10px;padding:14px 16px;background:var(--surface);margin-bottom:14px}
-.card.glow{border-color:var(--border-hi)}
-#fleetBar{background:var(--surface2)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.card{border:1px solid var(--line);border-radius:7px;padding:12px 14px;background:var(--panel);margin-bottom:12px}
+.card.glow{border-color:var(--line-hi);background:linear-gradient(180deg,var(--panel2),var(--panel))}
+#fleetBar{background:var(--panel2)}
 
 /* ── pills / badges ── */
-.pill{display:inline-block;padding:1.5px 9px;border-radius:20px;font-size:10.5px;font-weight:500;letter-spacing:.3px;border:1px solid transparent}
-.p-prog{color:var(--info);background:var(--accent-soft)}
-.p-live{color:#4ec46a;background:rgba(46,160,67,.12)}
-.p-done{color:var(--muted);background:var(--surface3)}
+.pill{display:inline-block;padding:1px 9px;border-radius:3px;font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;border:1px solid}
+.p-prog{color:var(--green-dim);border-color:var(--line);background:var(--green-soft)}
+.p-live{color:var(--green);border-color:var(--line-hi);background:var(--green-soft)}
+.p-done{color:var(--faint);border-color:var(--line);background:transparent}
 .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;margin-right:6px;vertical-align:1px}
-.dot.run{animation:pulse 1.6s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.dot.run{animation:pulse 1.4s ease-in-out infinite;box-shadow:0 0 8px currentColor}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* ── agents / flux ── */
-.acard{border-left:2px solid var(--border);padding:4px 0 4px 12px;margin:8px 0}
-.acard .nm{font-weight:600;font-size:13px;color:var(--text)}
+.acard{border-left:2px solid var(--line);padding:4px 0 4px 12px;margin:8px 0}
+.acard .nm{font-weight:700;font-size:12.5px;color:var(--green-dim);letter-spacing:.5px}
 .acard.st-done .nm{color:var(--muted)}
 .acard.st-error .nm{color:var(--danger)}
-.last{color:#c3ccd8;font-size:12.5px;margin:4px 0;white-space:pre-wrap;opacity:.95}
-.feed{font-size:11.5px;color:var(--muted);max-height:130px;overflow-y:auto;font-family:ui-monospace,Menlo,Consolas,monospace}
-.feed div{padding:1.5px 0;border-bottom:1px solid var(--surface3)}
-.more{cursor:pointer;color:var(--accent);font-size:11.5px;margin-top:4px}
+.last{color:#c9f5cf;font-size:12px;margin:4px 0;white-space:pre-wrap;opacity:.95}
+.feed{font-size:11px;color:var(--muted);max-height:130px;overflow-y:auto}
+.feed div{padding:1.5px 0;border-bottom:1px dashed var(--line)}
+.feed::before{content:"";
+  display:block;height:1px;background:linear-gradient(90deg,var(--line-hi),transparent);margin-bottom:4px}
+.more{cursor:pointer;color:var(--green);font-size:11px;margin-top:4px}
 .more:hover{text-decoration:underline}
 
 /* ── findings ── */
-.fnd{border:1px solid var(--border);border-left-width:3px;border-radius:8px;padding:9px 13px;margin:8px 0;background:var(--surface)}
+.fnd{border:1px solid var(--line);border-left-width:3px;border-radius:6px;padding:9px 13px;margin:8px 0;background:var(--panel)}
 .fnd .fh{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
-.fnd .sev{font-weight:650;font-size:11.5px;width:34px}
+.fnd .sev{font-weight:700;font-size:11.5px;width:36px;letter-spacing:.5px}
 .fnd.S-P1{border-left-color:var(--danger)}.fnd.S-P1 .sev{color:var(--danger)}
 .fnd.S-P2{border-left-color:var(--warn)}.fnd.S-P2 .sev{color:var(--warn)}
-.fnd.S-P3{border-left-color:#c8b53a}.fnd.S-P3 .sev{color:#c8b53a}
-.fnd.S-HIT{border-left-color:var(--ok)}.fnd.S-HIT .sev{color:var(--ok)}
-.fnd .txt{font-size:13px;color:#b9c2cf;word-break:break-word;margin-top:4px}
-.fnd select{background:var(--surface3);color:var(--text);border:1px solid var(--border);border-radius:6px;font:inherit;font-size:11.5px}
+.fnd.S-P3{border-left-color:#ffe95d}.fnd.S-P3 .sev{color:#ffe95d}
+.fnd.S-HIT{border-left-color:var(--green)}.fnd.S-HIT .sev{color:var(--green)}
+.fnd .txt{font-size:12px;color:#b8e8c0;word-break:break-word;margin-top:4px}
+.fnd select{background:var(--panel3);color:var(--text);border:1px solid var(--line);border-radius:4px;font:inherit;font-size:11px}
 
 /* ── forms ── */
-input,select,textarea{background:var(--surface2);color:var(--text);border:1px solid var(--border);
-  border-radius:7px;font:inherit;padding:6px 10px;font-size:13px}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
-button.go{background:var(--accent);color:#fff;border:1px solid transparent;border-radius:7px;
-  padding:6px 15px;cursor:pointer;font:inherit;font-size:13px;font-weight:550}
-button.go:hover{background:#2f74e0}
-button.ghost{background:transparent;border:1px solid var(--border);color:var(--muted);
-  border-radius:7px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12.5px}
-button.ghost:hover{color:var(--text);border-color:var(--border-hi)}
+input,select,textarea{background:var(--panel3);color:var(--text);border:1px solid var(--line);
+  border-radius:5px;font:inherit;padding:6px 10px;font-size:12.5px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 2px var(--green-soft),0 0 14px rgba(57,255,20,.15)}
+button.go{background:var(--green-soft);color:var(--green);border:1px solid var(--line-hi);border-radius:5px;
+  padding:6px 16px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
+button.go:hover{background:rgba(57,255,20,.16);box-shadow:0 0 14px rgba(57,255,20,.25)}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--muted);
+  border-radius:5px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12px;letter-spacing:.4px}
+button.ghost:hover{color:var(--green);border-color:var(--line-hi);background:var(--green-soft)}
 
 /* programs grid */
-.prog{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
-.prog .card h3{margin:0 0 5px;font-size:14.5px;font-weight:600;color:var(--text)}
-.prog .scope{font-size:12px;color:#aeb8c6;word-break:break-all}
-.prog .hdr{font-size:11.5px;color:var(--warn);margin:4px 0}
+.prog{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.prog .card h3{margin:0 0 5px;font-size:14px;font-weight:700;color:var(--text);letter-spacing:.5px}
+.prog .scope{font-size:11.5px;color:#a5d8ae;word-break:break-all}
+.prog .hdr{font-size:11px;color:var(--warn);margin:4px 0}
 
 /* ── chat ── */
 #chatbox{display:flex;flex-direction:column;height:62vh}
-#chatlog{flex:1;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface2)}
-.msg{margin:5px 0;padding:8px 12px;border-radius:9px;max-width:82%;word-break:break-word;white-space:pre-wrap;font-size:13.5px}
-.msg.user{background:var(--accent-soft);margin-left:auto}
-.msg.claude{background:var(--surface3)}
-.msg .who{font-size:10.5px;color:var(--faint);letter-spacing:.3px;margin-bottom:2px;text-transform:uppercase}
-.msg.queue{background:rgba(210,153,34,.1)}
-#chatform{display:flex;gap:9px;margin-top:10px}
+#chatlog{flex:1;overflow-y:auto;border:1px solid var(--line);border-radius:7px;padding:13px;background:var(--panel2)}
+.msg{margin:5px 0;padding:8px 11px;border-radius:5px;max-width:82%;word-break:break-word;white-space:pre-wrap;font-size:12.5px}
+.msg.user{background:var(--green-soft);border:1px solid var(--line);margin-left:auto}
+.msg.claude{background:var(--panel3);border:1px solid var(--line)}
+.msg .who{font-size:10px;color:var(--faint);letter-spacing:.8px;margin-bottom:2px;text-transform:uppercase}
+.msg.queue{background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.3)}
+#chatform{display:flex;gap:8px;margin-top:10px}
 #chatinput{flex:1}
+#chatinput::placeholder{color:var(--faint)}
 
 /* ── toasts ── */
 #toasts{position:fixed;right:16px;top:16px;z-index:20;display:flex;flex-direction:column;gap:8px;pointer-events:none}
-.toast{pointer-events:auto;min-width:290px;max-width:400px;background:var(--surface3);border:1px solid var(--border);
-  border-radius:10px;padding:9px 13px;box-shadow:0 8px 24px rgba(0,0,0,.35);transition:opacity .3s}
+.toast{pointer-events:auto;min-width:290px;max-width:400px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:6px;padding:9px 13px;box-shadow:0 6px 22px rgba(0,0,0,.5),0 0 0 1px rgba(57,255,20,.06);transition:opacity .3s}
 .toast.P1{border-left:3px solid var(--danger)}
 .toast.P2{border-left:3px solid var(--warn)}
-.toast.HIT{border-left:3px solid var(--ok)}
-.toast .th{font-size:10.5px;color:var(--faint);letter-spacing:.4px;margin-bottom:3px;text-transform:uppercase}
-.toast .tt{font-size:12.5px;word-break:break-word}
+.toast.HIT{border-left:3px solid var(--green)}
+.toast .th{font-size:10px;color:var(--faint);letter-spacing:.9px;margin-bottom:3px;text-transform:uppercase}
+.toast .th::before{content:"> "}
+.toast .tt{font-size:12px;word-break:break-word}
 .toast.gone{opacity:0}
 
 form.newf{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 form.newf input[type=text]{flex:1;min-width:260px}
-footer{color:var(--faint);font-size:12px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
-.p1{color:var(--danger);font-weight:600}.p2{color:var(--warn);font-weight:600}.p3{color:#c8b53a}
-.hl-c{color:var(--info)}.hl-x{color:#ef8f89;font-weight:600}
+footer{color:var(--faint);font-size:11px;margin-top:20px;padding-top:14px;border-top:1px solid var(--line);letter-spacing:.6px}
+footer b{color:var(--green);font-weight:700}
+.p1{color:var(--danger);font-weight:700}.p2{color:var(--warn);font-weight:700}.p3{color:#ffe95d}
+.hl-c{color:var(--green-dim)}.hl-x{color:#ff8d7a;font-weight:700}
 ::-webkit-scrollbar{width:9px;height:9px}
-::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:5px}
+::-webkit-scrollbar-thumb{background:var(--panel3);border:1px solid var(--line);border-radius:5px}
 ::-webkit-scrollbar-track{background:transparent}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
-  <a class="logo" href="/"><span class="mark">C2</span><h1>C2FF</h1></a>
+  <a class="logo" href="/"><span class="mark">C2</span><h1>C2<b>FF</b></h1></a>
   <span class="vtag">v1.1</span>
-  <span class="sub">plateforme de chasse bug bounty - 100% local</span>
-  <span class="clock mono" id="clock"></span>
+  <span class="sub">command &amp; control framework</span>
+  <span class="clock" id="clock"></span>
 </header>
 <nav>
   <button class="navbtn active" data-tab="live">Flotte <small id="nRun"></small></button>
@@ -150,7 +173,7 @@ footer{color:var(--faint);font-size:12px;margin-top:20px;padding-top:14px;border
 </nav>
 <div class="stats">
   <div class="stat"><div class="k">Runs</div><div class="v" id="sRuns">0</div></div>
-  <div class="stat"><div class="k">Agents actifs</div><div class="v" id="sAct">0</div></div>
+  <div class="stat"><div class="k">Beacons actifs</div><div class="v" id="sAct">0</div></div>
   <div class="stat"><div class="k">Signaux</div><div class="v" id="sSig">0</div></div>
 </div>
 
@@ -177,11 +200,11 @@ footer{color:var(--faint);font-size:12px;margin-top:20px;padding-top:14px;border
     <button class="go" id="fleetStart">Démarrer</button>
     <button class="ghost" id="fleetPause">Pause</button>
     <button class="ghost" id="fleetCycle">Cycle maintenant</button>
-    <small style="color:var(--muted)" id="fleetInfo"></small>
+    <small style="color:var(--faint)" id="fleetInfo"></small>
   </div>
   <h2>Programmes - scope, header requis, lancement</h2>
   <div class="prog" id="progList"></div>
-  <div class="card" style="margin-top:14px">
+  <div class="card" style="margin-top:12px">
     <h2 style="margin-top:0">Nouveau programme</h2>
     <form id="progForm" style="display:flex;gap:8px;flex-wrap:wrap">
       <input type="text" id="npId" placeholder="id (ex: paypal)" style="width:130px" required>
@@ -197,11 +220,11 @@ footer{color:var(--faint);font-size:12px;margin-top:20px;padding-top:14px;border
   <h2>Coordination - canal privé</h2>
   <div id="chatbox">
     <div id="chatlog"></div>
-    <form id="chatform"><input id="chatinput" placeholder="message vers l'agent d'analyse…" autocomplete="off"><button class="go" type="submit">Envoyer</button></form>
+    <form id="chatform"><input id="chatinput" placeholder="root@c2ff:~# message vers l'agent d'analyse…" autocomplete="off"><button class="go" type="submit">Envoyer</button></form>
   </div>
 </section>
 
-<footer>C2FF v1.1 - 100% local - moteur de probes déterministe, sans tokens ni dépendances externes</footer>
+<footer><b>C2FF</b> v1.1 - 100% local - probes déterministes, sans tokens ni dépendances externes - unrestricted · undetected · unstoppable</footer>
 </div>
 <div id="toasts"></div>
 <script src="/app.js"></script>
