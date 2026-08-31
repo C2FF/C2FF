@@ -64,6 +64,9 @@ const I18N = {
     tm_tun_on: 'SESSION OUVERTE AU MONDE : {u} - le lien d invitation marche partout, pas besoin du meme reseau',
     tm_tun_closed: 'tunnel ferme - retour LAN/local', tm_chat_empty: 'canal de session ouvert - les membres de la salle se lisent ici',
     tm_chat_h2: 'Chat de session', tm_msg_ph: 'message vers la session…',
+    tm_admin: 'admin', tm_guest: 'invite', tm_kick: 'KICK', tm_kick_ok: 'membre exclu de la salle (re-cliquer debloque)', tm_role_ok: 'role mis a jour',
+    tm_mic_on: 'ACTIVER LE MICRO', tm_mic_off: 'COUPER LE MICRO',
+    tm_mic_denied: 'micro refuse ou inaccessible : le HTTPS est requis (tunnel MONDE ou localhost) et il faut autoriser le micro',
     navf: 'Flotte', navfd: 'Findings', navp: 'Programmes', navai: 'IA', navc: 'Coordination',
     st_runs: 'Runs', st_beacons: 'Beacons actifs', st_sig: 'Signaux',
     h2f: "Flotte - tous programmes, agents en course d'abord",
@@ -149,6 +152,9 @@ const I18N = {
     tm_tun_on: 'SESSION OPEN TO WORLD: {u} - the invite link works from anywhere, no shared network needed',
     tm_tun_closed: 'tunnel closed - back to LAN/local', tm_chat_empty: 'session channel open - room members read each other here',
     tm_chat_h2: 'Session chat', tm_msg_ph: 'message to the session…',
+    tm_admin: 'admin', tm_guest: 'guest', tm_kick: 'KICK', tm_kick_ok: 'member removed from the room (click again to unblock)', tm_role_ok: 'role updated',
+    tm_mic_on: 'ENABLE MICROPHONE', tm_mic_off: 'MUTE MICROPHONE',
+    tm_mic_denied: 'microphone denied or unavailable: HTTPS required (WORLD tunnel or localhost) and permission must be granted',
   },
   es: {
     fl_off: 'FLOTA : DETENIDA', fl_paused: 'FLOTA : EN PAUSA', fl_active: 'FLOTA : ACTIVA ({n} ciclos)',
@@ -782,7 +788,9 @@ function drawTeam() {
   const tm = state.data.team || {};
   const remote = tm.bind === 'lan';
   const tun = typeof tm.tunnel === 'string' ? tm.tunnel : '';
-  const sig = JSON.stringify([tm.enabled, tm.room, tm.members, HANDLE, tm.bind, tm.lan, tun, tm.chat]);
+  const amAdmin = (tm.you || 'guest') === 'admin';
+  rtcTick();
+  const sig = JSON.stringify([tm.enabled, tm.room, tm.members, HANDLE, tm.bind, tm.lan, tun, tm.chat, tm.you, microOn]);
   if (sig === drawn.team && !forceDraw) return;
   drawn.team = sig;
   $('tmStatus').textContent = tm.enabled ? TF('tm_on', { r: tm.room || '-', n: tm.online || 0 }) : T('tm_off');
@@ -804,9 +812,15 @@ function drawTeam() {
   $('tmMembers').innerHTML = (tm.members || []).map(m =>
     '<div class="tm-m"><span class="dot ' + (m.active ? 'run' : '') + '" style="' + (m.active ? 'color:var(--green)' : 'color:var(--faint)') + '"></span>' +
     '<b style="color:' + (m.h === HANDLE ? 'var(--green)' : 'var(--text)') + '">' + esc(m.h) + (m.h === HANDLE ? ' <small style="color:var(--faint)">' + T('tm_you') + '</small>' : '') + '</b>' +
+    '<span class="pill ' + (m.role === 'admin' ? 'p-prog' : 'p-done') + '">' + (m.role === 'admin' ? T('tm_admin') : T('tm_guest')) + '</span>' +
     '<span class="pill ' + (m.active ? 'p-live' : 'p-done') + '">' + (m.active ? T('tm_here') : Math.round(m.ms / 60000) + ' min') + '</span>' +
+    (amAdmin && m.h !== HANDLE ?
+      '<select class="tmrole" data-h="' + esc(m.h) + '"><option value="guest"' + (m.role === 'admin' ? '' : ' selected') + '>' + T('tm_guest') + '</option><option value="admin"' + (m.role === 'admin' ? ' selected' : '') + '>' + T('tm_admin') + '</option></select>' +
+      '<button class="ghost tmkick" data-h="' + esc(m.h) + '">' + T('tm_kick') + '</button>' : '') +
     '<small style="color:var(--faint);margin-left:auto">' + m.reqs + ' req</small></div>'
   ).join('') || '<div style="color:var(--faint);font-size:11.5px">' + T('tm_nobody') + '</div>';
+  const micBtn = $('tmMic');
+  if (micBtn) { micBtn.textContent = microOn ? T('tm_mic_off') : T('tm_mic_on'); micBtn.classList.toggle('mic-live', microOn); micBtn.hidden = !tm.enabled; }
   // lien d'invitation : le tunnel public gagne s'il existe (universel, hors LAN), sinon LAN/localhost
   const world = tun && tun.startsWith('https://');
   const invite = tm.enabled
@@ -837,7 +851,7 @@ function drawTeam() {
 }
 $('tmTunnel').addEventListener('click', () => {
   const open = typeof (state.data.team || {}).tunnel === 'string' && (state.data.team.tunnel || '').startsWith('https://');
-  jpost('/api/team', { op: 'tunnel', action: open ? 'close' : 'open' }).then(r => r.json()).then(j => {
+  jpost('/api/team', { op: 'tunnel', action: open ? 'close' : 'open', by: HANDLE }).then(r => r.json()).then(j => {
     if (!j.ok) return toast('SESSION', j.error || T('tm_need_on'), 'P2');
     toast('SESSION', open ? T('tm_tun_closed') : T('tm_tun_wait'), 'HIT');
     setTimeout(refresh, 400);
@@ -853,10 +867,102 @@ $('tmMsgForm').addEventListener('submit', e => {
 });
 $('tmLive').addEventListener('click', () => {
   const remote = (state.data.team || {}).bind === 'lan';
-  jpost('/api/team', { op: remote ? 'shore' : 'golive' }).then(r => r.json()).then(j => {
+  jpost('/api/team', { op: remote ? 'shore' : 'golive', by: HANDLE }).then(r => r.json()).then(j => {
     if (!j.ok) return toast('TEAM', j.error || T('tm_need_on'), 'P2');
     toast('TEAM', remote ? T('to_team_shore') : T('to_team_live'), 'HIT');
     // le serveur respawn : le poll rattrapera dans les 2 s
+  }).catch(() => {});
+});
+
+// ---------- audio de session : WebRTC mesh, le serveur ne relaye que la signalisation ----------
+let MIC = null, microOn = false;
+const PCS = new Map(); // handle -> RTCPeerConnection
+const RTCSEEN = new Set();
+async function micToggle() {
+  if (microOn) return micOff();
+  if (!HANDLE) return toast('SESSION', T('tm_no_handle'), 'P2');
+  try { MIC = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { return toast('SESSION', T('tm_mic_denied'), 'P2'); }
+  microOn = true;
+  micProposeAll();
+  forceDraw = true; refresh();
+}
+function micOff() {
+  microOn = false;
+  if (MIC) { try { MIC.getTracks().forEach(t => t.stop()); } catch (e) {} MIC = null; }
+  for (const [, pc] of PCS) { try { pc.close(); } catch (e) {} }
+  PCS.clear();
+  document.querySelectorAll('audio.c2ffAudio').forEach(a => { try { a.pause(); a.srcObject = null; } catch (e) {} a.remove(); });
+  forceDraw = true; refresh();
+}
+function newPC(h) {
+  const pc = new RTCPeerConnection();
+  if (MIC) MIC.getTracks().forEach(t => pc.addTrack(t, MIC));
+  pc.onicecandidate = e => { if (e.candidate) jpost('/api/team', { op: 'rtc', from: HANDLE, to: h, typ: 'ice', data: JSON.stringify(e.candidate) }).catch(() => {}); };
+  pc.ontrack = e => {
+    let a = document.getElementById('c2ffAudio_' + h);
+    if (!a) { a = document.createElement('audio'); a.id = 'c2ffAudio_' + h; a.className = 'c2ffAudio'; a.autoplay = true; document.body.appendChild(a); }
+    a.srcObject = e.streams[0]; a.play().catch(() => {});
+  };
+  PCS.set(h, pc);
+  return pc;
+}
+function micProposeAll() {
+  if (!MIC || !microOn) return;
+  const tm = state.data.team || {};
+  (tm.members || []).forEach(m => {
+    if (m.h === HANDLE || !m.active || PCS.has(m.h)) return;
+    const pc = newPC(m.h);
+    pc.createOffer().then(o => pc.setLocalDescription(o))
+      .then(() => jpost('/api/team', { op: 'rtc', from: HANDLE, to: m.h, typ: 'sdp', data: JSON.stringify({ type: 'offer', sdp: pc.localDescription.sdp }) }))
+      .catch(() => {});
+  });
+}
+function rtcTick() {
+  if (!HANDLE) return;
+  const list = ((state.data.team || {}).rtc || []);
+  if (RTCSEEN.size > 800) RTCSEEN.clear();
+  let handled = false;
+  for (const msg of list) {
+    if (msg.to !== HANDLE || RTCSEEN.has(msg.id)) continue;
+    RTCSEEN.add(msg.id); handled = true;
+    try {
+      if (msg.typ === 'sdp') {
+        const d = JSON.parse(msg.data);
+        if (d.type === 'offer') {
+          const pc = newPC(msg.from);
+          pc.setRemoteDescription(d)
+            .then(() => pc.createAnswer()).then(a => pc.setLocalDescription(a))
+            .then(() => jpost('/api/team', { op: 'rtc', from: HANDLE, to: msg.from, typ: 'sdp', data: JSON.stringify({ type: 'answer', sdp: pc.localDescription.sdp }) }))
+            .catch(() => {});
+        } else if (d.type === 'answer' && PCS.has(msg.from)) {
+          PCS.get(msg.from).setRemoteDescription(d).catch(() => {});
+        }
+      } else if (msg.typ === 'ice' && PCS.has(msg.from)) {
+        PCS.get(msg.from).addIceCandidate(JSON.parse(msg.data)).catch(() => {});
+      }
+    } catch (e) {}
+  }
+  if (microOn) micProposeAll(); // les arrives tard reçoivent une offre au prochain draw
+  if (handled) { /* rien de plus : les streams declenchent eux-memes le rendu */ }
+}
+$('tmMic').addEventListener('click', micToggle);
+// roles + kick : delegation sur la liste membres
+$('tmMembers').addEventListener('change', e => {
+  const sel = e.target.closest('select.tmrole');
+  if (!sel) return;
+  jpost('/api/team', { op: 'role.set', h: sel.dataset.h, r: sel.value }).then(r => r.json()).then(j => {
+    toast('SESSION', j.ok ? T('tm_role_ok') : (j.error || T('tm_cfg_no')), j.ok ? 'HIT' : 'P2');
+    setTimeout(refresh, 300);
+  }).catch(() => {});
+});
+$('tmMembers').addEventListener('click', e => {
+  const b = e.target.closest('button.tmkick');
+  if (!b) return;
+  jpost('/api/team', { op: 'kick', h: b.dataset.h, by: HANDLE }).then(r => r.json()).then(j => {
+    if (j.team) state.data.team = j.team;
+    toast('SESSION', j.ok ? T('tm_kick_ok') : (j.error || T('tm_cfg_no')), j.ok ? 'HIT' : 'P2');
+    setTimeout(refresh, 300);
   }).catch(() => {});
 });
 function set(id, v) { const el = $(id); if (el) el.value = v; }
@@ -924,7 +1030,10 @@ async function refresh() {
     drawRuns(d.runs); drawFindings(); drawPrograms(); drawChat(); drawFleet(); drawAI(); drawTeam();
     // presence team : battement toutes les ~5 s (3 polls)
     if (state.tick % 3 === 0 && HANDLE) {
-      jpost('/api/team', { op: 'beat', handle: HANDLE }).then(r => r.json()).then(j => { if (j.team) state.data.team = j.team; }).catch(() => {});
+      jpost('/api/team', { op: 'beat', handle: HANDLE }).then(r => r.json()).then(j => {
+        if (j.team) state.data.team = j.team;
+        else if (j.error) { toast('SESSION', j.error, 'P2'); HANDLE = ''; try { localStorage.removeItem('c2ff-handle'); } catch (e) {} forceDraw = true; }
+      }).catch(() => {});
     }
     forceDraw = false;
     state.firstLoad = false;

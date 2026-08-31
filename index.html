@@ -160,6 +160,8 @@ button.ghost:hover{color:var(--green);border-color:var(--line-hi);background:var
 .msg.ia{background:rgba(57,255,20,.04);border:1px dashed var(--line-hi)}
 .msg .who{font-size:10px;color:var(--faint);letter-spacing:.8px;margin-bottom:2px;text-transform:uppercase}
 .msg.queue{background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.3)}
+#tmMic.mic-live{border-color:var(--danger);color:var(--danger);animation:billive 1.4s ease-in-out infinite}
+audio.c2ffAudio{display:none}
 #chatform{display:flex;gap:8px;margin-top:10px}
 #chatinput{flex:1}
 #chatinput::placeholder{color:var(--faint)}
@@ -321,6 +323,7 @@ footer b{color:var(--green);font-weight:700;text-shadow:0 0 10px rgba(57,255,20,
       <button class="go" type="submit" data-i="ch_send">Envoyer</button>
     </form>
     <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="go" id="tmMic">ACTIVER LE MICRO</button>
       <button class="go" id="tmTunnel">OUVRIR AU MONDE (tunnel)</button>
       <small id="tmTunnelInfo" style="color:var(--muted);font-size:11.5px;flex:1;min-width:200px"></small>
     </div>

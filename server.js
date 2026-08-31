@@ -86,12 +86,23 @@ const AI_ANALYST_PROMPT = "Tu es analyste bug bounty dans le framework C2FF. On 
 // ---------- mode team : sessions de groupe a distance ----------
 function teamCfg() {
   const c = readJson(TEAM_FILE, null) || {};
-  return { enabled: !!c.enabled, room: String(c.room || ''), key: String(c.key || ''), live: !!c.live };
+  return {
+    enabled: !!c.enabled, room: String(c.room || ''), key: String(c.key || ''), live: !!c.live,
+    roles: (c.roles && typeof c.roles === 'object') ? c.roles : {},
+    blocked: Array.isArray(c.blocked) ? c.blocked : [],
+  };
 }
 function saveTeamCfg(c) { try { fs.writeFileSync(TEAM_FILE, JSON.stringify(c, null, 1)); } catch (e) {} }
 function genKey() { return 'c2ff-' + crypto.randomBytes(12).toString('hex'); }
 const PRESENCE = new Map(); // handle -> { last, reqs }
 const cleanHandle = h => String(h == null ? '' : h).replace(/[^\w \-.]{1,}/g, '').trim().slice(0, 16);
+// roles : le poste local est owner, un handle liste dans team.json peut etre admin, le reste guest
+const roleOf = (req, h) => {
+  if (isLoopback(req)) return 'admin';
+  const t = teamCfg();
+  if (h && t.roles[h] === 'admin') return 'admin';
+  return 'guest';
+};
 const isLoopback = req => !req.internalTunnel && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(String(req.socket.remoteAddress || ''));
 const lanAddr = () => {
   try {
@@ -107,27 +118,41 @@ function teamAllowed(req, url) {
   if (isLoopback(req)) return true;
   return (url.searchParams.get('k') || req.headers['x-c2ff-key'] || '') === t.key;
 }
-function teamState() {
+function teamState(req) {
   const t = teamCfg();
   const now = Date.now();
   const members = [];
   for (const [h, m] of PRESENCE) {
     const ms = now - m.last;
     if (ms > 600000) { PRESENCE.delete(h); continue; }
-    members.push({ h, last: m.last, ms, active: ms < 25000, reqs: m.reqs });
+    members.push({ h, last: m.last, ms, active: ms < 25000, reqs: m.reqs, role: m.role });
   }
   members.sort((a, b) => a.last - b.last);
   return {
     enabled: t.enabled, room: t.room, protected: t.enabled,
+    roles: t.roles, blocked: t.blocked,
     bind: BIND === '0.0.0.0' ? 'lan' : 'local', lan: lanAddr(),
     tunnel: TUNNEL ? (TUNNEL.ready && TUNNEL.url ? TUNNEL.url : (TUNNEL.err ? 'err:' + TUNNEL.err : 'starting')) : '',
     chat: lastChat(200).filter(m => m.kind === 'team').slice(-100),
+    rtc: rtcList(now),
+    you: req ? roleOf(req, '') : 'guest',
     members, online: members.filter(m => m.active).length,
   };
 }
 
 // tunnel public opt-in (cloudflared) : une URL universelle, pas seulement le LAN
 let TUNNEL = null; // { proc, url }
+
+// signalisation WebRTC : relais pur, le media reste membre-a-membre
+const RTCMAP = new Map(); // id -> { from, to, typ, data, t }
+function rtcList(now) {
+  const out = [];
+  for (const [id, m] of RTCMAP) {
+    if (now - m.t > 30000) { RTCMAP.delete(id); continue; }
+    out.push(Object.assign({ id }, m));
+  }
+  return out.slice(-200);
+}
 
 // ---------- programmes ----------
 const DEFAULT_PROGRAMS = [
@@ -363,7 +388,7 @@ function readBody(req, cb) {
   req.on('end', () => { try { cb(JSON.parse(Buffer.concat(chunks).toString() || '{}')); } catch (e) { cb({}); } });
 }
 
-function apiState(res) {
+function apiState(res, req) {
   const runs = [...state.runs.values()].map(r => {
     // l'agregateur "workflow" se marque termine quand tous les vrais agents ont fini
     const real = [...r.agents.values()].filter(a => a.base !== 'workflow');
@@ -378,7 +403,7 @@ function apiState(res) {
   const ai = aiCfg();
   sendJson(res, {
     now: new Date().toISOString(), runs, findings: state.findings, programs: loadPrograms(), chat: lastChat(80),
-    fleet: fleet.state(), modes: fleet.catalog(), team: teamState(),
+    fleet: fleet.state(), modes: fleet.catalog(), team: teamState(req),
     ai: { enabled: ai.enabled, protocol: ai.protocol, baseURL: ai.baseURL, model: ai.model, ready: !!(ai.baseURL && ai.model) },
   });
 }
@@ -396,8 +421,38 @@ const MAIN = (req, res) => {
       if (p === '/api/team') {
         if (body.op === 'beat') {
           const h = cleanHandle(body.handle);
-          if (h) PRESENCE.set(h, { last: Date.now(), reqs: (PRESENCE.get(h) || { reqs: 0 }).reqs + 1 });
-          return sendJson(res, { ok: true, team: teamState() });
+          if (h) {
+            if (teamCfg().blocked.includes(h)) return sendJson(res, { ok: false, error: 'kicked from this room' });
+            PRESENCE.set(h, { last: Date.now(), reqs: (PRESENCE.get(h) || { reqs: 0 }).reqs + 1, role: roleOf(req, h) });
+          }
+          return sendJson(res, { ok: true, team: teamState(req) });
+        }
+        if (body.op === 'rtc') {
+          const from = cleanHandle(body.from) || 'invide';
+          RTCMAP.set(from + ':' + body.typ + ':' + (body.to || '') + ':' + Date.now(),
+            { from, to: cleanHandle(body.to) || '', typ: String(body.typ || '').slice(0, 8), data: String(body.data || '').slice(0, 8000), t: Date.now() });
+          return sendJson(res, { ok: true });
+        }
+        // role.set : la table des roles n'est editable que par le poste local
+        if (body.op === 'role.set') {
+          if (!isLoopback(req)) return sendJson(res, { ok: false, error: 'localhost only' });
+          const cur = teamCfg();
+          const h = cleanHandle(body.h), r = body.r === 'admin' ? 'admin' : 'guest';
+          if (!h) return sendJson(res, { ok: false, error: 'handle required' });
+          const roles = { ...cur.roles, [h]: r };
+          saveTeamCfg({ ...cur, roles });
+          if (PRESENCE.has(h)) PRESENCE.get(h).role = r;
+          return sendJson(res, { ok: true, team: teamState(req) });
+        }
+        // kick : admin -> le handle est bloque, son beat est refuse instantanement (re-cliquer debloque)
+        if (body.op === 'kick') {
+          const h = cleanHandle(body.h);
+          if (roleOf(req, cleanHandle(body.by || body.handle)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
+          if (!h) return sendJson(res, { ok: false, error: 'handle required' });
+          const cur = teamCfg();
+          saveTeamCfg({ ...cur, blocked: cur.blocked.filter(x => x !== h).concat(cur.blocked.includes(h) ? [] : [h]).slice(-50) });
+          PRESENCE.delete(h);
+          return sendJson(res, { ok: true, team: teamState(req) });
         }
         if (body.op === 'config') {
           const cur = teamCfg();
@@ -419,16 +474,16 @@ const MAIN = (req, res) => {
         // le tunnel passe par un proxy local marque : ses requetes comptent comme DISTANTES,
         // elles passent donc par la cle de salle au lieu du bypass loopback.
         if (body.op === 'tunnel') {
-          if (!isLoopback(req)) return sendJson(res, { ok: false, error: 'loopback only' });
+          if (roleOf(req, cleanHandle(body.by)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
           if (body.action === 'close') {
             if (TUNNEL) {
               try { TUNNEL.proxy.close(); } catch (e) {}
               try { TUNNEL.proc.kill('SIGTERM'); } catch (e) {}
             }
             TUNNEL = null;
-            return sendJson(res, { ok: true, team: teamState() });
+            return sendJson(res, { ok: true, team: teamState(req) });
           }
-          if (TUNNEL) return sendJson(res, { ok: true, team: teamState() });
+          if (TUNNEL) return sendJson(res, { ok: true, team: teamState(req) });
           const proxy = http.createServer((q, s) => { q.internalTunnel = true; MAIN(q, s); });
           let pport = PORT + 2;
           proxy.on('error', e => {
@@ -460,12 +515,12 @@ const MAIN = (req, res) => {
               }, 2000);
             } catch (e) {}
           });
-          return sendJson(res, { ok: true, team: teamState() });
+          return sendJson(res, { ok: true, team: teamState(req) });
         }
         // golive : le serveur se re-bind en 0.0.0.0 (respawn propre). shore : retour 127.0.0.1.
-        // decision de bind = decision locale, loopback uniquement.
+        // decision de bind = admin (poste local ou membre admin).
         if (body.op === 'golive' || body.op === 'shore') {
-          if (!isLoopback(req)) return sendJson(res, { ok: false, error: 'loopback only' });
+          if (roleOf(req, cleanHandle(body.by)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
           const cur = teamCfg();
           if (!cur.enabled) return sendJson(res, { ok: false, error: 'enable the room first' });
           const next = { enabled: cur.enabled, room: cur.room, key: cur.key, live: body.op === 'golive' };
@@ -578,7 +633,7 @@ const MAIN = (req, res) => {
     return;
   }
 
-  if (p === '/api/state') return apiState(res);
+  if (p === '/api/state') return apiState(res, req);
   if (p === '/app.js') return send(res, 200, 'application/javascript; charset=utf-8', fs.readFileSync(path.join(ROOT, 'app.js')));
   if (p === '/banner.png') return send(res, 200, 'image/png', fs.readFileSync(path.join(ROOT, 'docs', 'assets', 'banner.png')));
   if (p === '/banner_app.gif') return send(res, 200, 'image/gif', fs.readFileSync(path.join(ROOT, 'docs', 'assets', 'banner_app.gif')));
