@@ -42,14 +42,7 @@ It is deliberately **not** another headless scanner: C2FF keeps a human in comma
 
 Dependency-free JavaScript only. If you can run Node, you can run C2FF.
 
-> **Before you install:** browse the [console gallery](docs/design-tour.html) - real screenshots of all eight tabs, navigable with the arrow keys; drag any image to pan it (grab cursor), wheel to zoom. The three below give the idea instantly:
-
-<p align="center">
-  <img src="docs/assets/shots/programs.jpg" alt="PROGRAMS - declare a program, pick a mode, GO" width="820">
-</p>
-<p align="center">
-  <img src="docs/assets/shots/hunt.jpg" alt="HUNT - RECON, ATTACK, PLAN with proof" width="820">
-</p>
+> **Before you install:** browse the [console gallery](docs/design-tour.html) - real screenshots of all eight tabs, navigable with the arrow keys; drag any image to pan it (grab cursor), wheel to zoom.
 
 ## Three levels of access
 
