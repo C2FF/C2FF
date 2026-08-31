@@ -2,52 +2,75 @@
 
 <img src="docs/assets/banner_app.gif" alt="C2FF" width="640">
 
-**Autonomous, 100% local bug bounty hunting console**
+# C2FF
 
-Fleet probing engine, findings database, program management and agent coordination - in a single Node process, with no API tokens, no quotas and no cloud.
+**Command & Control Framework - autonomous bug bounty console, 100% local**
+
+Fleet probing, findings triage, program management, agent coordination and multi-player sessions - in one Node process. No API tokens, no quotas, no cloud, no telemetry.
 
 [![License](https://img.shields.io/badge/license-MIT-39ff14)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-2ea043)](https://nodejs.org)
-[![Dependencies](https://img.shields.io/badge/dependencies-0-2a7a3d)](#architecture)
-[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS-2a7a3d)](#)
+[![Dependencies](https://img.shields.io/badge/dependencies-0-2a7a3d)](#quick-start)
+[![Platforms](https://img.shields.io/badge/platform-linux_·_macOS_·_WSL2-2a7a3d)](#quick-start)
+[![Languages](https://img.shields.io/badge/UI-80_languages-2a7a3d)](#console-tour)
 
-[Overview](#overview) · [Features](#features) · [The engine](#the-engine) · [Quick start](#quick-start) · [Architecture](#architecture) · [Configuration](#configuration) · [Agent integration](#agent-integration) · [Security & ethics](#security--ethics) · [Roadmap](#roadmap) · [Contributing](#contributing)
+[The stack](#the-stack-at-a-glance) · [Session levels](#three-levels-of-access) · [The engine](#the-engine) · [Quick start](#quick-start) · [Console tour](#console-tour) · [Team sessions](#team-sessions) · [Agent integration](#agent-integration) · [Architecture](#architecture) · [Security & ethics](#security--ethics) · [Roadmap](#roadmap)
 
 </div>
 
 ---
 
-## Overview
+C2FF is the console where an authorized hunt actually lives:
 
-C2FF is a self-hosted hunting console for authorized bug bounty work (Bugcrowd, HackerOne, private VDPs). It runs entirely on your machine as one Node process and gives you:
+- you declare a **program** (scope + researcher header), pick one of **15 modes**, and the local engine probes on a budget
+- every signal lands in a **findings base** with a persistent triage workflow
+- your agents stream their output into the **fleet view**, and can be driven from a private **coordination channel**
+- when you hunt **as a team**, one click opens the same console to your crew, with roles, live audio and a session chat
 
-- a **live fleet view** of your running agents and their streamed output,
-- a **persistent findings database** with a triage workflow (`signal → analysis → submitted → duplicate/rejected/closed`),
-- a **program registry** holding each program's scope, required researcher headers (e.g. `X-Bug-Bounty`) and credentials references,
-- **15 hunting modes** (XSS, SQLI, LFI, SSRF, SSTI, XXE, JWT, IDOR, ...) covering the major CWE families with deterministic local probes,
-- a private **coordination channel** you can wire to an AI agent (optional - everything works without one),
-- **team sessions**: open a key-gated room, share an invite link, and hunt together in the same console from anywhere, and
-- a UI **available in 80 languages** (12 fully translated), with live theme and no framework.
+It is deliberately **not** another headless scanner: C2FF keeps a human in command, sends slow read-only probes only, and leaves authenticated business-logic work to you (and your agent).
 
-No accounts, no telemetry, no paid APIs. If it runs, it runs until you stop it - the bundled watchdog restarts the server automatically if it ever dies.
+## The stack, at a glance
 
-## Features
+| Layer | What runs | Where |
+|---|---|---|
+| Console | `index.html` + `app.js` - terminal-look UI, no framework, 80 language entries | your browser |
+| Core | `server.js` - HTTP API, auth rooms, roles, tunnel control, audio signaling | one Node process |
+| Engine | `fleet.js` - 21 deterministic probe modules, budgeted cycles | `curl`, local |
+| State | `data/*.json*` - findings, programs, chat, team config, AI gateway | your disk |
+| Watchdog | `watchdog.sh` - port check loop, auto-revive | your shell |
 
-| Capability | What you get |
-|---|---|
-| Fleet view | Real-time cards per run and per agent, last output, expandable event feed |
-| Findings triage | Severity (P1..P3/HIT/SIG), workflow statuses persisted to disk, manual entries, AI second opinion on demand |
-| Programs | Declare scope, required headers, credential refs once - then launch hunting modes in one click |
-| Local engine | 21 deterministic probe modules, strict request budget, dedup - zero LLM tokens |
-| Optional AI | Gateway to *your* LLM (OpenAI-compatible / Ollama / Anthropic) for single-finding analysis, stored in `data/ai.json` |
-| Team sessions | Key-gated group rooms, live presence, per-member attribution, one-click network access |
-| Localisation | 80 languages in the header selector, RTL support, instant switch |
-| Coordination | Private chat channel between you and any agent wired to the log file |
-| Survival | Watchdog loop keeps the console online indefinitely; restart with one `pkill` |
+Two thousand seven hundred lines of dependency-free JavaScript total. If you can run Node, you can run C2FF.
+
+## Three levels of access
+
+The SESSION tab flips the console between solo and shared, without restarting anything yourself:
+
+| Level | Trigger | Reach | Auth |
+|---|---|---|---|
+| **LOCAL** | default | `127.0.0.1` only | none needed (you are on loopback) |
+| **LAN** | **OPEN TO NETWORK** | your machine re-binds to `0.0.0.0` via self-respawn (~2 s) | room key on every API route |
+| **WORLD** | **OPEN TO WORLD (tunnel)** | a public `trycloudflare.com` URL, valid from any network | room key, HTTPS, audio-capable |
+
+- The tunnel is opened and **auto-verified** by the server (cloudflared must be installed); the invite link is only displayed once it actually answers
+- The invite link is a single click away - a **COPY** button sits next to both the local invite and the tunnel URL
+- **REGENERATE KEY** instantly kills every old invite link, LAN and WORLD alike
+
+### What a member can do inside the room
+
+- see the fleet, the findings base and every probe signal, live
+- chat in the dedicated **session channel** (separate from the private coordination channel)
+- speak through the **audio mesh**: peer-to-peer WebRTC voice between all members (HTTPS required - WORLD tunnel or localhost)
+- manual findings and triage moves are stamped with their handle
+
+### Roles: admin / guest
+
+- every loopback client is **admin**; remote members start as **guest**
+- admins promote guests to admin or **KICK** them: the kicked handle is blocked from the room and its next heartbeat is refused (click again to unblock)
+- bind and tunnel decisions are accepted from localhost only - a room member can never re-bind or re-expose your server
 
 ## The engine
 
-The heart of C2FF is a pure-Node probing engine. Each cycle it sends a small, calculated set of `curl` requests, deduplicates results and writes findings to disk. No paid API, no rate-limit roulette, no tokens.
+Each cycle, the engine sends a small, calculated set of budgeted `curl` probes, deduplicates signals and writes findings to disk.
 
 | Module | Detects | CWE |
 |---|---|---|
@@ -71,17 +94,17 @@ The heart of C2FF is a pure-Node probing engine. Each cycle it sends a small, ca
 
 ### Modes
 
-Modules compose into **15 one-click modes** (Programs tab → `GO`): FULL SWEEP covers everything; XSS, SQLI, LFI, SSRF, OPEN-REDIR, SSTI/RCE, XXE, AUTH/JWT, BOLA/IDOR, UPLOAD, SECRETS, INFO-LEAK, EXPOSED and SEC-CFG each target one CWE family. The full table lives in [docs/PLAYBOOKS-AGENTS.md](docs/PLAYBOOKS-AGENTS.md).
+Modules compose into **15 one-click modes** (Programs tab > `GO`): FULL SWEEP covers everything; XSS, SQLI, LFI, SSRF, OPEN-REDIR, SSTI/RCE, XXE, AUTH/JWT, BOLA/IDOR, UPLOAD, SECRETS, INFO-LEAK, EXPOSED and SEC-CFG each target one CWE family. The full playbook table for agents lives in [docs/PLAYBOOKS-AGENTS.md](docs/PLAYBOOKS-AGENTS.md).
 
-Families that need authenticated sessions or business-logic judgment (CSRF mass, race conditions, payment flows) are not probed automatically - that is where the optional AI gateway picks up.
+Families that need authenticated sessions or business-logic judgment (CSRF mass, race conditions, payment flows) are deliberately not probed automatically - that is where the optional AI gateway and your own hands take over.
 
 **Built-in guardrails**
 
-- One representative host per wildcard in scope - never mass scanning
-- Strict budget: 60 requests per cycle (configurable), 500 ms spacing
-- Signal deduplication: identical evidence is stored once
-- Every GET is read-only; per-program researcher headers are injected automatically
-- Writes, session interactions and mass-scanner traffic are deliberately not implemented
+- one representative host per wildcard in scope - never mass scanning
+- strict budget: 60 requests per cycle (configurable), 500 ms spacing
+- signal deduplication: identical evidence is stored once
+- every GET is read-only; per-program researcher headers are injected automatically
+- writes, session interactions and mass-scanner traffic are not implemented, by design
 
 ## Quick start
 
@@ -99,48 +122,68 @@ Manual alternative:
 node server.js 4181
 ```
 
-Requirements: Node >= 18, curl, nothing else.
-
-### Using the console
-
-1. **Programmes** tab - register a program (name, required header, scope), pick a mode, press **GO**
-2. **Fleet panel** - press **Démarrer**; probe cycles run on their own, forever
-3. **Cycle maintenant** - trigger an immediate cycle instead of waiting
-4. **Findings** tab - signals arrive in real time; triage them with the status selector (or ask the AI for a second opinion with the `IA »` button)
-5. **IA** tab - wire your LLM (OpenAI-compatible / Ollama / Anthropic); optional, test the connection in one click
-6. **Team** tab - set your handle, turn the room ON, then **OUVRIR AU RESEAU** to open the console to your team (see below)
-7. **Coordination** tab - send instructions to your wired agent or your room
-8. Header language selector switches the whole UI instantly; keyboard shortcuts `1-6` switch tabs; the UI polls every 1.5 s
-
-### Team sessions (remote group hunting)
-
-Team mode turns the solo console into a shared room: a generated key gates every API route, members invite themselves with one link, and every action (chat messages, manual findings, triage moves) is stamped with the member's handle.
-
-1. **Team** tab - choose a handle, turn the room ON, apply
-2. **OUVRIR AU RESEAU** - the server re-binds to `0.0.0.0` via a self-respawn (2 s) and the invite link shows your real LAN address
-3. Share the invite link (`http://<ip>:<port>/?k=<key>`); invited members pick a handle and appear in the live member list
-4. **REVENIR LOCAL** binds back to `127.0.0.1`; regenerating the key kills every old link at once
-
-Bind decisions (`golive` / `shore`) are accepted from localhost only - a room member can never re-bind your server. When the room is ON, all API routes require the room key from non-loopback clients; `C2FF_BIND` env overrides everything manually.
+Requirements: Node >= 18, curl. For the WORLD tunnel: `cloudflared` (optional).
 
 ### Stopping and restart behavior
 
-The watchdog checks the port every 20 s and revives the server if needed. Stop everything with:
+The watchdog checks the port every 20 s and revives the server if needed - including after a LAN/LOCAL re-bind. Stop everything with:
 
 ```bash
 pkill -f 'C2FF/watchdog.sh' ; pkill -f 'C2FF/server.js'
 ```
 
+## Console tour
+
+1. **PROGRAMS** - register a program (name, required header, scope), pick a mode, press **GO**
+2. **FLEET** - press START; probe cycles run on their own, forever. CYCLE NOW triggers an immediate round
+3. **FINDINGS** - signals arrive in real time; triage with the status selector, add manual findings, ask the AI for a second opinion with the `AI »` button
+4. **SESSION** - your handle, the room, the three access levels, members with roles, session chat and the audio mesh (detailed below)
+5. **COORDINATION** - private channel toward your wired agent
+6. **AI** - optional gateway config (OpenAI-compatible / Ollama / Anthropic), one-click connection test
+- the header language selector switches the whole UI instantly (80 entries, 12 fully translated, RTL for Arabic/Hebrew/Farsi/Urdu/Pashto/Sindhi); keys `1-6` jump between tabs; the UI polls every 1.5 s
+
+## Team sessions
+
+Team mode turns the solo console into a shared room: a generated key gates every API route, members invite themselves with one link, and every action is attributed. Full walkthrough:
+
+1. SESSION tab - choose a handle (max 16 chars), set the room name, turn it ON, apply
+2. **OPEN TO NETWORK** - the server re-binds to `0.0.0.0` via self-respawn (2 s, watchdog-safe) and the invite link shows your real LAN address
+3. Or **OPEN TO WORLD** - a public tunnel URL is generated, verified, then shown with its own COPY button; share it anywhere
+4. Invited members open the link, pick a handle, and join: live member list with role, presence and request count
+5. As admin you switch roles and kick troublemakers; regenerating the key removes everyone at once
+6. Enable the mic for the WebRTC audio mesh - voice is peer-to-peer between browsers, the server only relays signalling for 30 s windows
+
+Why the tunnel is safe: tunnel traffic arrives locally through the built-in proxy and is never treated as loopback, so the room key applies exactly as if members came from outside. No port forwarding, no firewall hole - closing the tunnel restores LAN/LOCAL in one click.
+
+## Agent integration
+
+Everything in C2FF works without an AI agent. If you want deep agentic waves on top (recon-to-offensive pipelines, multi-hypothesis judges), wire your agent to the coordination log:
+
+```
+data/chat.jsonl
+{"t":1690000000,"from":"user","kind":"queue","playbook":"SQLI-DUO","program":"target","note":"..."}
+{"t":1690000000,"from":"claude","kind":"chat","text":"verdict: ..."}
+```
+
+Your agent follows the queue, publishes verdicts back into the log, and they appear in the console instantly. Playbook templates and the agent rulebook: [docs/PLAYBOOKS-AGENTS.md](docs/PLAYBOOKS-AGENTS.md).
+
+The optional LLM gateway (AI tab) is separate and simpler: it analyses one finding on demand (the `AI »` button) and posts the answer into COORDINATION. Endpoint config stays in `data/ai.json` and never leaves your machine except toward the endpoint you set.
+
 ## Architecture
 
 ```mermaid
 flowchart LR
-    UI[index.html + app.js] -->|1.5 s poll / POST| S[server.js\nHTTP API]
+    subgraph Browsers
+        U1[you] --- U2[crew · roles · audio]
+    end
+    U1 -->|1.5 s poll / POST, room key| S[server.js\nHTTP API + auth]
+    U2 -->|invite link LAN or tunnel| S
     S --> F[fleet.js\nprobe engine]
-    F -->|curl, budgeted| T[targets in scope]
-    S --> D[(data/\nfindings.jsonl\nprograms.json\nchat.jsonl\nfleet.json)]
+    F -->|budgeted curl| T[targets in scope]
+    S --> D[(data/\nfindings.jsonl\nprograms.json\nteam.json\nchat.jsonl)]
     S --> R[agent transcripts\noptional C2FF_RUNS_BASE]
     D -->|chat log| A[wired AI agent]
+    S -.|WebRTC signalling only| U2
 ```
 
 `server.js` is the only process. `fleet.js` is the deterministic engine. `data/` is the entire state - copy it and you have moved your console.
@@ -152,47 +195,48 @@ C2FF is env-driven and path-free:
 | Variable | Default | Purpose |
 |---|---|---|
 | `C2FF_PORT` | `4181` | HTTP port (also: first CLI argument) |
-| `C2FF_BIND` | `127.0.0.1` | Listen address - `0.0.0.0` opens LAN access (also settable from the Team tab via golive) |
+| `C2FF_BIND` | `127.0.0.1` | Listen address - `0.0.0.0` opens LAN access (also settable from the SESSION tab) |
 | `C2FF_RUNS_BASE` | empty | Optional directory of agent transcripts to sweep into the fleet view |
 
-State files live in `data/`: `programs.json`, `findings.jsonl`, `chat.jsonl`, `fleet.json`, `ai.json` (optional AI gateway), `team.json` (room config, key and live flag).
+State files live in `data/`:
 
-## Agent integration
-
-Everything in C2FF works without an AI agent. If you want deep agentic waves on top (recon-to-offensive pipelines, multi-hypothesis judges), wire your agent (e.g. Claude Code) to the coordination log:
-
-```
-data/chat.jsonl
-{"t":1690000000,"from":"user","kind":"queue","playbook":"SQLI-DUO","program":"target","note":"..."}
-{"t":1690000000,"from":"claude","kind":"chat","text":"verdict: ..."}
-```
-
-Your agent follows the queue, publishes verdicts back into the log, and they appear in the console instantly. Playbook templates and the agent rulebook: [docs/PLAYBOOKS-AGENTS.md](docs/PLAYBOOKS-AGENTS.md).
+| File | Holds |
+|---|---|
+| `programs.json` | registered programs: name, scope, required header |
+| `findings.jsonl` | every signal and manual finding, with triage status |
+| `team.json` | room config: enabled, room name, key, roles, blocked handles, live flag |
+| `chat.jsonl` | coordination channel + team session messages |
+| `ai.json` | optional LLM gateway config |
+| `fleet.json` | fleet engine state |
 
 ## Security & ethics
 
 C2FF is built for **authorized** bug bounty programs only.
 
-- Run cycles exclusively against domains in the official scope of your program
-- Always send the researcher header your program requires
-- All engine modules are slow-cadence, read-only GETs under typical anti-flood thresholds
-- Destructive, write and scanner-like behavior is not implemented, by design
+- run cycles exclusively against domains in the official scope of your program
+- always send the researcher header your program requires
+- all engine modules are slow-cadence, read-only GETs under typical anti-flood thresholds
+- destructive, write and scanner-like behavior is not implemented, by design
 
 You are responsible for each program's rules. Test only what you are allowed to test.
 
 ## Roadmap
 
+- [x] Deterministic local engine, 21 probe modules, 15 modes
+- [x] Findings base with persistent triage workflow
+- [x] Optional LLM gateway (OpenAI-compatible / Ollama / Anthropic)
+- [x] Team sessions: room key, LAN go-live/shore, presence, attribution
+- [x] Session chat, admin/guest roles, kick + blocklist
+- [x] WORLD tunnel (cloudflared) with auto-verified public invite
+- [x] WebRTC audio mesh + UI in 80 language entries (12 fully translated)
 - [ ] Findings filters (severity, status) and text search
 - [ ] One-click report export (markdown, ready to submit)
-- [ ] Program editing from the UI
-- [ ] Engine interval/budget configuration from the UI
-- [ ] Per-module on/off toggle
-- [x] Authentication layer for remote access (team room key, go-live/shore controls)
+- [ ] Per-module on/off toggle + engine budget from the UI
 - [ ] Docker image
 
 ## Contributing
 
-PRs are welcome - see [CONTRIBUTING.md](CONTRIBUTING.md). For vulnerability reports in C2FF itself, see [SECURITY.md](.github/SECURITY.md).
+PRs are welcome - see [CONTRIBUTING.md](CONTRIBUTING.md). Found a hole in C2FF itself? Open a GitHub issue marked `security` and keep the details minimal until a maintainer replies.
 
 ## License
 
