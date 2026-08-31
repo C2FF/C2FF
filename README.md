@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/banner.png" alt="C2FF" width="640">
+<img src="docs/assets/banner_app.gif" alt="C2FF" width="640">
 
 **Autonomous, 100% local bug bounty hunting console**
 
@@ -24,8 +24,10 @@ C2FF is a self-hosted hunting console for authorized bug bounty work (Bugcrowd, 
 - a **live fleet view** of your running agents and their streamed output,
 - a **persistent findings database** with a triage workflow (`signal → analysis → submitted → duplicate/rejected/closed`),
 - a **program registry** holding each program's scope, required researcher headers (e.g. `X-Bug-Bounty`) and credentials references,
-- a **deterministic probing engine** that runs scheduled cycles entirely from your PC, and
-- a private **coordination channel** you can wire to an AI agent (optional - everything works without one).
+- **15 hunting modes** (XSS, SQLI, LFI, SSRF, SSTI, XXE, JWT, IDOR, ...) covering the major CWE families with deterministic local probes,
+- a private **coordination channel** you can wire to an AI agent (optional - everything works without one),
+- **team sessions**: open a key-gated room, share an invite link, and hunt together in the same console from anywhere, and
+- a UI **available in 80 languages** (12 fully translated), with live theme and no framework.
 
 No accounts, no telemetry, no paid APIs. If it runs, it runs until you stop it - the bundled watchdog restarts the server automatically if it ever dies.
 
@@ -34,9 +36,12 @@ No accounts, no telemetry, no paid APIs. If it runs, it runs until you stop it -
 | Capability | What you get |
 |---|---|
 | Fleet view | Real-time cards per run and per agent, last output, expandable event feed |
-| Findings triage | Severity (P1..P3/HIT/SIG), workflow statuses persisted to disk, manual entries |
-| Programs | Declare scope, required headers, credential refs once - then launch playbooks in one click |
-| Local engine | Deterministic probe cycles, strict request budget, dedup - zero LLM tokens |
+| Findings triage | Severity (P1..P3/HIT/SIG), workflow statuses persisted to disk, manual entries, AI second opinion on demand |
+| Programs | Declare scope, required headers, credential refs once - then launch hunting modes in one click |
+| Local engine | 21 deterministic probe modules, strict request budget, dedup - zero LLM tokens |
+| Optional AI | Gateway to *your* LLM (OpenAI-compatible / Ollama / Anthropic) for single-finding analysis, stored in `data/ai.json` |
+| Team sessions | Key-gated group rooms, live presence, per-member attribution, one-click network access |
+| Localisation | 80 languages in the header selector, RTL support, instant switch |
 | Coordination | Private chat channel between you and any agent wired to the log file |
 | Survival | Watchdog loop keeps the console online indefinitely; restart with one `pkill` |
 
@@ -48,13 +53,27 @@ The heart of C2FF is a pure-Node probing engine. Each cycle it sends a small, ca
 |---|---|---|
 | `SECHEADERS` | Missing protective headers, exposed stack | 693, 200 |
 | `COOKFLAGS` | Cookies without Secure/HttpOnly | 614, 1004 |
-| `CORS` | Arbitrary Origin reflected in ACAO | 942 |
-| `OPTIONS` | Permissive preflight (DELETE/PUT) | 942 |
-| `ERRLEAK` | Stack traces in errors | 209 |
-| `DOTFILES` | Exposed `.git/config`, `.env`, server-status | 541, 538 |
-| `TECHSIG` | Open WordPress REST, server fingerprints | 718, 200 |
-| `ROBOTS` | Sensitive paths in robots.txt | 538 |
+| `CORS` / `OPTIONS` | Arbitrary Origin reflected in ACAO, permissive preflight | 942 |
+| `XSSDUST` | Reflected user input without encoding | 79 |
+| `SQLIMAP` | SQL errors on quote payloads | 89 |
+| `TRAVFILE` | Path traversal via params, dotfiles | 22, 98, 541, 538 |
+| `SSRFPROBE` | Params accepting arbitrary URLs | 918 |
+| `REDIRCHECK` | Open redirects via navigation params | 601 |
+| `SSTIMARK` / `CMDIMARK` | Template evaluation (`{{7*7}}`), command markers | 1336, 78 |
+| `XMLSPOT` | XML/SOAP surfaces for out-of-band XXE testing | 611 |
+| `JWTSPOT` | JWTs in headers/cookies/bundles + lab axes | 287, 347 |
+| `IDORSCAN` | Client-side object references (BOLA) | 639 |
+| `UPLOADSPOT` | Upload surfaces to bypass | 434 |
 | `JSSECRETS` | AWS / Stripe / Google / GitHub / private keys in JS bundles | 798, 321 |
+| `ERRLEAK` | Stack traces in errors | 209 |
+| `TECHSIG` / `ROBOTS` | Fingerprints, WordPress REST, sensitive paths in robots.txt | 718, 200, 538 |
+| `EXPOSED` | Unprotected consoles and admin interfaces | 284 |
+
+### Modes
+
+Modules compose into **15 one-click modes** (Programs tab → `GO`): FULL SWEEP covers everything; XSS, SQLI, LFI, SSRF, OPEN-REDIR, SSTI/RCE, XXE, AUTH/JWT, BOLA/IDOR, UPLOAD, SECRETS, INFO-LEAK, EXPOSED and SEC-CFG each target one CWE family. The full table lives in [docs/PLAYBOOKS-AGENTS.md](docs/PLAYBOOKS-AGENTS.md).
+
+Families that need authenticated sessions or business-logic judgment (CSRF mass, race conditions, payment flows) are not probed automatically - that is where the optional AI gateway picks up.
 
 **Built-in guardrails**
 
@@ -84,12 +103,25 @@ Requirements: Node >= 18, curl, nothing else.
 
 ### Using the console
 
-1. **Programmes** tab - register a program (id, name, required header, scope)
+1. **Programmes** tab - register a program (name, required header, scope), pick a mode, press **GO**
 2. **Fleet panel** - press **Démarrer**; probe cycles run on their own, forever
 3. **Cycle maintenant** - trigger an immediate cycle instead of waiting
-4. **Findings** tab - signals arrive in real time; triage them with the status selector
-5. **Coordination** tab - send instructions to your wired agent
-6. Keyboard shortcuts `1-4` switch tabs; the UI polls every 1.5 s
+4. **Findings** tab - signals arrive in real time; triage them with the status selector (or ask the AI for a second opinion with the `IA »` button)
+5. **IA** tab - wire your LLM (OpenAI-compatible / Ollama / Anthropic); optional, test the connection in one click
+6. **Team** tab - set your handle, turn the room ON, then **OUVRIR AU RESEAU** to open the console to your team (see below)
+7. **Coordination** tab - send instructions to your wired agent or your room
+8. Header language selector switches the whole UI instantly; keyboard shortcuts `1-6` switch tabs; the UI polls every 1.5 s
+
+### Team sessions (remote group hunting)
+
+Team mode turns the solo console into a shared room: a generated key gates every API route, members invite themselves with one link, and every action (chat messages, manual findings, triage moves) is stamped with the member's handle.
+
+1. **Team** tab - choose a handle, turn the room ON, apply
+2. **OUVRIR AU RESEAU** - the server re-binds to `0.0.0.0` via a self-respawn (2 s) and the invite link shows your real LAN address
+3. Share the invite link (`http://<ip>:<port>/?k=<key>`); invited members pick a handle and appear in the live member list
+4. **REVENIR LOCAL** binds back to `127.0.0.1`; regenerating the key kills every old link at once
+
+Bind decisions (`golive` / `shore`) are accepted from localhost only - a room member can never re-bind your server. When the room is ON, all API routes require the room key from non-loopback clients; `C2FF_BIND` env overrides everything manually.
 
 ### Stopping and restart behavior
 
@@ -120,9 +152,10 @@ C2FF is env-driven and path-free:
 | Variable | Default | Purpose |
 |---|---|---|
 | `C2FF_PORT` | `4181` | HTTP port (also: first CLI argument) |
+| `C2FF_BIND` | `127.0.0.1` | Listen address - `0.0.0.0` opens LAN access (also settable from the Team tab via golive) |
 | `C2FF_RUNS_BASE` | empty | Optional directory of agent transcripts to sweep into the fleet view |
 
-State files live in `data/`: `programs.json`, `findings.jsonl`, `chat.jsonl`, `fleet.json`.
+State files live in `data/`: `programs.json`, `findings.jsonl`, `chat.jsonl`, `fleet.json`, `ai.json` (optional AI gateway), `team.json` (room config, key and live flag).
 
 ## Agent integration
 
@@ -154,7 +187,7 @@ You are responsible for each program's rules. Test only what you are allowed to 
 - [ ] Program editing from the UI
 - [ ] Engine interval/budget configuration from the UI
 - [ ] Per-module on/off toggle
-- [ ] Authentication layer for remote access
+- [x] Authentication layer for remote access (team room key, go-live/shore controls)
 - [ ] Docker image
 
 ## Contributing
