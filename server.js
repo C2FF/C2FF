@@ -475,6 +475,11 @@ const MAIN = (req, res) => {
     if (!teamAllowed(req, url)) return send(res, 403, 'text/plain', 'team key required');
   }
 
+  if (req.method === 'GET' && p === '/api/surface') {
+    const f = path.join(DATA, 'surface.json');
+    try { return sendJson(res, JSON.parse(fs.readFileSync(f, 'utf8'))); } catch (e) { return sendJson(res, {}); }
+  }
+
   if (req.method === 'POST') {
     readBody(req, async body => {
       if (p === '/api/team') {

@@ -256,6 +256,7 @@ header,nav{border-bottom-color:transparent;
   <button class="navbtn active" data-tab="live"><span data-i="navf">Flotte</span> <small id="nRun"></small></button>
   <button class="navbtn" data-tab="findings"><span data-i="navfd">Findings</span> <small id="nFnd"></small></button>
   <button class="navbtn" data-tab="programs"><span data-i="navp">Programmes</span> <small id="nProg"></small></button>
+  <button class="navbtn" data-tab="hunt"><span data-i="navh">HUNT</span></button>
   <button class="navbtn" data-tab="ai"><span data-i="navai">IA</span></button>
   <button class="navbtn" data-tab="team"><span data-i="navt">Team</span></button>
   <button class="navbtn" data-tab="term"><span data-i="navtrm">TERM</span></button>
@@ -303,6 +304,17 @@ header,nav{border-bottom-color:transparent;
       <button class="go" type="submit" data-i="p_save">Enregistrer</button>
     </form>
   </div>
+</section>
+
+<section class="view" id="v-hunt">
+  <h2 data-i="h2hunt">HUNT - surface reelle d'une cible et preuves</h2>
+  <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <select id="huntProg" style="width:250px;flex:1;max-width:320px"></select>
+    <button class="go" id="huntRecon" data-i="rc_btn">RECON</button>
+    <span class="pill" id="huntSt" data-i="h_ready">pret</span>
+  </div>
+  <div class="card" id="huntSurf" style="margin-top:12px"></div>
+  <div id="huntFnd"></div>
 </section>
 
 <section class="view" id="v-ai">

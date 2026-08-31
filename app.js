@@ -45,6 +45,7 @@ const LANGS = [
 ];
 const I18N = {
   fr: {
+    navh: 'HUNT', h2hunt: 'HUNT - surface reelle et preuves', h_ready: 'pret', h_empty: 'aucune surface connue : lance RECON pour cartographier pages, endpoints API, params, bundles JS et sous-domaines', h_fnd: 'Findings du programme', h_nofnd: 'aucun finding sur ce programme',
     rc_btn: 'RECON', rc_start: 'recon de la surface en cours : pages, bundles JS, endpoints, params...',
     rc_done: 'surface cartographiee : endpoints, params et sous-domaines listes dans la carte du programme', rc_fail: 'recon echoue : host injoignable ou scope vide', rc_surface: 'surface :',
     snd_on: 'SON : ON', snd_off: 'SON : OFF', snd_ok: 'sons d interface actifs - bibliotheque : clic, onglet, copie, alertes',
@@ -112,6 +113,7 @@ const I18N = {
     w_me: 'OPERATOR', w_claude: 'CLAUDE', w_ia: 'IA', w_launch: '⚡ LANCEMENT',
   },
   en: {
+    navh: 'HUNT', h2hunt: 'HUNT - real surface and findings', h_ready: 'ready', h_empty: 'no surface yet: run RECON to map pages, API endpoints, params, JS bundles and subdomains', h_fnd: 'Program findings', h_nofnd: 'no findings for this program',
     rc_btn: 'RECON', rc_start: 'recon of the attack surface: pages, JS bundles, endpoints, params...',
     rc_done: 'surface mapped: endpoints, params and subdomains listed in the program card', rc_fail: 'recon failed: host unreachable or empty scope', rc_surface: 'surface:',
     snd_on: 'SOUND: ON', snd_off: 'SOUND: OFF', snd_ok: 'interface sounds on - library: click, tab, copy, alerts',
@@ -179,6 +181,7 @@ const I18N = {
     tm_mic_denied: 'microphone denied or unavailable: HTTPS required (WORLD tunnel or localhost) and permission must be granted',
   },
   es: {
+    navh: 'HUNT', h2hunt: 'HUNT - superficie real y hallazgos', h_ready: 'listo', h_empty: 'sin superficie todavía: lanza RECON para mapear páginas, endpoints API, parámetros, bundles JS y subdominios', h_fnd: 'Hallazgos del programa', h_nofnd: 'sin hallazgos para este programa',
     rc_btn: 'RECON', rc_start: 'recon de la superficie: páginas, bundles JS, endpoints, parámetros...',
     rc_done: 'superficie cartografiada: endpoints, parámetros y subdominios listados en la tarjeta', rc_fail: 'recon falló: host inaccesible o scope vacío', rc_surface: 'superficie:',
     snd_on: 'SONIDO: ON', snd_off: 'SONIDO: OFF', snd_ok: 'sonidos de interfaz activos - biblioteca: clic, pestaña, copiar, alertas',
@@ -246,6 +249,7 @@ const I18N = {
     tm_mic_denied: 'micrófono denegado o no disponible: se requiere HTTPS (túnel MUNDO o localhost) y conceder el permiso',
   },
   de: {
+    navh: 'HUNT', h2hunt: 'HUNT - echte Fläche und Funde', h_ready: 'bereit', h_empty: 'noch keine Fläche: RECON starten, um Seiten, API-Endpoints, Parameter, JS-Bundles und Subdomains zu kartieren', h_fnd: 'Funde des Programms', h_nofnd: 'keine Funde für dieses Programm',
     rc_btn: 'RECON', rc_start: 'Recon der Angriffsfläche: Seiten, JS-Bundles, Endpoints, Parameter...',
     rc_done: 'Fläche kartiert: Endpoints, Parameter und Subdomains in der Karte gelistet', rc_fail: 'Recon fehlgeschlagen: Host nicht erreichbar oder Scope leer', rc_surface: 'Fläche:',
     snd_on: 'TON: AN', snd_off: 'TON: AUS', snd_ok: 'Oberflächenklänge aktiv - Bibliothek: Klick, Tab, Kopieren, Alarme',
@@ -311,6 +315,7 @@ const I18N = {
     tm_mic_denied: 'Mikrofon verweigert oder nicht verfügbar: HTTPS nötig (WELT-Tunnel oder localhost) und Berechtigung erteilen',
   },
   pt: {
+    navh: 'HUNT', h2hunt: 'HUNT - superfície real e achados', h_ready: 'pronto', h_empty: 'sem superfície ainda: execute RECON para mapear páginas, endpoints de API, parâmetros, bundles JS e subdomínios', h_fnd: 'Achados do programa', h_nofnd: 'nenhum achado neste programa',
     rc_btn: 'RECON', rc_start: 'recon da superfície: páginas, bundles JS, endpoints, parâmetros...',
     rc_done: 'superfície mapeada: endpoints, parâmetros e subdomínios listados no cartão', rc_fail: 'recon falhou: host inacessível ou escopo vazio', rc_surface: 'superfície:',
     snd_on: 'SOM: ON', snd_off: 'SOM: OFF', snd_ok: 'sons de interface ativos - biblioteca: clique, aba, copiar, alertas',
@@ -376,6 +381,7 @@ const I18N = {
     tm_mic_denied: 'microfone recusado ou indisponível: HTTPS obrigatório (túnel MUNDO ou localhost) e conceder a permissão',
   },
   it: {
+    navh: 'HUNT', h2hunt: 'HUNT - superficie reale e reperti', h_ready: 'pronto', h_empty: 'nessuna superficie: avvia RECON per mappare pagine, endpoint API, parametri, bundle JS e sottodomini', h_fnd: 'Reperti del programma', h_nofnd: 'nessun reperto per questo programma',
     rc_btn: 'RECON', rc_start: 'recon della superficie: pagine, bundle JS, endpoint, parametri...',
     rc_done: 'superficie mappata: endpoint, parametri e sottodomini elencati nella scheda', rc_fail: 'recon fallito: host irraggiungibile o scope vuoto', rc_surface: 'superficie:',
     snd_on: 'SUONO: ON', snd_off: 'SUONO: OFF', snd_ok: 'suoni interfaccia attivi - libreria: clic, scheda, copia, allarmi',
@@ -441,6 +447,7 @@ const I18N = {
     tm_mic_denied: 'microfono negato o non disponibile: serve HTTPS (tunnel MONDO o localhost) e concedere il permesso',
   },
   ar: {
+    navh: 'الصيد', h2hunt: 'الصيد - السطح الحقيقي والنتائج', h_ready: 'جاهز', h_empty: 'لا يوجد سطح بعد : شغّل الاستكشاف لرسم الصفحات ونقاط النهاية والمعاملات وحزم JS والنطاقات الفرعية', h_fnd: 'نتائج البرنامج', h_nofnd: 'لا نتائج لهذا البرنامج',
     rc_btn: 'استكشاف', rc_start: 'استكشاف السطح : الصفحات، حزم JS، نقاط النهاية، المعاملات...',
     rc_done: 'تم رسم السطح : نقاط النهاية والمعاملات والنطاقات الفرعية في البطاقة', rc_fail: 'فشل الاستكشاف : المضيف غير متاح أو النطاق فارغ', rc_surface: 'السطح:',
     snd_on: 'الصوت: تشغيل', snd_off: 'الصوت: إيقاف', snd_ok: 'أصوات الواجهة مفعلة - المكتبة: نقر، تبويب، نسخ، تنبيهات',
@@ -506,6 +513,7 @@ const I18N = {
     tm_mic_denied: 'الميكروفون مرفوض أو غير متاح: HTTPS مطلوب (نفق عالم أو localhost) مع منح الإذن',
   },
   zh: {
+    navh: '狩猎', h2hunt: '狩猎 - 真实攻击面与发现', h_ready: '就绪', h_empty: '尚无攻击面 : 运行侦察以绘制页面、API 端点、参数、JS 包和子域', h_fnd: '项目发现', h_nofnd: '该项目暂无发现',
     rc_btn: '侦察', rc_start: '正在侦察攻击面：页面、JS 包、端点、参数...',
     rc_done: '攻击面已测绘：端点、参数和子域已列入卡片', rc_fail: '侦察失败：主机不可达或范围 为空', rc_surface: '攻击面:',
     snd_on: '音效: 开', snd_off: '音效: 关', snd_ok: '界面音效已开启 - 音效库：点击、切换、复制、警报',
@@ -571,6 +579,7 @@ const I18N = {
     tm_mic_denied: '麦克风被拒绝或不可用：需要 HTTPS（世界隧道或 localhost）并授权麦克风',
   },
   ru: {
+    navh: 'ХАНТ', h2hunt: 'ХАНТ - реальная поверхность и находки', h_ready: 'готов', h_empty: 'поверхности нет : запустите рекон, чтобы собрать страницы, эндпоинты API, параметры, JS-бандлы и субдомены', h_fnd: 'Находки программы', h_nofnd: 'нет находок по этой программе',
     rc_btn: 'РЕКОН', rc_start: 'рекон поверхности: страницы, JS-бандлы, эндпоинты, параметры...',
     rc_done: 'поверхность закартографирована: эндпоинты, параметры и субдомены в карточке', rc_fail: 'рекон не удался: хост недоступен или scope пуст', rc_surface: 'поверхность:',
     snd_on: 'ЗВУК: ВКЛ', snd_off: 'ЗВУК: ВЫКЛ', snd_ok: 'звуки интерфейса включены - библиотека: клик, вкладка, копирование, алерты',
@@ -636,6 +645,7 @@ const I18N = {
     tm_mic_denied: 'микрофон отклонён или недоступен: требуется HTTPS (мировой туннель или localhost) и разрешение доступа',
   },
   ja: {
+    navh: 'ハント', h2hunt: 'ハント - 実攻撃面と発見', h_ready: '準備完了', h_empty: '攻撃面なし : 偵察を実行してページ・APIエンドポイント・パラメータ・JSバンドル・サブドメインを収集', h_fnd: 'プログラムの発見', h_nofnd: 'このプログラムの発見なし',
     rc_btn: 'RECON', rc_start: '攻撃面を偵察中：ページ、JSバンドル、エンドポイント、パラメータ...',
     rc_done: '攻撃面をマッピング完了：エンドポイント・パラメータ・サブドメインをカードに表示', rc_fail: '偵察失敗：ホストに到達不可能かスコープが空', rc_surface: '攻撃面:',
     snd_on: 'サウンド: ON', snd_off: 'サウンド: OFF', snd_ok: 'UIサウンド有効 - ライブラリ: クリック、タブ、コピー、アラート',
@@ -701,6 +711,7 @@ const I18N = {
     tm_mic_denied: 'マイクが拒否か利用不可：HTTPS（ワールドトンネルか localhost）と権限の許可が必要',
   },
   ko: {
+    navh: '헌트', h2hunt: '헌트 - 실제 공격면과 발견', h_ready: '준비됨', h_empty: '공격면 없음 : 정찰을 실행해 페이지·API 엔드포인트·파라미터·JS 번들·서브도메인을 수집', h_fnd: '프로그램 발견', h_nofnd: '이 프로그램의 발견 없음',
     rc_btn: '정찰', rc_start: '공격면 정찰 중: 페이지, JS 번들, 엔드포인트, 파라미터...',
     rc_done: '공격면 매핑 완료: 엔드포인트·파라미터·서브도메인이 카드에 표시됨', rc_fail: '정찰 실패: 호스트 접근 불가 또는 범위 비어 있음', rc_surface: '공격면:',
     snd_on: '사운드: ON', snd_off: '사운드: OFF', snd_ok: 'UI 사운드 켜짐 - 라이브러리: 클릭, 탭, 복사, 알림음',
@@ -766,6 +777,7 @@ const I18N = {
     tm_mic_denied: '마이크 거부 또는 불가: HTTPS(월드 터널 또는 localhost)와 권한 허용 필요',
   },
   hi: {
+    navh: 'हंट', h2hunt: 'हंट - वास्तविक सरफ़ेस और फाइंडिंग्स', h_ready: 'तैयार', h_empty: 'कोई सरफ़ेस नहीं : पेज, API एंडपॉइंट, पैरामीटर, JS बंडल और सबडोमेन मैप करने के लिए रीकॉन चलाएँ', h_fnd: 'प्रोग्राम फाइंडिंग्स', h_nofnd: 'इस प्रोग्राम की कोई फाइंडिंग नहीं',
     rc_btn: 'रीकॉन', rc_start: 'सरफ़ेस रीकॉन चल रहा है : पेज, JS बंडल, एंडपॉइंट, पैरामीटर...',
     rc_done: 'सरफ़ेस मैप हो गया : एंडपॉइंट, पैरामीटर और सबडोमेन कार्ड में सूचीबद्ध', rc_fail: 'रीकॉन विफल : होस्ट अनुपलब्ध या स्कोप खाली', rc_surface: 'सरफ़ेस:',
     snd_on: 'साउंड: ON', snd_off: 'साउंड: OFF', snd_ok: 'इंटरफ़ेस साउंड चालू - लाइब्रेरी: क्लिक, टैब, कॉपी, अलर्ट',
@@ -1012,9 +1024,9 @@ function drawPrograms() {
     '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">' +
     '<select class="mode" data-p="' + esc(p.id) + '">' + modes.map(m => '<option value="' + esc(m.key) + '">' + esc(m.label) + ' · CWE ' + esc(m.cwes) + '</option>').join('') + '</select>' +
     '<button class="go launch" data-p="' + esc(p.id) + '">GO ›</button>' +
-    '<button class="ghost recon" data-p="' + esc(p.id) + '" style="padding:6px 14px;font-size:11px">' + T('rc_btn') + '</button></div>' +
+    '<button class="ghost huntgo" data-p="' + esc(p.id) + '" style="padding:6px 14px;font-size:11px">' + T('navh') + ' ›</button></div>' +
     '<div class="subtle" style="color:var(--dim);font-size:10.5px" id="mdesc-' + esc(p.id) + '"></div>' +
-    '<div id="surf-' + esc(p.id) + '"></div></div>'
+    '</div>'
   ).join('');
   document.querySelectorAll('.prog .mode').forEach(sel => {
     const upd = () => { const m = modes.find(x => x.key === sel.value); const d = $('mdesc-' + sel.dataset.p); if (d && m) d.textContent = '▸ CWE ' + m.cwes + ' - ' + m.desc + ' (' + m.n + ' module(s), 100% local)'; };
@@ -1028,37 +1040,75 @@ function drawPrograms() {
     toast(T('w_launch'), TF('to_launch', { m: m ? m.label : sel.value, c: m ? m.cwes : '?', p: p.toUpperCase() }), 'HIT');
     setTimeout(refresh, 500);
   }));
-  // ---- HUNT etape 1 : RECON de la surface avant les probes ----
-  document.querySelectorAll('.recon').forEach(b => b.addEventListener('click', () => {
-    const p = b.dataset.p;
-    const box = $('surf-' + p);
-    if (box) box.innerHTML = '<div class="subtle" style="color:var(--dim);font-size:10.5px;margin-top:8px">⟳ ' + T('rc_start') + '</div>';
-    b.disabled = true;
-    jpost('/api/recon', { name: p }).then(r => r.json()).then(j => {
-      b.disabled = false;
-      if (!j.ok || !j.surface) { if (box) box.innerHTML = '<div class="subtle" style="color:var(--warn);font-size:10.5px;margin-top:8px">✖ ' + T('rc_fail') + '</div>'; sndPlay('err'); return; }
-      sndPlay('hit');
-      renderSurface(p, j.surface);
-      toast('RECON', T('rc_done'), 'HIT');
-    }).catch(() => { b.disabled = false; sndPlay('err'); });
+  // raccourci : ouvre l'onglet HUNT sur ce programme
+  document.querySelectorAll('.huntgo').forEach(b => b.addEventListener('click', () => {
+    huntSel = b.dataset.p;
+    setTab('hunt'); drawHunt();
   }));
-  // si une surface connue existe, affichee d'office
-  fetch('/api/surface').then(r => r.json()).then(s => { for (const k of Object.keys(s || {})) renderSurface(k, s[k]); }).catch(() => {});
 }
-function renderSurface(id, s) {
-  const box = $('surf-' + id);
-  if (!box || !s) return;
-  const L = (n, k) => s[n] ? s[n].length : 0;
-  box.innerHTML =
-    '<div class="subtle" style="margin-top:8px;font-size:10.5px;color:var(--dim);line-height:1.6">' +
-    '▸ ' + T('rc_surface') + ' <b style="color:var(--green)">' + esc(s.host || id) + '</b> - ' + esc(s.reqs || 0) + ' req · ' + Math.round((s.ms || 0) / 100) / 10 + ' s<br>' +
-    '▸ ' + L('pages') + ' pages · <b style="color:var(--green)">' + L('apis') + ' endpoints API</b> · ' + L('jsfiles') + ' bundles JS · <b style="color:var(--green)">' + L('params') + ' params</b>' +
-    (s.tech && s.tech.length ? ' · <span style="color:var(--dim)">' + esc(s.tech.join(' / ').slice(0, 60)) + '</span>' : '') +
-    (s.subs && s.subs.length ? '<br>▸ ' + s.subs.length + ' sous-domaines (crt.sh) : <span style="color:var(--dim)">' + esc(s.subs.slice(0, 8).join(', ') + (s.subs.length > 8 ? '…' : '')) + '</span>' : '') +
-    (s.apis && s.apis.length ? '<br>▸ API : <span style="color:var(--dim)">' + esc(s.apis.slice(0, 5).join(' · ')) + (s.apis.length > 5 ? '…' : '') + '</span>' : '') +
-    (s.params && s.params.length ? '<br>▸ params : <span style="color:var(--dim)">' + esc(s.params.slice(0, 12).join(' · ')) + (s.params.length > 12 ? '…' : '') + '</span>' : '') +
-    '</div>';
+
+// ---------- HUNT tab : surface reelle + preuves du programme ----------
+let huntSel = '', SURF = {}, SURF_READY = false;
+function surfFor(id) {
+  if (!SURF_READY && !SURF[id]) {
+    SURF_READY = true;
+    fetch('/api/surface').then(r => r.json()).then(s => { SURF = s || {}; if (state.tab === 'hunt') { drawn.hunt = ''; drawHunt(); } }).catch(() => {});
+  }
+  return SURF[id];
 }
+function drawHunt() {
+  const progs = state.data.programs;
+  if (!huntSel || !progs.some(p => p.id === huntSel)) huntSel = progs.length ? progs[0].id : '';
+  const sig = JSON.stringify([progs.map(p => p.id), huntSel, SURF_READY ? '1' : '0', state.data.findings.length]);
+  if (sig === drawn.hunt && !forceDraw) return;
+  if (focusInside('huntProg')) return;
+  drawn.hunt = sig;
+  const sel = $('huntProg');
+  sel.innerHTML = progs.map(p => '<option value="' + esc(p.id) + '"' + (p.id === huntSel ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('') || '<option value="">-</option>';
+  $('huntRecon').disabled = !huntSel;
+  // surface
+  const s = surfFor(huntSel);
+  const box = $('huntSurf');
+  if (!huntSel) { box.innerHTML = '<div class="subtle" style="color:var(--dim);font-size:11px">' + T('f_none') + '</div>'; }
+  else if (!s) { box.innerHTML = '<div class="subtle" style="color:var(--dim);font-size:11px">' + T('h_empty') + '</div>'; }
+  else {
+    const rows = (t, arr, cut) => arr && arr.length ?
+      '<div style="margin-top:7px"><b style="color:var(--green)">' + t + ' (' + arr.length + ')</b><div style="margin-top:3px;line-height:1.7;font-size:10.5px;color:var(--dim);word-break:break-all">' +
+      arr.slice(0, cut || 999).map(x => '<span class="pill" style="margin:1px 2px 1px 0">' + esc(x) + '</span>').join('') + (arr.length > (cut || 999) ? '…' : '') + '</div></div>' : '';
+    box.innerHTML =
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline">' +
+      '<b style="color:var(--green);font-size:13px">' + esc(s.host || huntSel) + '</b>' +
+      '<small style="color:var(--faint)">' + esc(s.reqs || 0) + ' req · ' + Math.round((s.ms || 0) / 100) / 10 + ' s · ' + esc(s.ts ? s.ts.slice(0, 16).replace('T', ' ') : '') + '</small>' +
+      (s.tech && s.tech.length ? '<span class="pill">⚙ ' + esc(s.tech.join(' / ').slice(0, 80)) + '</span>' : '') + '</div>' +
+      rows('API', s.apis, 30) + rows('PARAMS', s.params, 30) +
+      rows('PAGES', (s.pages || []).map(x => x.replace(/^https?:\/\//, '')), 20) +
+      rows('JS', (s.jsfiles || []).map(x => x.replace(/^https?:\/\//, '')), 15) +
+      rows('SUBS', s.subs, 25);
+  }
+  // findings du programme
+  const mine = state.data.findings.filter(f => (f.program || '').toLowerCase() === huntSel.toLowerCase());
+  $('huntFnd').innerHTML =
+    '<h2 style="margin-top:14px">' + T('h_fnd') + (mine.length ? ' <small style="color:var(--faint)">(' + mine.length + ')</small>' : '') + '</h2>' +
+    (mine.slice(0, 40).map(f =>
+      '<div class="fnd S-' + esc(f.sev) + '"><div class="fh"><span class="sev">' + esc(f.sev) + '</span>' +
+      '<small style="color:var(--dim)">' + esc(f.id) + ' · ' + esc(f.run) + ' · ' + esc(f.agent) + ' · ' + new Date(f.t).toLocaleTimeString('fr-FR') + '</small></div>' +
+      '<div class="txt">' + hl(f.text) + '</div></div>').join('') ||
+      '<div class="subtle" style="color:var(--faint);font-size:11px">' + T('h_nofnd') + '</div>');
+}
+$('huntProg').addEventListener('change', () => { huntSel = $('huntProg').value; drawn.hunt = ''; drawHunt(); });
+$('huntRecon').addEventListener('click', () => {
+  const p = huntSel; if (!p) return;
+  const b = $('huntRecon');
+  $('huntSt').textContent = '⟳'; $('huntSt').setAttribute('data-i', '');
+  b.disabled = true;
+  jpost('/api/recon', { name: p }).then(r => r.json()).then(j => {
+    b.disabled = false;
+    if (!j.ok || !j.surface) { $('huntSt').textContent = '✖'; sndPlay('err'); toast('RECON', T('rc_fail'), 'P2'); return; }
+    SURF[p] = j.surface;
+    sndPlay('hit'); toast('RECON', T('rc_done'), 'HIT');
+    drawn.hunt = ''; drawHunt();
+  }).catch(() => { b.disabled = false; $('huntSt').textContent = '✖'; sndPlay('err'); });
+});
 
 // nouveau programme
 $('progForm').addEventListener('submit', e => {
@@ -1614,7 +1664,7 @@ $('termRestart').addEventListener('click', () => {
 document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => { setTab(b.dataset.tab); if (b.dataset.tab === 'term') termConnect(); }));
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') { if (e.key === 'Escape') e.target.blur(); return; }
-  const m = { '1': 'live', '2': 'findings', '3': 'programs', '4': 'ai', '5': 'team', '6': 'term', '7': 'chat' }[e.key];
+  const m = { '1': 'live', '2': 'findings', '3': 'programs', '4': 'hunt', '5': 'ai', '6': 'team', '7': 'term', '8': 'chat' }[e.key];
   if (m) setTab(m);
 });
 setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);
@@ -1646,7 +1696,7 @@ async function refresh() {
       popNotify('SESSION · ' + (ttop.name || '?'), ttop.text || '', '');
     }
     if (ttop) NOTIF.lastTeamT = ttop.t;
-    drawRuns(d.runs); drawFindings(); drawPrograms(); drawChat(); drawFleet(); drawAI(); drawTeam();
+    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawChat(); drawFleet(); drawAI(); drawTeam();
     // presence team : battement toutes les ~5 s (3 polls)
     if (state.tick % 3 === 0 && HANDLE) {
       jpost('/api/team', { op: 'beat', handle: HANDLE }).then(r => r.json()).then(j => {
