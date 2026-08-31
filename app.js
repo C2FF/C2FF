@@ -194,7 +194,7 @@ const I18N = {
     snd_stop: 'silencio total activado: sin más sonidos de C2FF',
     amb_on: 'AMBIENTE: ON', amb_off: 'AMBIENTE: OFF', amb_ok: 'ambiente vivo - el tono se desliza suavemente entre las familias (verde, azul, amarillo...)',
     amb_stop: 'ambiente congelado en el verde original',
-    nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'notificaciones del navegador activadas - bip en P1 y P2',
+    nt_on: 'NOTIFS: ACTIVADAS', nt_off: 'NOTIFS: DESACTIVADAS', nt_ok: 'notificaciones del navegador activadas - bip en P1 y P2',
     nt_denied: 'notificaciones bloqueadas por el navegador: permítelas en los ajustes del sitio',
     term_denied: 'terminal denegado o no disponible: se requiere localhost, o sala ABIERTA como admin',
     term_p: 'bash real - historial con flechas, Ctrl+C interrumpe, Ctrl+D cierra', term_restart: 'Reiniciar',
@@ -280,7 +280,7 @@ const I18N = {
     h2c: 'Koordination - privater Kanal',
     fl_start: 'Starten', fl_pause: 'Pause', fl_cycle: 'Jetzt zyklieren',
     f_add: 'Hinzufügen', f_none: 'noch kein Signal', f_ph: 'manueller Finding: Endpoint + Beweis + verteidigbare Stufe…',
-    st_sig_off: 'signal', st_sig_an: 'analyse', st_sig_sub: 'eingereicht', st_sig_dup: 'dup', st_sig_ref: 'abgelehnt', st_sig_cl: 'geschlossen',
+    st_sig_off: 'Signal', st_sig_an: 'Analyse', st_sig_sub: 'eingereicht', st_sig_dup: 'dup', st_sig_ref: 'abgelehnt', st_sig_cl: 'geschlossen',
     r_none: 'kein Run erkannt', r_live: '{n} AKTIV', r_done: 'FERTIG', r_feed: '▽ Feed ({n} ev)', r_close: '△ zuklappen',
     p_name_ph: 'Programmname (z.B. PayPal)', p_hdr_ph: 'erforderlicher Header (z.B. X-Bug-Bounty: xxx)',
     p_scope_ph: 'Scope : Domain1, Domain2, …', p_save: 'Speichern', p_local: 'Modul(e), 100% lokal',
@@ -332,7 +332,7 @@ const I18N = {
     snd_stop: 'mudo total ativado: sem mais sons do C2FF',
     amb_on: 'AMBIENTE: ON', amb_off: 'AMBIENTE: OFF', amb_ok: 'ambiente vivo - o tom desliza suavemente entre as famílias (verde, azul, amarelo...)',
     amb_stop: 'ambiente congelado no verde original',
-    nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'notificações do navegador ativas - bip em P1 e P2',
+    nt_on: 'NOTIFS: LIGADAS', nt_off: 'NOTIFS: DESLIGADAS', nt_ok: 'notificações do navegador ativas - bip em P1 e P2',
     nt_denied: 'notificações bloqueadas pelo navegador: permita-as nas configurações do site',
     term_denied: 'terminal recusado ou indisponível: localhost necessário, ou sala ABERTA como admin',
     term_p: 'bash real - histórico com setas, Ctrl+C interrompe, Ctrl+D fecha', term_restart: 'Reiniciar',
@@ -400,7 +400,7 @@ const I18N = {
     snd_stop: 'muto totale attivo: nessun suono C2FF',
     amb_on: 'AMBIENTE: ON', amb_off: 'AMBIENTE: OFF', amb_ok: 'atmosfera viva - la tinta scorre dolcemente tra le famiglie (verde, blu, giallo...)',
     amb_stop: 'atmosfera bloccata sul verde originale',
-    nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'notifiche del browser attive - bip su P1 e P2',
+    nt_on: 'NOTIFS: ATTIVE', nt_off: 'NOTIFS: SPENTE', nt_ok: 'notifiche del browser attive - bip su P1 e P2',
     nt_denied: 'notifiche bloccate dal browser: autorizzale nelle impostazioni del sito',
     term_denied: 'terminale negato o non disponibile: serve localhost, o stanza APERTA come admin',
     term_p: 'bash reale - cronologia con frecce, Ctrl+C interrompe, Ctrl+D chiude', term_restart: 'Reimposta',
@@ -552,7 +552,7 @@ const I18N = {
     h2c: '协同 - 私人频道',
     fl_start: '启动', fl_pause: '暂停', fl_cycle: '立即循环',
     f_add: '添加', f_none: '尚无信号', f_ph: '手动发现：端点 + 证据 + 可辩护等级…',
-    st_sig_off: 'signal', st_sig_an: 'analyse', st_sig_sub: '已提交', st_sig_dup: 'dup', st_sig_ref: '已拒绝', st_sig_cl: '已关闭',
+    st_sig_off: '信号', st_sig_an: '分析', st_sig_sub: '已提交', st_sig_dup: '重复', st_sig_ref: '已拒绝', st_sig_cl: '已关闭',
     r_none: '未检测到运行', r_live: '{n} 运行中', r_done: '已完成', r_feed: '▽ 流 ({n} 条)', r_close: '△ 收起',
     p_name_ph: '项目名（如 PayPal）', p_hdr_ph: '必需的研究头（如 X-Bug-Bounty: xxx）',
     p_scope_ph: '范围：域名1、域名2、…', p_save: '保存', p_local: '个模块，100% 本地',
@@ -620,7 +620,7 @@ const I18N = {
     h2c: 'Координация - частный канал',
     fl_start: 'Запустить', fl_pause: 'Пауза', fl_cycle: 'Цикл сейчас',
     f_add: 'Добавить', f_none: 'сигналов пока нет', f_ph: 'ручная находка: эндпоинт + доказательство + защищаемая степень…',
-    st_sig_off: 'signal', st_sig_an: 'analyse', st_sig_sub: 'отправлено', st_sig_dup: 'dup', st_sig_ref: 'отклонено', st_sig_cl: 'закрыто',
+    st_sig_off: 'сигнал', st_sig_an: 'анализ', st_sig_sub: 'отправлено', st_sig_dup: 'дубль', st_sig_ref: 'отклонено', st_sig_cl: 'закрыто',
     r_none: 'запусков не обнаружено', r_live: '{n} В РАБОТЕ', r_done: 'ЗАВЕРШЕНО', r_feed: '▽ поток ({n} соб)', r_close: '△ свернуть',
     p_name_ph: 'Название программы (напр. PayPal)', p_hdr_ph: 'требуемый заголовок (напр. X-Bug-Bounty: xxx)',
     p_scope_ph: 'скоуп : домен1, домен2, …', p_save: 'Сохранить', p_local: 'модуль/модулей, 100% локально',
@@ -688,7 +688,7 @@ const I18N = {
     h2c: '調整 - プライベートチャネル',
     fl_start: '開始', fl_pause: '一時停止', fl_cycle: '今すぐサイクル',
     f_add: '追加', f_none: 'シグナルなし', f_ph: '手動発見：エンドポイント + 証拠 + 立証可能な深刻度…',
-    st_sig_off: 'signal', st_sig_an: 'analyse', st_sig_sub: '提出済', st_sig_dup: 'dup', st_sig_ref: '却下', st_sig_cl: '完了',
+    st_sig_off: 'シグナル', st_sig_an: '分析', st_sig_sub: '提出済', st_sig_dup: '重複', st_sig_ref: '却下', st_sig_cl: '完了',
     r_none: 'ラン検出なし', r_live: '{n} 稼働中', r_done: '完了', r_feed: '▽ フィード ({n} 件)', r_close: '△ 閉じる',
     p_name_ph: 'プログラム名（例: PayPal）', p_hdr_ph: '必須ヘッダー（例: X-Bug-Bounty: xxx）',
     p_scope_ph: 'スコープ：ドメイン1、ドメイン2、…', p_save: '保存', p_local: 'モジュール、100% ローカル',
@@ -756,7 +756,7 @@ const I18N = {
     h2c: '조정 - 사설 채널',
     fl_start: '시작', fl_pause: '일시정지', fl_cycle: '지금 주기',
     f_add: '추가', f_none: '아직 신호 없음', f_ph: '수동 발견: 엔드포인트 + 증거 + 방어 가능한 심각도…',
-    st_sig_off: 'signal', st_sig_an: 'analyse', st_sig_sub: '제출됨', st_sig_dup: 'dup', st_sig_ref: '거부됨', st_sig_cl: '닫힘',
+    st_sig_off: '시그널', st_sig_an: '분석', st_sig_sub: '제출됨', st_sig_dup: '중복', st_sig_ref: '거부됨', st_sig_cl: '닫힘',
     r_none: '감지된 런 없음', r_live: '{n} 실행 중', r_done: '완료', r_feed: '▽ 피드 ({n} 건)', r_close: '△ 접기',
     p_name_ph: '프로그램 이름 (예: PayPal)', p_hdr_ph: '필수 헤더 (예: X-Bug-Bounty: xxx)',
     p_scope_ph: '스코프 : 도메인1, 도메인2, …', p_save: '저장', p_local: '모듈, 100% 로컬',
@@ -824,7 +824,7 @@ const I18N = {
     h2c: 'समन्वय - निजी चैनल',
     fl_start: 'शुरू', fl_pause: 'विराम', fl_cycle: 'अभी चक्र',
     f_add: 'जोड़ें', f_none: 'अभी कोई संकेत नहीं', f_ph: 'मैन्युअल फाइंडिंग: एंडपॉइंट + प्रमाण + बचाव योग्य गंभीरता…',
-    st_sig_off: 'signal', st_sig_an: 'analyse', st_sig_sub: 'सबमिट', st_sig_dup: 'dup', st_sig_ref: 'अस्वीकृत', st_sig_cl: 'बंद',
+    st_sig_off: 'सिग्नल', st_sig_an: 'विश्लेषण', st_sig_sub: 'सबमिट', st_sig_dup: 'डुप', st_sig_ref: 'अस्वीकृत', st_sig_cl: 'बंद',
     r_none: 'कोई रन नहीं मिला', r_live: '{n} चालू', r_done: 'पूर्ण', r_feed: '▽ फ़ीड ({n} घ)', r_close: '△ निचोड़ें',
     p_name_ph: 'प्रोग्राम का नाम (जैसे: PayPal)', p_hdr_ph: 'आवश्यक हेडर (जैसे: X-Bug-Bounty: xxx)',
     p_scope_ph: 'स्कोप : डोमेन1, डोमेन2, …', p_save: 'सहेजें', p_local: 'मॉड्यूल, 100% लोकल',
@@ -993,7 +993,8 @@ function drawFindings() {
     $('nfProg').innerHTML = progs.map(p => '<option>' + p + '</option>').join('');
   }
   $('fndList').innerHTML = state.data.findings.slice(0, 120).map(f => {
-    const sel = FND_STATUS.map(s => '<option value="' + s + '"' + (f.status === s ? ' selected' : '') + '>' + T('st_sig_' + s) + '</option>').join('');
+    const STK = { signal: 'st_sig_off', analyse: 'st_sig_an', soumis: 'st_sig_sub', dup: 'st_sig_dup', refuse: 'st_sig_ref', ferme: 'st_sig_cl' };
+    const sel = FND_STATUS.map(s => '<option value="' + s + '"' + (f.status === s ? ' selected' : '') + '>' + T(STK[s] || 'st_sig_off') + '</option>').join('');
     return '<div class="fnd S-' + esc(f.sev) + '"><div class="fh">' +
       '<span class="sev">' + esc(f.sev) + '</span>' +
       '<span class="pill p-prog">' + esc((f.program || '?').toUpperCase()) + '</span>' +
@@ -1843,3 +1844,10 @@ async function refresh() {
 }
 setInterval(refresh, 1500);
 refresh();
+// deep-link : #hunt (ou tout tab) ouvre l onglet correspondant, et chaque changement met a jour le hash
+const _hashTab = (location.hash || '').replace('#', '');
+const _hashOk = { live: 1, findings: 1, programs: 1, hunt: 1, ai: 1, team: 1, term: 1, chat: 1 };
+if (_hashOk[_hashTab]) setTimeout(() => setTab(_hashTab), 0);
+document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => {
+  try { history.replaceState(null, '', '#' + b.dataset.tab); } catch (e) {}
+}));
