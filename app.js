@@ -1449,7 +1449,10 @@ const AMB = { live: true };
 const AMB_STOPS = [112, 232, 48, 300, 170]; // vert, bleu, jaune, violet, cyan
 try { AMB.live = localStorage.getItem('c2ff-ambiance') !== 'off'; } catch (e) {}
 const ambTick = () => {
+  // deux teintes vivent ensemble : --hue pilote la lumiere, --hue2 (decale + respire
+  // lentement) colorie l'autre bout des degrades ambiants - jamais de couleur plate.
   const reduced = matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let h;
   if (AMB.live && !reduced) {
     const SEG = 24000, total = SEG * AMB_STOPS.length, pos = Date.now() % total;
     const i = Math.floor(pos / SEG);
@@ -1457,8 +1460,12 @@ const ambTick = () => {
     u = u * u * (3 - 2 * u);
     const a = AMB_STOPS[i], b = (i + 1 < AMB_STOPS.length) ? AMB_STOPS[i + 1] : AMB_STOPS[0];
     const d = ((b - a + 540) % 360) - 180; // plus court chemin sur la roue
-    document.documentElement.style.setProperty('--hue', ((a + d * u + 360) % 360).toFixed(1));
-  } else document.documentElement.style.setProperty('--hue', '112');
+    h = (a + d * u + 360) % 360;
+  } else h = 112;
+  const root = document.documentElement.style;
+  root.setProperty('--hue', h.toFixed(1));
+  const h2 = (h + 48 + 14 * Math.sin(Date.now() / 21000) + 360) % 360; // decalage qui respire 34-62 deg
+  root.setProperty('--hue2', h2.toFixed(1));
 };
 setInterval(ambTick, 250);
 ambTick();

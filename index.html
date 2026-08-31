@@ -8,6 +8,7 @@
 :root{
   color-scheme:dark;
   --hue:112; /* pilote par app.js en mode AMBIANCE - 112 = le vert C2FF d'origine */
+  --hue2:160; /* seconde teinte, decalee et respirante (cf ambTick) : colore l'autre bout des degrades */
   --bg:hsl(var(--hue) 28% 2.6%);
   --panel:hsl(var(--hue) 26% 4.6%);
   --panel2:hsl(var(--hue) 24% 6.6%);
@@ -24,7 +25,7 @@
   --danger:#ff4d4d;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);
+body{margin:0;background:linear-gradient(168deg,hsl(var(--hue) 28% 2.2%),hsl(var(--hue2) 26% 3.6%) 55%,hsl(var(--hue) 24% 2.4%)) fixed var(--bg);color:var(--text);
   font:13px/1.55 "JetBrains Mono","Fira Code",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   -webkit-font-smoothing:antialiased}
 /* balayage CRT lent, la console vit */
@@ -40,14 +41,15 @@ body::after{content:"";position:fixed;left:0;right:0;height:120px;pointer-events
    metal qui traverse l'ecran de temps en temps. Tintee par --hue comme tout le reste. */
 body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:
   radial-gradient(1100px 560px at 78% -12%,hsl(var(--hue) 60% 54% / .035),transparent 62%),
+  radial-gradient(900px 520px at 12% 100%,hsl(var(--hue2) 55% 54% / .03),transparent 60%),
   repeating-linear-gradient(45deg,rgba(255,255,255,.045) 0 2px,transparent 2px 4px),
   repeating-linear-gradient(-45deg,rgba(255,255,255,.045) 0 2px,transparent 2px 5px),
   repeating-linear-gradient(0deg,hsl(var(--hue) 30% 4% / .65) 0 6px,transparent 6px 12px);
   animation:weave 34s ease-in-out infinite}
-@keyframes weave{0%,100%{background-position:0 0,0 0,0 0,0 0}
-  50%{background-position:0 0,5px 5px,-5px -5px,0 0}}
+@keyframes weave{0%,100%{background-position:0 0,0 0,0 0,0 0,0 0}
+  50%{background-position:0 0,0 0,5px 5px,-5px -5px,0 0}}
 .msheen{position:fixed;inset:0;pointer-events:none;z-index:0;background:
-  linear-gradient(115deg,transparent 36%,hsl(var(--hue) 18% 55% / .028) 45%,hsl(var(--hue) 30% 86% / .055) 50%,hsl(var(--hue) 18% 55% / .028) 55%,transparent 64%) no-repeat;
+  linear-gradient(115deg,transparent 36%,hsl(var(--hue) 18% 55% / .028) 45%,hsl(var(--hue2) 28% 86% / .055) 50%,hsl(var(--hue) 18% 55% / .028) 55%,transparent 64%) no-repeat;
   background-size:300% 100%;background-position:-150% 0;
   animation:metsheen 44s linear infinite}
 @keyframes metsheen{0%{background-position:-150% 0}50%{background-position:250% 0}100%{background-position:250% 0}}
@@ -222,16 +224,16 @@ footer b{color:var(--green);font-weight:700;text-shadow:0 0 9px hsl(var(--hue) 6
 /* le cadre de chaque carte est un degradé metal brossé dont l'angle tourne tres
    lentement : les aretes accrochent la lumiere et la rendent, comme une piece usinée. */
 .card{border-color:transparent;
-  background-image:linear-gradient(180deg,var(--panel2),var(--panel)),
-    linear-gradient(var(--mdir),hsl(var(--hue) 14% 40%),hsl(var(--hue) 8% 13%) 24%,hsl(var(--hue) 16% 28%) 52%,hsl(var(--hue) 6% 11%) 76%,hsl(var(--hue) 14% 38%));
+  background-image:linear-gradient(172deg,hsl(var(--hue) 24% 7%),hsl(var(--hue2) 22% 4.8%)),
+    linear-gradient(var(--mdir),hsl(var(--hue) 14% 40%),hsl(var(--hue) 8% 13%) 24%,hsl(var(--hue2) 14% 28%) 52%,hsl(var(--hue) 6% 11%) 76%,hsl(var(--hue2) 12% 38%));
   background-origin:padding-box,border-box;background-clip:padding-box,border-box;
   animation:metaledge 46s linear infinite}
 .stat{border-color:transparent;
-  background-image:linear-gradient(180deg,var(--panel2),var(--panel)),
-    linear-gradient(135deg,hsl(var(--hue) 13% 38%),hsl(var(--hue) 8% 13%) 26%,hsl(var(--hue) 15% 26%) 55%,hsl(var(--hue) 6% 11%) 78%,hsl(var(--hue) 13% 36%));
+  background-image:linear-gradient(190deg,hsl(var(--hue2) 22% 6.8%),hsl(var(--hue) 24% 4.4%)),
+    linear-gradient(135deg,hsl(var(--hue) 13% 38%),hsl(var(--hue) 8% 13%) 26%,hsl(var(--hue2) 15% 26%) 55%,hsl(var(--hue) 6% 11%) 78%,hsl(var(--hue2) 13% 36%));
   background-origin:padding-box,border-box;background-clip:padding-box,border-box}
 header,nav{border-bottom-color:transparent;
-  border-image:linear-gradient(90deg,hsl(var(--hue) 8% 8%),hsl(var(--hue) 14% 34%) 50%,hsl(var(--hue) 8% 8%)) 1}
+  border-image:linear-gradient(90deg,hsl(var(--hue) 8% 8%),hsl(var(--hue2) 10% 34%) 50%,hsl(var(--hue) 8% 8%)) 1}
 .card.glow{border-color:transparent;box-shadow:0 0 26px hsl(var(--hue) 62% 54% / .1)}
 </style>
 </head>
