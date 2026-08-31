@@ -833,6 +833,8 @@ function drawTeam() {
     tun === 'starting' ? T('tm_tun_wait') :
     tun.startsWith('err:') ? tun.slice(4) :
     world ? TF('tm_tun_on', { u: tun }) : '';
+  const tunCopy = $('tmTunnelCopy');
+  if (tunCopy) tunCopy.hidden = !(world && tm.enabled);
   const tunBtn = $('tmTunnel');
   if (tunBtn) { tunBtn.hidden = !tm.enabled; tunBtn.disabled = tun === 'starting'; tunBtn.textContent = world ? T('tm_tun_close') : T('tm_tun_open'); }
   const liveBtn = $('tmLive');
@@ -985,20 +987,25 @@ $('tmRegen').addEventListener('click', () => {
   });
 });
 // copie du lien d'invitation
-$('tmCopy').addEventListener('click', () => {
-  const t = $('tmInvite').textContent;
+const copyText = t => {
   if (!t) return;
   const ok = () => toast('SESSION', T('tm_copied'), 'HIT');
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(t).then(ok).catch(() => copyFallback(t, ok));
   } else copyFallback(t, ok);
-});
+};
 function copyFallback(t, ok) {
   const ta = document.createElement('textarea');
   ta.value = t; document.body.appendChild(ta); ta.select();
   try { document.execCommand('copy'); ok(); } catch (e) {}
   ta.remove();
 }
+$('tmCopy').addEventListener('click', () => copyText($('tmInvite').textContent));
+$('tmTunnelCopy').addEventListener('click', () => {
+  const tun = state.data.team.tunnel;
+  if (!tun || !tun.startsWith('https://')) return;
+  copyText(tun + '/?k=' + (TEAMKEY || 'LA_CLE') + '  (handle : ' + (HANDLE || 'choisir un pseudo') + ')');
+});
 
 // ---------- langue / init i18n ----------
 $('langSel').innerHTML = LANGS.map(l => '<option value="' + l[0] + '"' + (l[0] !== 'fr' && !I18N[l[0]] ? ' disabled' : '') + '>' + l[1] + (l[0] !== 'fr' && !I18N[l[0]] ? ' ·' : '') + '</option>').join('');
