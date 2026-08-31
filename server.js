@@ -14,6 +14,7 @@ const PROGRAMS_FILE = path.join(DATA, 'programs.json');
 const CHAT_FILE = path.join(DATA, 'chat.jsonl');
 const FINDINGS_FILE = path.join(DATA, 'findings.jsonl');
 const FLEET_FILE = path.join(DATA, 'fleet.json');
+const AI_FILE = path.join(DATA, 'ai.json');
 
 // ---------- utilitaires ----------
 const trunc = (s, n) => { s = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n) + '…' : s; };
@@ -23,6 +24,53 @@ function readJson(file, fallback) {
 function appendJsonl(file, obj) {
   try { fs.appendFileSync(file, JSON.stringify(obj) + '\n'); } catch (e) { console.error('append fail:', e.message); }
 }
+
+// ---------- agent IA optionnel ----------
+// le framework marche a 100% sans IA ; cette passerelle sert seulement
+// a brancher l'IA de l'utilisateur (OpenAI-compatible, Ollama, Anthropic)
+// pour l'analyse ponctuelle d'un finding.
+function aiCfg() {
+  const c = readJson(AI_FILE, null) || {};
+  return {
+    enabled: !!c.enabled, protocol: ['ollama', 'anthropic', 'openai'].includes(c.protocol) ? c.protocol : 'openai',
+    baseURL: String(c.baseURL || ''), model: String(c.model || ''), apiKey: String(c.apiKey || ''),
+  };
+}
+function saveAiCfg(c) { try { fs.writeFileSync(AI_FILE, JSON.stringify(c, null, 1)); } catch (e) {} }
+async function aiChat(messages, cfgOverride) {
+  const c = cfgOverride || aiCfg();
+  if (!c.baseURL) throw new Error('baseURL non configuree');
+  if (!c.model) throw new Error('model non configure');
+  let url, headers = { 'content-type': 'application/json' }, payload, extract;
+  if (c.protocol === 'ollama') {
+    url = c.baseURL.replace(/\/+$/, '') + '/api/chat';
+    payload = { model: c.model, messages, stream: false };
+    extract = j => ((j.message || {}).content || '');
+  } else if (c.protocol === 'anthropic') {
+    url = c.baseURL.replace(/\/+$/, '').replace(/\/v1$/, '') + '/v1/messages';
+    headers['x-api-key'] = c.apiKey; headers['anthropic-version'] = '2023-06-01';
+    payload = { model: c.model, max_tokens: 700, system: (messages.find(m => m.role === 'system') || {}).content,
+      messages: messages.filter(m => m.role !== 'system') };
+    extract = j => (((j.content || [])[0] || {}).text || '');
+  } else {
+    url = c.baseURL.replace(/\/+$/, '').replace(/\/chat\/completions$/, '') + '/chat/completions';
+    if (c.apiKey) headers.authorization = 'Bearer ' + c.apiKey;
+    payload = { model: c.model, max_tokens: 700, messages };
+    extract = j => ((((j.choices || [])[0] || {}).message || {}).content || '');
+  }
+  let r;
+  try { r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) }); }
+  catch (e) { throw new Error('inaccessible : ' + e.message); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + trunc(JSON.stringify(j), 160));
+  const text = extract(j);
+  if (!text) throw new Error('reponse vide : ' + trunc(JSON.stringify(j), 160));
+  return text;
+}
+const AI_ANALYST_PROMPT = "Tu es analyste bug bounty dans le framework C2FF. On te passe un signal brut " +
+  "(probe deterministe locale). Reponds en 6 lignes max, structure : VERDICT defendable (SIG / P3 / P2 / P1) ; " +
+  "pourquoi c'est (ou pas) un vrai probleme ; impact concret ; next probe en 1 commande curl pour confirmer " +
+  "ou infirmer. Pas de blabla, pas de speculations sans preuve.";
 
 // ---------- programmes ----------
 const DEFAULT_PROGRAMS = [
@@ -270,7 +318,11 @@ function apiState(res) {
     const done = agents.filter(a => a.status !== 'running').length;
     return { id: r.id, label: r.label, program: r.program, n: agents.length, done, list: agents };
   }).sort((a, b) => (b.n - b.done) - (a.n - a.done) || b.n - a.n);
-  sendJson(res, { now: new Date().toISOString(), runs, findings: state.findings, programs: loadPrograms(), chat: lastChat(80), fleet: fleet.state() });
+  const ai = aiCfg();
+  sendJson(res, {
+    now: new Date().toISOString(), runs, findings: state.findings, programs: loadPrograms(), chat: lastChat(80),
+    fleet: fleet.state(), modes: fleet.catalog(), ai: { enabled: ai.enabled, protocol: ai.protocol, baseURL: ai.baseURL, model: ai.model, ready: !!(ai.baseURL && ai.model) },
+  });
 }
 
 const server = http.createServer((req, res) => {
@@ -279,7 +331,7 @@ const server = http.createServer((req, res) => {
   const p = url.pathname;
 
   if (req.method === 'POST') {
-    readBody(req, body => {
+    readBody(req, async body => {
       if (p === '/api/chat') {
         appendJsonl(CHAT_FILE, { t: Date.now(), from: 'user', kind: 'chat', text: trunc(body.text || '', 4000) });
         return sendJson(res, { ok: true });
@@ -318,8 +370,59 @@ const server = http.createServer((req, res) => {
           fleet.cycle().catch(() => {});
           return sendJson(res, { ok: true, fleet: fleet.state() });
         }
+        if (body.op === 'run') {
+          // lancement local d'un mode par l'UI : cible + mode, IA pas requise
+          const patch = { enabled: true, paused: false };
+          if (body.mode) patch.mode = String(body.mode);
+          fleet.apply(patch);
+          fleet.cycle({ program: body.program || '' }).catch(() => {});
+          return sendJson(res, { ok: true, fleet: fleet.state() });
+        }
         const st = fleet.apply(body);
         return sendJson(res, { ok: true, fleet: st });
+      }
+      if (p === '/api/ai') {
+        if (body.op === 'test') {
+          // teste avec les champs du formulaire (ou la config sauvee si vides)
+          const cur = aiCfg();
+          const cfg = {
+            enabled: true,
+            protocol: ['ollama', 'anthropic', 'openai'].includes(body.protocol) ? body.protocol : cur.protocol,
+            baseURL: body.baseURL || cur.baseURL,
+            model: body.model || cur.model,
+            apiKey: typeof body.apiKey === 'string' && body.apiKey ? body.apiKey : cur.apiKey,
+          };
+          try {
+            const reply = await aiChat([{ role: 'user', content: 'ping : reponds juste "pong".' }], cfg);
+            return sendJson(res, { ok: true, reply: trunc(reply, 200) });
+          } catch (e) { return sendJson(res, { ok: false, error: trunc(e.message, 200) }); }
+        }
+        if (body.op === 'analyse') {
+          const text = trunc(body.text || '', 2000);
+          if (!text) return sendJson(res, { ok: false, error: 'texte vide' });
+          try {
+            const reply = await aiChat([
+              { role: 'system', content: AI_ANALYST_PROMPT },
+              { role: 'user', content: text },
+            ]);
+            appendJsonl(CHAT_FILE, { t: Date.now(), from: 'ia', kind: 'chat', text: trunc(reply, 4000) });
+            return sendJson(res, { ok: true, reply: trunc(reply, 2000) });
+          } catch (e) { return sendJson(res, { ok: false, error: trunc(e.message, 200) }); }
+        }
+        // sauvegarde de la config
+        if (typeof body.enabled === 'boolean' || body.baseURL || body.model || body.protocol) {
+          const cur = aiCfg();
+          const next = {
+            enabled: typeof body.enabled === 'boolean' ? body.enabled : cur.enabled,
+            protocol: ['ollama', 'anthropic', 'openai'].includes(body.protocol) ? body.protocol : cur.protocol,
+            baseURL: typeof body.baseURL === 'string' ? body.baseURL.trim() : cur.baseURL,
+            model: typeof body.model === 'string' ? body.model.trim() : cur.model,
+            apiKey: typeof body.apiKey === 'string' ? body.apiKey.trim() : cur.apiKey,
+          };
+          saveAiCfg(next);
+          return sendJson(res, { ok: true });
+        }
+        return sendJson(res, { ok: false, error: 'unknown op' });
       }
       sendJson(res, { ok: false, error: 'unknown' });
     });
@@ -329,6 +432,7 @@ const server = http.createServer((req, res) => {
   if (p === '/api/state') return apiState(res);
   if (p === '/app.js') return send(res, 200, 'application/javascript; charset=utf-8', fs.readFileSync(path.join(ROOT, 'app.js')));
   if (p === '/banner.png') return send(res, 200, 'image/png', fs.readFileSync(path.join(ROOT, 'docs', 'assets', 'banner.png')));
+  if (p === '/banner_app.gif') return send(res, 200, 'image/gif', fs.readFileSync(path.join(ROOT, 'docs', 'assets', 'banner_app.gif')));
   if (p === '/' || p === '/index.html') return send(res, 200, 'text/html; charset=utf-8', fs.readFileSync(path.join(ROOT, 'index.html')));
   send(res, 404, 'text/plain', 'not found');
 });
