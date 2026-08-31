@@ -277,6 +277,7 @@ function persistFindings() {
 
 // ---------- moteur local FLEET-MODE (100% local, sans tokens) ----------
 const fleet = require('./fleet.js');
+const RECON = require('./recon.js');
 fleet.init({
   file: FLEET_FILE,
   onFinding: (f) => {
@@ -649,6 +650,31 @@ const MAIN = (req, res) => {
           catch (e) { return sendJson(res, { ok: false }); }
         }
         return sendJson(res, { ok: false });
+      }
+      // ---- RECON : discovery de surface avant le hunt ----
+      if (p === '/api/recon') {
+        const name = String(body.name || '').toLowerCase();
+        const progs = (() => { try { return JSON.parse(fs.readFileSync(PROGRAMS_FILE, 'utf8')); } catch (e) { return []; } })();
+        const prog = progs.find(x => x.id === name) || progs.find(x => String(x.name || '').toLowerCase() === name);
+        if (!prog) return sendJson(res, { ok: false, err: 'programme introuvable' });
+        // header programme optionnel (X-Bug-Bounty etc), envoye a chaque requete
+        let hh = {};
+        if (prog.header && prog.header.includes(':')) { const i2 = prog.header.indexOf(':'); hh[prog.header.slice(0, i2).trim()] = prog.header.slice(i2 + 1).trim(); }
+        const t = fleet.targetsFor([prog], [prog.id])[0];
+        if (!t) return sendJson(res, { ok: false, err: 'scope vide' });
+        RECON.recon(t.base, hh, null).then(surf => {
+          surf.host = t.host; surf.program = prog.id;
+          const f = path.join(DATA, 'surface.json');
+          let store = {}; try { store = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) {}
+          store[prog.id] = surf;
+          try { fs.writeFileSync(f, JSON.stringify(store, null, 1)); } catch (e) {}
+          sendJson(res, { ok: true, surface: surf });
+        }).catch(() => sendJson(res, { ok: false, err: 'recon echoue' }));
+        return;
+      }
+      if (p === '/api/surface') {
+        const f = path.join(DATA, 'surface.json');
+        try { return sendJson(res, JSON.parse(fs.readFileSync(f, 'utf8'))); } catch (e) { return sendJson(res, {}); }
       }
       if (p === '/api/fleet') {
         if (body.op === 'test') {
