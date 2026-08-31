@@ -9,11 +9,11 @@
   color-scheme:dark;
   --hue:131; /* pilote par app.js en mode AMBIANCE - jamais de teinte primaire, reste entre les familles */
   --hue2:179; /* seconde teinte, decalee et respirante (cf ambTick) : colore l'autre bout des degrades */
-  --bg:hsl(var(--hue) 28% 3.6%);
-  --panel:hsl(var(--hue) 26% 5.6%);
-  --panel2:hsl(var(--hue) 24% 7.6%);
-  --panel3:hsl(var(--hue) 23% 9.6%);
-  --line:hsl(var(--hue) 22% 19%);
+  --bg:hsl(var(--hue) 28% 4.8%);
+  --panel:hsl(var(--hue) 26% 7%);
+  --panel2:hsl(var(--hue) 24% 9%);
+  --panel3:hsl(var(--hue) 23% 11.6%);
+  --line:hsl(var(--hue) 22% 21%);
   --line-hi:hsl(var(--hue) 26% 36%);
   --green:hsl(var(--hue) 68% 55%);
   --green-soft:hsl(var(--hue) 68% 55% / .13);
@@ -25,7 +25,7 @@
   --danger:#ff4d4d;
 }
 *{box-sizing:border-box}
-body{margin:0;background:linear-gradient(168deg,hsl(var(--hue) 28% 3.4%),hsl(var(--hue2) 26% 4.8%) 55%,hsl(var(--hue) 24% 3.6%)) fixed var(--bg);color:var(--text);
+body{margin:0;background:linear-gradient(168deg,hsl(var(--hue) 28% 4.6%),hsl(var(--hue2) 26% 6%) 55%,hsl(var(--hue) 24% 4.8%)) fixed var(--bg);color:var(--text);
   font:13px/1.55 "JetBrains Mono","Fira Code",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   -webkit-font-smoothing:antialiased}
 /* balayage CRT lent, la console vit */
@@ -224,12 +224,12 @@ footer b{color:var(--green);font-weight:700;text-shadow:0 0 9px hsl(var(--hue) 6
 /* le cadre de chaque carte est un degradé metal brossé dont l'angle tourne tres
    lentement : les aretes accrochent la lumiere et la rendent, comme une piece usinée. */
 .card{border-color:transparent;
-  background-image:linear-gradient(172deg,hsl(var(--hue) 24% 7.8%),hsl(var(--hue2) 22% 5.8%)),
+  background-image:linear-gradient(172deg,hsl(var(--hue) 24% 9%),hsl(var(--hue2) 22% 7%)),
     linear-gradient(var(--mdir),hsl(var(--hue) 14% 40%),hsl(var(--hue) 8% 13%) 24%,hsl(var(--hue2) 14% 28%) 52%,hsl(var(--hue) 6% 11%) 76%,hsl(var(--hue2) 12% 38%));
   background-origin:padding-box,border-box;background-clip:padding-box,border-box;
   animation:metaledge 46s linear infinite}
 .stat{border-color:transparent;
-  background-image:linear-gradient(190deg,hsl(var(--hue2) 22% 7.6%),hsl(var(--hue) 24% 5.4%)),
+  background-image:linear-gradient(190deg,hsl(var(--hue2) 22% 8.8%),hsl(var(--hue) 24% 6.6%)),
     linear-gradient(135deg,hsl(var(--hue) 13% 38%),hsl(var(--hue) 8% 13%) 26%,hsl(var(--hue2) 15% 26%) 55%,hsl(var(--hue) 6% 11%) 78%,hsl(var(--hue2) 13% 36%));
   background-origin:padding-box,border-box;background-clip:padding-box,border-box}
 header,nav{border-bottom-color:transparent;
