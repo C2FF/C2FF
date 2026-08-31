@@ -28,6 +28,7 @@ const PLAYBOOKS = [
 
 const state = { tab: 'live', chatSeen: 0, fndSeen: 0, firstLoad: true, unread: 0, data: { runs: [], findings: [], programs: [], chat: [] } };
 const expanded = new Set();
+let forceDraw = true; // premier paint integral, puis re-rendu differentiel
 
 const TABS = { live: 'FLOTTE', findings: 'FINDINGS', programs: 'PROGRAMMES', chat: 'COORDINATION' };
 function setTab(t) {
@@ -49,8 +50,22 @@ function toast(title, text, cls) {
   setTimeout(() => { el.classList.add('gone'); setTimeout(() => el.remove(), 350); }, cls === 'P1' ? 14000 : 8000);
 }
 
+// ---------- rendu differentiel ----------
+// une vue ne se redessine que si ses donnees ont change, et jamais
+// quand l'utilisateur interagit avec un element de la vue (selects, inputs)
+const drawn = { runs: '', fnd: '', prog: '', chat: '' };
+function focusInside(sel) {
+  const r = $(sel);
+  const a = document.activeElement;
+  return r && a && a.tagName !== 'BODY' && r.contains(a);
+}
+
 // ---------- rendu flux ----------
 function drawRuns(runs) {
+  const sig = JSON.stringify(runs.map(r => [r.id, r.label, r.program, r.n, r.done, r.list.map(a => [a.base, a.name, a.status, a.last])]));
+  if (sig === drawn.runs && !forceDraw) return;
+  if (focusInside('runList')) return;
+  drawn.runs = sig;
   $('nRun').textContent = String(runs.length);
   const act = runs.reduce((s, r) => s + (r.n - r.done), 0);
   $('sRuns').textContent = String(runs.length);
@@ -81,7 +96,12 @@ function drawRuns(runs) {
 
 // ---------- findings ----------
 const FND_STATUS = ['signal', 'analyse', 'soumis', 'dup', 'refuse', 'ferme'];
+// ---------- findings ----------
 function drawFindings() {
+  const sig = JSON.stringify(state.data.findings.map(f => [f.id, f.sev, f.status]));
+  if (sig === drawn.fnd && !forceDraw) return;
+  if (focusInside('fndList')) return;
+  drawn.fnd = sig;
   $('nFnd').textContent = String(state.data.findings.length);
   const progs = [...new Set(['etoro', 'blockchain', 'bullish', 'rapyd', 'nubank', 'wise', ...state.data.programs.map(p => p.id)])];
   if ($('nfProg').options.length !== progs.length) {
@@ -118,6 +138,10 @@ function drawFleetLater(body, txt) { fetch('/api/fleet', { method: 'POST', heade
 
 // ---------- programmes ----------
 function drawPrograms() {
+  const sig = JSON.stringify(state.data.programs);
+  if (sig === drawn.prog && !forceDraw) return;
+  if (focusInside('progList')) return;
+  drawn.prog = sig;
   $('nProg').textContent = String(state.data.programs.length);
   $('progList').innerHTML = state.data.programs.map(p =>
     '<div class="card"><h3>' + esc(p.name) + (p.veille ? ' <small style="color:var(--amber)">(veille)</small>' : '') + '</h3>' +
@@ -171,6 +195,9 @@ $('newFinding').addEventListener('submit', e => {
 // ---------- chat ----------
 function drawChat() {
   const c = state.data.chat;
+  const sig = c.length + ':' + (c.length ? (c[c.length - 1].t + (c[c.length - 1].text || '')).slice(-60) : '');
+  if (sig === drawn.chat && !forceDraw) return;
+  drawn.chat = sig;
   $('nChat').textContent = String(c.length);
   const log = $('chatlog');
   log.innerHTML = c.map(m =>
@@ -217,6 +244,7 @@ async function refresh() {
       });
     }
     drawRuns(d.runs); drawFindings(); drawPrograms(); drawChat(); drawFleet();
+    forceDraw = false;
     state.firstLoad = false;
   } catch (e) { /* serveur occupe */ }
   inflight = false;
