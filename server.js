@@ -92,7 +92,7 @@ function saveTeamCfg(c) { try { fs.writeFileSync(TEAM_FILE, JSON.stringify(c, nu
 function genKey() { return 'c2ff-' + crypto.randomBytes(12).toString('hex'); }
 const PRESENCE = new Map(); // handle -> { last, reqs }
 const cleanHandle = h => String(h == null ? '' : h).replace(/[^\w \-.]{1,}/g, '').trim().slice(0, 16);
-const isLoopback = req => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(String(req.socket.remoteAddress || ''));
+const isLoopback = req => !req.internalTunnel && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(String(req.socket.remoteAddress || ''));
 const lanAddr = () => {
   try {
     for (const list of Object.values(os.networkInterfaces()))
@@ -120,9 +120,14 @@ function teamState() {
   return {
     enabled: t.enabled, room: t.room, protected: t.enabled,
     bind: BIND === '0.0.0.0' ? 'lan' : 'local', lan: lanAddr(),
+    tunnel: TUNNEL ? (TUNNEL.url || (TUNNEL.err ? 'err:' + TUNNEL.err : 'starting')) : '',
+    chat: lastChat(200).filter(m => m.kind === 'team').slice(-100),
     members, online: members.filter(m => m.active).length,
   };
 }
+
+// tunnel public opt-in (cloudflared) : une URL universelle, pas seulement le LAN
+let TUNNEL = null; // { proc, url }
 
 // ---------- programmes ----------
 const DEFAULT_PROGRAMS = [
@@ -378,7 +383,7 @@ function apiState(res) {
   });
 }
 
-const server = http.createServer((req, res) => {
+const MAIN = (req, res) => {
   sweep();
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
@@ -410,6 +415,37 @@ const server = http.createServer((req, res) => {
           saveTeamCfg(next);
           return sendJson(res, { ok: true, team: next });
         }
+        // tunnel public opt-in : URL universelle (trycloudflare) pour les membres hors LAN.
+        // le tunnel passe par un proxy local marque : ses requetes comptent comme DISTANTES,
+        // elles passent donc par la cle de salle au lieu du bypass loopback.
+        if (body.op === 'tunnel') {
+          if (!isLoopback(req)) return sendJson(res, { ok: false, error: 'loopback only' });
+          if (body.action === 'close') {
+            if (TUNNEL) {
+              try { TUNNEL.proxy.close(); } catch (e) {}
+              try { TUNNEL.proc.kill('SIGTERM'); } catch (e) {}
+            }
+            TUNNEL = null;
+            return sendJson(res, { ok: true, team: teamState() });
+          }
+          if (TUNNEL) return sendJson(res, { ok: true, team: teamState() });
+          const proxy = http.createServer((q, s) => { q.internalTunnel = true; MAIN(q, s); });
+          let pport = PORT + 2;
+          proxy.on('error', e => {
+            if (e.code === 'EADDRINUSE' && pport < PORT + 40) { pport += 1; setTimeout(() => proxy.listen(pport, '127.0.0.1'), 100); return; }
+          });
+          proxy.listen(pport, '127.0.0.1', () => {
+            try {
+              const proc = require('child_process').spawn('cloudflared', ['tunnel', '--url', 'http://127.0.0.1:' + proxy.address().port, '--no-autoupdate'], { stdio: ['ignore', 'pipe', 'pipe'] });
+              TUNNEL = { proc, proxy, url: '' };
+              const grab = d => { const m = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/.exec(String(d)); if (m && TUNNEL && TUNNEL.proc === proc && !TUNNEL.url) TUNNEL.url = m[0]; };
+              proc.stderr.on('data', grab); proc.stdout.on('data', grab);
+              proc.on('error', () => { TUNNEL = { proc, proxy, url: '', err: 'cloudflared absent - installe-le (https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)' }; });
+              proc.on('exit', () => { if (TUNNEL && TUNNEL.proc === proc) { try { proxy.close(); } catch (e) {} TUNNEL = null; } });
+            } catch (e) {}
+          });
+          return sendJson(res, { ok: true, team: teamState() });
+        }
         // golive : le serveur se re-bind en 0.0.0.0 (respawn propre). shore : retour 127.0.0.1.
         // decision de bind = decision locale, loopback uniquement.
         if (body.op === 'golive' || body.op === 'shore') {
@@ -427,7 +463,7 @@ const server = http.createServer((req, res) => {
         return sendJson(res, { ok: false, error: 'unknown op' });
       }
       if (p === '/api/chat') {
-        appendJsonl(CHAT_FILE, { t: Date.now(), from: 'user', name: cleanHandle(body.name) || 'OPERATOR', kind: 'chat', text: trunc(body.text || '', 4000) });
+        appendJsonl(CHAT_FILE, { t: Date.now(), from: 'user', name: cleanHandle(body.name) || 'OPERATOR', kind: body.kind === 'team' ? 'team' : 'chat', text: trunc(body.text || '', 4000) });
         return sendJson(res, { ok: true });
       }
       if (p === '/api/queue') {
@@ -532,7 +568,9 @@ const server = http.createServer((req, res) => {
   if (p === '/banner_app.gif') return send(res, 200, 'image/gif', fs.readFileSync(path.join(ROOT, 'docs', 'assets', 'banner_app.gif')));
   if (p === '/' || p === '/index.html') return send(res, 200, 'text/html; charset=utf-8', fs.readFileSync(path.join(ROOT, 'index.html')));
   send(res, 404, 'text/plain', 'not found');
-});
+};
+
+const server = http.createServer(MAIN);
 
 sweep();
 server.listen(PORT, BIND, () => console.log('C2//FLEET : http://' + (BIND === '0.0.0.0' ? '<ip-locale> (lan)' : 'localhost') + ':' + PORT + (BIND !== '127.0.0.1' ? ' - mode team accessible' : '')));

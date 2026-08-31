@@ -48,8 +48,8 @@ const I18N = {
     fl_off: 'FLEET : ARRETE', fl_paused: 'FLEET : EN PAUSE', fl_active: 'FLEET : ACTIF ({n} cycles)',
     fl_last: 'dernier cycle', fl_none: 'aucun cycle encore', fl_info: 'intervalle {i} min, budget {b} req/cycle',
     sub_ttl: 'command & control framework',
-    navt: 'Team', tm_h2: 'Mode team - sessions de groupe a distance',
-    tm_p: "Ouvre la salle et partage le lien d'invitation : ton equipe voit la flotte, les findings, la coordination et peut trier en direct, depuis n'importe ou. Le serveur reste ta machine : clique OUVRIR AU RESEAU pour le rebinder en acces LAN d'un clic (le serveur relance tout seul en 2 s, lien LAN affiche). Revenir local = REVENIR LOCAL. Tout passe par la cle de salle - regenere-la pour virer tout le monde d'un coup.",
+    navt: 'SESSION', tm_h2: 'Sessions a plusieurs - chasse de groupe, meme hors reseau',
+    tm_p: "Ouvre une salle partagee : ton groupe voit la flotte, les findings et peut trier en direct. Chat de session dedie ci-dessous. Trois niveaux d'acces : LOCAL (solo), LAN via OUVRIR AU RESEAU, et MONDE via OUVRIR AU MONDE - un tunnel public (cloudflared si installe) rend le lien d'invitation valide depuis n'importe quel reseau, sans expose direct de ta machine. Tout passe par la cle de salle - regenere-la pour virer tout le monde d'un coup.",
     tm_handle: 'Ton pseudo (16 caracteres max)', tm_save_h: 'Choisir', tm_room_ph: 'nom de la salle (ex : c2ff-core)',
     tm_save: 'Appliquer', tm_on: 'SALLE OUVERTE : {r} - {n} en ligne', tm_off: 'MODE TEAM DESACTIVE - session locale solo',
     tm_room: 'Salle', tm_key: 'Cle de salle', tm_regen: 'Regenerer la cle', tm_regen_ok: 'nouvelle cle generee - les anciens liens sont morts',
@@ -59,6 +59,11 @@ const I18N = {
     tm_live: 'OUVRIR AU RESEAU', tm_shore: 'REVENIR LOCAL', tm_need_on: 'active d abord la salle (ON)',
     tm_bind_lan: 'RESEAU : {a}', tm_bind_lo: 'LOCAL : localhost seulement',
     to_team_live: '[GO-LIVE] serveur relance en acces reseau - lien LAN affiche, reconnexion dans 2 s', to_team_shore: 'serveur relance en local (127.0.0.1)',
+    tm_tun_open: 'OUVRIR AU MONDE (tunnel)', tm_tun_close: 'FERMER LE TUNNEL',
+    tm_tun_wait: 'tunnel public en cours d ouverture (quelques secondes)…',
+    tm_tun_on: 'SESSION OUVERTE AU MONDE : {u} - le lien d invitation marche partout, pas besoin du meme reseau',
+    tm_tun_closed: 'tunnel ferme - retour LAN/local', tm_chat_empty: 'canal de session ouvert - les membres de la salle se lisent ici',
+    tm_chat_h2: 'Chat de session', tm_msg_ph: 'message vers la session…',
     navf: 'Flotte', navfd: 'Findings', navp: 'Programmes', navai: 'IA', navc: 'Coordination',
     st_runs: 'Runs', st_beacons: 'Beacons actifs', st_sig: 'Signaux',
     h2f: "Flotte - tous programmes, agents en course d'abord",
@@ -128,8 +133,8 @@ const I18N = {
     to_ai_ok: 'config saved', to_ai_no: 'save failed', to_ai_no_cfg: 'AI not configured - set it in the AI tab',
     to_ai_head: 'AI ANALYSIS', to_ai_bad: 'AI ANALYSIS failed',
     w_me: 'OPERATOR', w_claude: 'CLAUDE', w_ia: 'AI', w_launch: '⚡ LAUNCH',
-    navt: 'Team', tm_h2: 'Team mode - remote group sessions',
-    tm_p: "Open the room and share the invite link: your team sees the fleet, findings, coordination and can triage live, from anywhere. The server stays on your machine: click OPEN TO NETWORK to re-bind it for LAN access in one click (the server restarts itself in 2 s, LAN link shown). BACK LOCAL switches back. Everything is gated by the room key - regenerate it to kick everyone at once.",
+    navt: 'SESSION', tm_h2: 'Group sessions - hunt together, same network or not',
+    tm_p: "Open a shared room: your group sees the fleet, findings and can triage live. Dedicated session chat below. Three access levels: LOCAL (solo), LAN via OPEN TO NETWORK, and WORLD via OPEN TO WORLD - a public tunnel (cloudflared if installed) makes the invite link valid from any network, without exposing your machine directly. Everything is gated by the room key - regenerate it to kick everyone at once.",
     tm_handle: 'Your handle (16 chars max)', tm_save_h: 'Set', tm_room_ph: 'room name (ex: c2ff-core)',
     tm_save: 'Apply', tm_on: 'ROOM OPEN: {r} - {n} online', tm_off: 'TEAM MODE OFF - local solo session',
     tm_room: 'Room', tm_key: 'Room key', tm_regen: 'Regenerate key', tm_regen_ok: 'new key generated - old links are dead',
@@ -139,6 +144,11 @@ const I18N = {
     tm_live: 'OPEN TO NETWORK', tm_shore: 'BACK LOCAL', tm_need_on: 'enable the room first (ON)',
     tm_bind_lan: 'NETWORK: {a}', tm_bind_lo: 'LOCAL: localhost only',
     to_team_live: '[GO-LIVE] server relaunched with network access - LAN link shown, reconnect in 2 s', to_team_shore: 'server relaunched local (127.0.0.1)',
+    tm_tun_open: 'OPEN TO WORLD (tunnel)', tm_tun_close: 'CLOSE TUNNEL',
+    tm_tun_wait: 'public tunnel coming up (a few seconds)…',
+    tm_tun_on: 'SESSION OPEN TO WORLD: {u} - the invite link works from anywhere, no shared network needed',
+    tm_tun_closed: 'tunnel closed - back to LAN/local', tm_chat_empty: 'session channel open - room members read each other here',
+    tm_chat_h2: 'Session chat', tm_msg_ph: 'message to the session…',
   },
   es: {
     fl_off: 'FLOTA : DETENIDA', fl_paused: 'FLOTA : EN PAUSA', fl_active: 'FLOTA : ACTIVA ({n} ciclos)',
@@ -702,7 +712,7 @@ $('newFinding').addEventListener('submit', e => {
 
 // ---------- chat ----------
 function drawChat() {
-  const c = state.data.chat;
+  const c = state.data.chat.filter(m => m.kind !== 'team');
   const sig = c.length + ':' + (c.length ? (c[c.length - 1].t + (c[c.length - 1].text || '')).slice(-60) : '');
   if (sig === drawn.chat && !forceDraw) return;
   drawn.chat = sig;
@@ -771,7 +781,8 @@ $('aiTest').addEventListener('click', () => {
 function drawTeam() {
   const tm = state.data.team || {};
   const remote = tm.bind === 'lan';
-  const sig = JSON.stringify([tm.enabled, tm.room, tm.members, HANDLE, tm.bind, tm.lan]);
+  const tun = typeof tm.tunnel === 'string' ? tm.tunnel : '';
+  const sig = JSON.stringify([tm.enabled, tm.room, tm.members, HANDLE, tm.bind, tm.lan, tun, tm.chat]);
   if (sig === drawn.team && !forceDraw) return;
   drawn.team = sig;
   $('tmStatus').textContent = tm.enabled ? TF('tm_on', { r: tm.room || '-', n: tm.online || 0 }) : T('tm_off');
@@ -796,15 +807,50 @@ function drawTeam() {
     '<span class="pill ' + (m.active ? 'p-live' : 'p-done') + '">' + (m.active ? T('tm_here') : Math.round(m.ms / 60000) + ' min') + '</span>' +
     '<small style="color:var(--faint);margin-left:auto">' + m.reqs + ' req</small></div>'
   ).join('') || '<div style="color:var(--faint);font-size:11.5px">' + T('tm_nobody') + '</div>';
-  // lien d'invitation : en mode reseau, l'IP LAN reelle (sinon localhost)
+  // lien d'invitation : le tunnel public gagne s'il existe (universel, hors LAN), sinon LAN/localhost
+  const world = tun && tun.startsWith('https://');
   const invite = tm.enabled
-    ? (remote ? 'http://' + (tm.lan || 'IP-LAN:PORT') : location.origin)
+    ? (world ? tun : remote ? 'http://' + (tm.lan || 'IP-LAN:PORT') : location.origin)
       + '/?k=' + (TEAMKEY || 'LA_CLE') + '  (handle : ' + (HANDLE || 'choisir un pseudo') + ')'
     : '';
   $('tmInvite').textContent = invite;
+  const tunInfo = $('tmTunnelInfo');
+  if (tunInfo) tunInfo.textContent = !tm.enabled ? '' :
+    tun === 'starting' ? T('tm_tun_wait') :
+    tun.startsWith('err:') ? tun.slice(4) :
+    world ? TF('tm_tun_on', { u: tun }) : '';
+  const tunBtn = $('tmTunnel');
+  if (tunBtn) { tunBtn.hidden = !tm.enabled; tunBtn.disabled = tun === 'starting'; tunBtn.textContent = world ? T('tm_tun_close') : T('tm_tun_open'); }
   const liveBtn = $('tmLive');
   if (liveBtn) { liveBtn.textContent = remote ? T('tm_shore') : T('tm_live'); liveBtn.hidden = !tm.enabled; }
+  // chat de session : canal dedie a la room, separe de la coordination
+  const blog = $('tmChatlog');
+  if (blog) {
+    blog.hidden = !tm.enabled;
+    const bc = tm.chat || [];
+    blog.innerHTML = bc.map(m =>
+      '<div class="msg ' + (m.name === HANDLE ? 'user' : 'claude') + '"><div class="who">' +
+      esc(m.name || '?') + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + '</div>' + esc(m.text || '') + '</div>'
+    ).join('') || '<div class="msg claude">' + T('tm_chat_empty') + '</div>';
+    blog.scrollTop = blog.scrollHeight;
+  }
 }
+$('tmTunnel').addEventListener('click', () => {
+  const open = typeof (state.data.team || {}).tunnel === 'string' && (state.data.team.tunnel || '').startsWith('https://');
+  jpost('/api/team', { op: 'tunnel', action: open ? 'close' : 'open' }).then(r => r.json()).then(j => {
+    if (!j.ok) return toast('SESSION', j.error || T('tm_need_on'), 'P2');
+    toast('SESSION', open ? T('tm_tun_closed') : T('tm_tun_wait'), 'HIT');
+    setTimeout(refresh, 400);
+  }).catch(() => {});
+});
+$('tmMsgForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const t = $('tmMsg').value.trim();
+  if (!t) return;
+  jpost('/api/chat', { text: t, name: HANDLE || 'invide', kind: 'team' });
+  $('tmMsg').value = '';
+  setTimeout(refresh, 250);
+});
 $('tmLive').addEventListener('click', () => {
   const remote = (state.data.team || {}).bind === 'lan';
   jpost('/api/team', { op: remote ? 'shore' : 'golive' }).then(r => r.json()).then(j => {
