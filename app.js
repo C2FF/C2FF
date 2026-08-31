@@ -1362,16 +1362,24 @@ $('notifBtn').addEventListener('click', () => {
 drawNotifBtn();
 
 // ---------- ambiance chromatique vivante ----------
-// la teinte de toute la console glisse : 30 s par famille (vert, bleu, jaune...),
-// rotation continue 2 deg/s = tour complet en 3 min. Toggle header, persiste localement.
+// un cycle = 6 familles (vert, cyan, bleu, violet, rose, jaune), 30 s chacune.
+// chaque segment de 30 s part d'une teinte et ATTERRIT exactement sur la suivante
+// (easing smoothstep : lent au depart, arrivee posee, jamais de saut).
 const AMB = { live: true };
+const AMB_STOPS = [112, 172, 232, 292, 352, 412]; // vert, cyan, bleu, violet, rose, jaune (+360)
 try { AMB.live = localStorage.getItem('c2ff-ambiance') !== 'off'; } catch (e) {}
 const ambTick = () => {
   const reduced = matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (AMB.live && !reduced) document.documentElement.style.setProperty('--hue', ((112 + Date.now() / 1000 * 2) % 360).toFixed(1));
-  else document.documentElement.style.setProperty('--hue', '112');
+  if (AMB.live && !reduced) {
+    const SEG = 30000, total = SEG * AMB_STOPS.length, pos = Date.now() % total;
+    const i = Math.floor(pos / SEG);
+    let u = (pos % SEG) / SEG;
+    u = u * u * (3 - 2 * u);
+    const a = AMB_STOPS[i], b = (i + 1 < AMB_STOPS.length) ? AMB_STOPS[i + 1] : AMB_STOPS[0] + 360;
+    document.documentElement.style.setProperty('--hue', ((a + (b - a) * u) % 360).toFixed(1));
+  } else document.documentElement.style.setProperty('--hue', '112');
 };
-setInterval(ambTick, 1000);
+setInterval(ambTick, 250);
 ambTick();
 function drawAmbBtn() { const b = $('ambBtn'); if (b) b.textContent = AMB.live ? T('amb_on') : T('amb_off'); }
 $('ambBtn').addEventListener('click', () => {
