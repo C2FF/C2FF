@@ -33,13 +33,16 @@ It is deliberately **not** another headless scanner: C2FF keeps a human in comma
 
 | Layer | What runs | Where |
 |---|---|---|
-| Console | `index.html` + `app.js` - terminal-look UI, no framework, 80 language entries | your browser |
+| Console | `index.html` + `app.js` - terminal-look UI, no framework, 12 fully translated languages | your browser |
 | Core | `server.js` - HTTP API, auth rooms, roles, tunnel control, audio signaling | one Node process |
 | Engine | `fleet.js` - 21 deterministic probe modules, budgeted cycles | `curl`, local |
-| State | `data/*.json*` - findings, programs, chat, team config, AI gateway | your disk |
+| Hunt | `recon.js` + `attack.js` + `plan.js` - surface mapping, targeted probes, work plan | `https`, local |
+| State | `data/*.json*` - findings, programs, surface, attack, plan, chat, team, AI gateway | your disk |
 | Watchdog | `watchdog.sh` - port check loop, auto-revive | your shell |
 
-Two thousand seven hundred lines of dependency-free JavaScript total. If you can run Node, you can run C2FF.
+Dependency-free JavaScript only. If you can run Node, you can run C2FF.
+
+> **Before you install:** open the interactive [design tour](docs/design-tour.html) - a visual walkthrough of the console (mock screens, clickable flow, arrow keys) so you know exactly what you are getting.
 
 ## Three levels of access
 
@@ -98,6 +101,18 @@ Modules compose into **15 one-click modes** (Programs tab > `GO`): FULL SWEEP co
 
 Families that need authenticated sessions or business-logic judgment (CSRF mass, race conditions, payment flows) are deliberately not probed automatically - that is where the optional AI gateway and your own hands take over.
 
+### The hunt, in three phases
+
+The **HUNT tab** (key `4`) is where a selected target actually gets worked - pick a program, then walk its pipeline:
+
+| Phase | What happens | Output |
+|---|---|---|
+| **RECON** | crawls the real surface: pages, JS bundles, API endpoints, query params, tech stack, subdomains via crt.sh | `data/surface.json` - visualized as labeled chips |
+| **ATTACK** | probes that surface: unauthenticated APIs, reflected CORS, decoded JWTs (alg=none, kid traversal, no exp), exposed docs/config (`.env`, swagger, actuator, graphql, `.git`), secrets in bundles | candidates with proof, P1/P2 auto-injected into findings with a 3-step PoC |
+| **PLAN** | turns the surface into a work plan: numbered hypotheses, each with a one-line "why" and a ready `curl` (program header included) | safe ones run in one click with the captured response; auth-required ones (IDOR with your token) are copy-paste ready |
+
+Every plan line carries a status - todo / tested / signal / confirmed / nothing - persisted in `data/plan.json`, so the hunt accumulates across sessions. Budget stays strict: max 70 requests per ATTACK, GET only, 250 ms spacing.
+
 **Built-in guardrails**
 
 - one representative host per wildcard in scope - never mass scanning
@@ -134,13 +149,14 @@ pkill -f 'C2FF/watchdog.sh' ; pkill -f 'C2FF/server.js'
 
 ## Console tour
 
-1. **PROGRAMS** - register a program (name, required header, scope), pick a mode, press **GO**
-2. **FLEET** - press START; probe cycles run on their own, forever. CYCLE NOW triggers an immediate round
-3. **FINDINGS** - signals arrive in real time; triage with the status selector, add manual findings, ask the AI for a second opinion with the `AI »` button
-4. **SESSION** - your handle, the room, the three access levels, members with roles, session chat and the audio mesh (detailed below)
-5. **COORDINATION** - private channel toward your wired agent
-6. **AI** - optional gateway config (OpenAI-compatible / Ollama / Anthropic), one-click connection test
-- the header language selector switches the whole UI instantly (80 entries, 12 fully translated, RTL for Arabic/Hebrew/Farsi/Urdu/Pashto/Sindhi); keys `1-6` jump between tabs; the UI polls every 1.5 s
+1. **PROGRAMS** - register a program (name, required header, scope), pick a mode, press **GO** - or jump straight into its hunt
+2. **HUNT** - the three-phase pipeline (RECON, ATTACK, PLAN) on one program, with its findings underneath - the working view of a target (details above)
+3. **FLEET** - press START; probe cycles run on their own, forever. CYCLE NOW triggers an immediate round
+4. **FINDINGS** - signals arrive in real time; triage with the status selector, add manual findings, ask the AI for a second opinion with the `AI »` button
+5. **SESSION** - your handle, the room, the three access levels, members with roles, session chat and the audio mesh (detailed below)
+6. **COORDINATION** - private channel toward your wired agent
+7. **AI** - optional gateway config (OpenAI-compatible / Ollama / Anthropic), one-click connection test
+- the header language selector switches the whole UI instantly (80 entries, 12 fully translated, RTL for Arabic/Hebrew/Farsi/Urdu/Pashto/Sindhi); keys `1-8` jump between tabs; the UI polls every 1.5 s
 
 ## Team sessions
 
@@ -174,19 +190,39 @@ The optional LLM gateway (AI tab) is separate and simpler: it analyses one findi
 ```mermaid
 flowchart LR
     subgraph Browsers
-        U1[you] --- U2[crew · roles · audio]
+        U1["you"] --- U2["crew - roles - audio"]
     end
-    U1 -->|1.5 s poll / POST, room key| S[server.js\nHTTP API + auth]
-    U2 -->|invite link LAN or tunnel| S
-    S --> F[fleet.js\nprobe engine]
-    F -->|budgeted curl| T[targets in scope]
-    S --> D[(data/\nfindings.jsonl\nprograms.json\nteam.json\nchat.jsonl)]
-    S --> R[agent transcripts\noptional C2FF_RUNS_BASE]
-    D -->|chat log| A[wired AI agent]
-    S -.|WebRTC signalling only| U2
+    U1 -->|"1.5 s poll / POST, room key"| S["server.js<br/>HTTP API + auth"]
+    U2 -->|"invite link, LAN or tunnel"| S
+    S --> H["HUNT pipeline<br/>recon.js - attack.js - plan.js"]
+    S --> F["fleet.js<br/>probe engine"]
+    F -->|"budgeted curl"| T["targets in scope"]
+    H -->|"GET only, capped"| T
+    S --> D[("data/<br/>findings - programs - surface<br/>attack - plan - chat - team")]
+    S --> R["agent transcripts<br/>optional C2FF_RUNS_BASE"]
+    D -->|"chat log"| A["wired AI agent"]
+    S -.->|"WebRTC signalling only"| U2
 ```
 
-`server.js` is the only process. `fleet.js` is the deterministic engine. `data/` is the entire state - copy it and you have moved your console.
+`server.js` is the only process. `fleet.js` is the deterministic engine, `recon.js` + `attack.js` + `plan.js` are the hunt pipeline. `data/` is the entire state - copy it and you have moved your console.
+
+### The design, as a map
+
+The same flow, from the hunter's seat - what you click, in order. And when you want to *see* it before installing: [docs/design-tour.html](docs/design-tour.html), the interactive version of this map with mock screens and arrow-key navigation.
+
+```mermaid
+flowchart TD
+    N["1. NEW PROGRAM<br/>scope + researcher header"] --> M["2. PROGRAMS<br/>pick one of 15 modes<br/>press GO"]
+    N --> X
+    subgraph X["HUNT TAB - key 4 - one target, three phases"]
+        X1["RECON<br/>surface as chips:<br/>apis - params - js - subs"] --> X2["ATTACK<br/>probe the surface<br/>P1/P2 with proof"] --> X3["PLAN<br/>hypotheses + curl<br/>statuses persist"]
+    end
+    M --> FD["FINDINGS<br/>triage - AI opinion<br/>3-step PoC ready"]
+    X2 -->|"P1/P2 with proof"| FD
+    X3 -->|"with auth:<br/>ready-to-paste curls"| FD
+    FD ==> RPT["P1/P2 only<br/>evidence attached<br/>submit"]
+    FLEET["FLEET<br/>endless cycles<br/>on every program"] --> FD
+```
 
 ## Configuration
 
@@ -206,6 +242,9 @@ State files live in `data/`:
 | `findings.jsonl` | every signal and manual finding, with triage status |
 | `team.json` | room config: enabled, room name, key, roles, blocked handles, live flag |
 | `chat.jsonl` | coordination channel + team session messages |
+| `surface.json` | per-program recon: pages, APIs, params, JS bundles, tech, subdomains |
+| `attack.json` | per-program attack candidates with captured proof |
+| `plan.json` | per-program work plan: hypotheses, statuses, captured evidence |
 | `ai.json` | optional LLM gateway config |
 | `fleet.json` | fleet engine state |
 
@@ -223,6 +262,7 @@ You are responsible for each program's rules. Test only what you are allowed to 
 ## Roadmap
 
 - [x] Deterministic local engine, 21 probe modules, 15 modes
+- [x] HUNT pipeline: RECON (surface mapping), ATTACK (targeted probes), PLAN (persistent work plan)
 - [x] Findings base with persistent triage workflow
 - [x] Optional LLM gateway (OpenAI-compatible / Ollama / Anthropic)
 - [x] Team sessions: room key, LAN go-live/shore, presence, attribution

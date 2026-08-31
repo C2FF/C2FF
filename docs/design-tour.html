@@ -1,0 +1,266 @@
+<!doctype html>
+<!-- C2FF design tour - self-contained, no external resource, offline friendly.
+     Arrow keys / side arrows / numbered rail: navigate. Clickable branches: RECON - ATTACK - PLAN. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C2FF - design tour</title>
+<style>
+:root{
+  --bg:#070a07; --panel:#0e1310; --panel2:#121814; --line:#232d25; --linehi:#374538;
+  --g:#39ff14; --txt:#d8e6d4; --gsoft:rgba(57,255,20,.13); --txt:#d8e6d4; --dim:#8fa38a; --faint:#5a6b58;
+  --warn:#ffb020; --danger:#ff4d4d; --mono:ui-monospace,'JetBrains Mono','Fira Code',Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    repeating-linear-gradient(45deg,rgba(255,255,255,.022) 0 4px,transparent 4px 8px),
+    repeating-linear-gradient(-45deg,rgba(255,255,255,.022) 0 4px,transparent 4px 8px),
+    radial-gradient(1200px 500px at 85% -10%,rgba(57,255,20,.07),transparent 60%),
+    radial-gradient(900px 500px at 0% 110%,rgba(57,255,20,.05),transparent 60%),
+    var(--bg);
+  color:var(--txt);
+  font-family:var(--mono); font-size:14px; line-height:1.55;
+  display:flex; flex-direction:column; min-height:100vh;
+}
+header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--line);background:var(--panel)}
+header b{font-size:17px;letter-spacing:.14em;color:var(--g);text-shadow:0 0 14px rgba(57,255,20,.4)}
+header span{color:var(--faint);font-size:11.5px}
+header .right{margin-left:auto;color:var(--faint);font-size:11px}
+main{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px 14px 8px;gap:10px;overflow-x:hidden}
+.rail{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;max-width:980px}
+.rail button{
+  background:none;border:1px solid var(--line);color:var(--dim);font-family:var(--mono);font-size:10.5px;
+  padding:4px 9px;border-radius:3px;cursor:pointer;letter-spacing:.05em
+}
+.rail button:hover{color:var(--txt);border-color:var(--linehi)}
+.rail button.on{color:var(--g);border-color:var(--g);background:var(--gsoft)}
+.stage{position:relative;width:min(960px,96vw)}
+.screen{display:none;border:1px solid var(--linehi);border-radius:6px;background:var(--panel);overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.55)}
+.screen.on{display:block;animation:in .28s ease}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.bar{display:flex;align-items:center;gap:12px;padding:9px 14px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.bar .logo{color:var(--g);font-weight:700;letter-spacing:.2em;font-size:12px}
+.bar .stat{margin-left:auto;color:var(--faint);font-size:10px;border:1px solid var(--line);padding:2px 8px;border-radius:20px}
+.tabs{display:flex;gap:2px;padding:6px 12px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+.tabs b{font-weight:400;color:var(--faint);font-size:10.5px;padding:3px 9px;border-bottom:2px solid transparent;cursor:default}
+.tabs b::before{content:"> "}
+.tabs b.on{color:var(--g);border-color:var(--g)}
+.pad{padding:16px 18px 20px}
+h2.t{font-size:11px;letter-spacing:.16em;color:var(--dim);font-weight:400;margin:2px 0 12px;text-transform:uppercase}
+h2.t b{color:var(--g);font-weight:700}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.card{border:1px solid var(--line);border-radius:5px;background:var(--panel2);padding:12px 14px;flex:1;min-width:230px}
+.card h3{font-size:11.5px;letter-spacing:.08em;color:var(--g);font-weight:600;margin-bottom:6px}
+.card p{font-size:11px;color:var(--dim)}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.stat{border:1px solid var(--line);border-radius:5px;background:var(--panel2);padding:9px 14px;min-width:120px}
+.stat em{display:block;font-style:normal;font-size:19px;color:var(--g);font-weight:700}
+.stat small{color:var(--faint);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase}
+.pill{display:inline-block;border:1px solid var(--linehi);border-radius:20px;color:var(--dim);font-size:9.5px;padding:2px 9px;margin:2px 3px 2px 0}
+.pill.g{color:var(--g);border-color:rgba(57,255,20,.4)}
+.pill.w{color:var(--warn);border-color:rgba(255,176,32,.4)}
+.pill.r{color:var(--danger);border-color:rgba(255,77,77,.4)}
+.btn{display:inline-block;border:1px solid var(--g);color:var(--g);font-size:10px;letter-spacing:.08em;padding:5px 13px;border-radius:3px;background:rgba(57,255,20,.08);font-family:var(--mono);cursor:pointer}
+.btn.gh{border-color:var(--linehi);color:var(--dim);background:none}
+.mono{font-family:var(--mono);font-size:10px;color:#9fd494;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px 10px;word-break:break-all;margin-top:8px;white-space:pre-wrap}
+.fnd{border:1px solid var(--line);border-left:3px solid var(--g);border-radius:4px;background:var(--panel2);padding:9px 12px;margin-top:8px;font-size:11px}
+.fnd .fh{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
+.fnd .sev{font-weight:700;font-size:11px;width:32px}
+.fnd.S-P1{border-left-color:var(--danger)}.fnd.S-P1 .sev{color:var(--danger)}
+.fnd.S-P2{border-left-color:var(--warn)}.fnd.S-P2 .sev{color:var(--warn)}
+.fnd.S-SIG{border-left-color:var(--faint)}.fnd.S-SIG .sev{color:var(--dim)}
+.code{color:var(--faint);font-size:10px;font-family:var(--mono)}
+.flow{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;margin-top:4px}
+.node{border:1px solid var(--linehi);border-radius:6px;background:var(--panel2);padding:12px 16px;min-width:200px;cursor:pointer;transition:border-color .15s,background .15s}
+.node:hover,.node:focus{border-color:var(--g);outline:none}
+.node h3{font-size:11.5px;color:var(--g);letter-spacing:.1em}
+.node small{display:block;color:var(--dim);font-size:10px;margin-top:3px;line-height:1.5}
+.node em{font-style:normal;color:var(--faint);font-size:9px;letter-spacing:.12em;text-transform:uppercase}
+.arrow{align-self:center;color:var(--g);font-size:20px;padding:0 10px;opacity:.7}
+.chips{display:flex;flex-wrap:wrap;gap:2px}
+.steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.steps .pill b{color:var(--g);font-weight:600}
+.hint{color:var(--faint);font-size:10px;margin-top:10px;letter-spacing:.06em}
+table.tb{border-collapse:collapse;width:100%;font-size:10.5px;color:var(--dim);margin-top:6px}
+table.tb td,table.tb th{border:1px solid var(--line);padding:5px 9px;text-align:left}
+table.tb th{color:var(--g);font-weight:600;letter-spacing:.06em;background:var(--panel2)}
+.foot{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;pointer-events:none}
+.foot span{color:var(--faint);font-size:10px;letter-spacing:.08em}
+.foot button{width:38px;height:26px;border:1px solid var(--linehi);background:var(--panel);color:var(--g);border-radius:4px;cursor:pointer;font-size:12px;pointer-events:auto}
+.foot button:hover{border-color:var(--g)}
+.crumbs{color:var(--faint);font-size:10px;letter-spacing:.08em;margin-bottom:8px}
+.crumbs b{color:var(--g);font-weight:600}
+@media(max-width:700px){.node{min-width:150px}.arrow{display:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <b>C2FF</b>
+  <span>design tour - what the console looks like, before you install</span>
+  <span class="right">&larr; &rarr; keys - or click the branches</span>
+</header>
+
+<main>
+  <div class="rail" id="rail"></div>
+  <div class="stage">
+    <div class="screen" data-s="0">
+      <div class="pad">
+        <div class="crumbs"><b style="color:var(--g)">00 - OVERVIEW</b> - the whole console in one frame</div>
+        <h2 class="t"><b>C2FF</b> - autonomous bug bounty console, 100% local, zero dependency</h2>
+        <div class="flow" style="margin-top:16px">
+          <div class="node" tabindex="0" onclick="go(2)"><h3>PROGRAMS</h3><small>declare scope + researcher header<br>pick one of 15 modes, press GO</small></div>
+          <div class="arrow">&rarr;</div>
+          <div class="node" tabindex="0" onclick="go(3)"><h3>HUNT <span class="code">key 4</span></h3><em style="font-style:normal;color:var(--faint);font-size:9px">the pipeline on one target</em><small>RECON &rarr; ATTACK &rarr; PLAN</small></div>
+          <div class="arrow">&rarr;</div>
+          <div class="node" tabindex="0" onclick="go(6)"><h3>FINDINGS</h3><small>every signal triaged<br>3-step PoC ready to submit</small></div>
+        </div>
+        <div class="flow" style="margin-top:10px">
+          <div class="node" tabindex="0" onclick="go(1)"><h3>FLEET</h3><small>endless cycles on every<br>program you registered</small></div>
+          <div class="arrow">&rarr;</div>
+          <div class="node" tabindex="0" onclick="go(7)"><h3>SESSION</h3><small>shared room: roles, chat,<br>WebRTC audio mesh</small></div>
+        </div>
+        <p class="hint">Everything below is a faithful mock of the running console - same surfaces, same words, same flow.</p>
+      </div>
+    </div>
+
+    <div class="screen" data-s="1">
+      <div class="bar"><span class="logo">C2//FLEET</span><span class="stat">FLEET : RUNNING</span></div>
+      <div class="tabs"><b>1 FLEET</b><b>2 FINDINGS</b><b>3 PROGRAMS</b><b>4 HUNT</b><b>5 AI</b><b>6 TEAM</b><b>7 TERM</b><b>8 CHAT</b></div>
+      <div class="pad">
+        <div class="crumbs"><b style="color:var(--g)">01 - FLEET</b> - press START, cycles run forever</div>
+        <div class="stats">
+          <div class="stat"><em>12</em><small>hosts in scope</small></div>
+          <div class="stat"><em>847</em><small>requests this session</small></div>
+          <div class="stat"><em>21</em><small>probe modules</small></div>
+        </div>
+        <div class="row">
+          <div class="card"><h3>ENGINE</h3><p>Budgeted curl only - 60 req/cycle, 500 ms spacing, one host per wildcard. Read-only by design.</p>
+          <div style="margin-top:8px"><span class="btn">CYCLE NOW &rsaquo;</span>&nbsp; <span class="btn gh">PAUSE</span></div></div>
+          <div class="card"><h3>RUNS</h3><p class="mono">FULL SWEEP   exemple    38 req   5 SIG
+SQLDUST      exemple    12 req   2 SIG
+SECHEADERS   exemple    11 req   3 SIG</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" data-s="2">
+      <div class="bar"><span class="logo">C2//FLEET</span><span class="stat">2 PROGRAMS</span></div>
+      <div class="tabs"><b>1 FLEET</b><b>2 FINDINGS</b><b class="on">3 PROGRAMS</b><b>4 HUNT</b><b>5 AI</b><b>6 TEAM</b><b>7 TERM</b><b>8 CHAT</b></div>
+      <div class="pad">
+        <div class="crumbs"><b style="color:var(--g)">02 - PROGRAMS</b> - declare, configure, launch</div>
+        <div class="card"><h3>exemple <span class="pill g">Bugcrowd</span></h3>
+          <p class="code" style="margin-bottom:6px">*.exemple.com &middot; header: X-Bug-Bounty: &lt;you&gt;</p>
+          <div><span class="btn">FULL SWEEP - CWE - &rsaquo; GO</span> &nbsp;<span class="btn gh">HUNT &rsaquo;</span></div>
+          <p style="margin-top:6px">&#9656; pick the mode: XSS - SQLI - LFI - SSRF - REDIR - SSTI/RCE - XXE - AUTH/JWT - BOLA - UPLOAD - SECRETS - INFO - EXPOSED - SEC-CFG &middot; 15 modes, one click each</p></div>
+        <div class="card" style="margin-top:10px"><h3>NEW PROGRAM</h3>
+          <p class="mono" style="margin-top:4px">name [ exemple ]  required header [ X-Bug-Bounty: xx ]  scope [ *.exemple.com ]  [ SAVE ]</p></div>
+    </div>
+    </div>
+
+    <div class="screen" data-s="3">
+      <div class="bar"><span class="logo">C2//FLEET</span><span class="stat">HUNT : exemple</span></div>
+      <div class="tabs"><b>1 FLEET</b><b>2 FINDINGS</b><b>3 PROGRAMS</b><b class="on">4 HUNT</b><b>5 AI</b><b>6 TEAM</b><b>7 TERM</b><b>8 CHAT</b></div>
+      <div class="pad">
+        <div class="crumbs"><b style="color:var(--g)">03 - HUNT</b> - one target, three phases. Click each branch</div>
+        <div class="flow" style="margin-top:8px">
+          <div class="node" tabindex="0" onclick="go(4)"><h3>1 &middot; RECON</h3><small>map the real surface<br>as visual chips</small></div>
+          <div class="arrow">&rarr;</div>
+          <div class="node" tabindex="0" onclick="go(5)"><h3>2 &middot; ATTACK</h3><small>probe it - P1/P2<br>auto-findings with proof</small></div>
+          <div class="arrow">&rarr;</div>
+          <div class="node" tabindex="0" onclick="go(5)"><h3>3 &middot; PLAN</h3><small>hypotheses + curl<br>statuses persist</small></div>
+        </div>
+        <p class="hint">The HUNT tab keeps this program's findings underneath the pipeline - the working view of one target. RECON feeds ATTACK; candidates land in FINDINGS on their own.</p>
+      </div>
+    </div>
+
+    <div class="screen" data-s="4">
+      <div class="bar"><span class="logo">C2//FLEET</span><span class="stat">RECON : 13 req - 7.1 s</span></div>
+      <div class="tabs"><b>1 FLEET</b><b>2 FINDINGS</b><b>3 PROGRAMS</b><b class="on">4 HUNT</b><b>5 AI</b><b>6 TEAM</b><b>7 TERM</b><b>8 CHAT</b></div>
+      <div class="pad">
+        <div class="crumbs"><b style="color:var(--g)">04 - HUNT &middot; RECON</b> - the surface becomes chips</div>
+        <div class="card"><h3>www.exemple.com</h3>
+          <div class="chips" style="margin-top:6px"><span class="pill g">GET /api/v2/orders/284100</span><span class="pill g">GET /api/v2/users</span><span class="pill g">POST /graphql</span><span class="pill">app.main.js</span><span class="pill">vendor.js</span><span class="pill w">param user_id</span><span class="pill w">param token</span><span class="pill">nextjs</span><span class="pill">cloudflare</span></div>
+          <p style="margin-top:8px" class="code">+ 5 subdomains (crt.sh, passive) &middot; 15 pages crawled &middot; 0 writes, GET only</p></div>
+        <p class="hint">&larr; back to the HUNT map &middot; next: ATTACK &rarr;</p>
+      </div>
+    </div>
+
+    <div class="screen" data-s="5">
+      <div class="bar"><span class="logo">C2//FLEET</span><span class="stat">PLAN : 6 hypotheses - 2 confirmed</span></div>
+      <div class="tabs"><b>1 FLEET</b><b>2 FINDINGS</b><b>3 PROGRAMS</b><b class="on">4 HUNT</b><b>5 AI</b><b>6 TEAM</b><b>7 TERM</b><b>8 CHAT</b></div>
+      <div class="pad">
+        <div class="crumbs"><b style="color:var(--g)">05 - HUNT &middot; PLAN</b> - the work plan of this target</div>
+        <div class="card">
+          <div class="fnd S-SIG"><div class="fh"><span class="pill">cors</span><small style="color:var(--dim)">un CORS reflechi avec credentials pese dans un rapport ORB</small>
+          <span class="btn gh" style="margin-left:auto">RUN &rsaquo;</span></div><div class="mono">curl -si -H 'X-Bug-Bounty: you' 'https://www.exemple.com/api/v2/users' -H 'Origin: https://evil.example'</div></div>
+          <div class="fnd S-SIG"><div class="fh"><span class="pill">idor</span><small style="color:var(--dim)">compare id 284100 vs 284101 avec TON token</small><span class="btn gh" style="margin-left:auto">⧉ COPY</span></div><div class="mono"># two curls, your token required - run in your terminal</div></div>
+          <div class="fnd S-SIG" style="opacity:.6"><div class="fh"><span class="pill">reflect</span><small style="color:var(--dim)">param token - canary reflected</small><span class="pill w" style="margin-left:auto">&#10003; confirmed</span></div><div class="mono">HTTP 200 &middot; 559 o &middot; canary visible in response</div></div>
+        </div>
+        <p class="hint">statuses: to do / tested / signal / confirmed / nothing - persisted in plan.json, hunt resumes where you left it.</p>
+      </div>
+    </div>
+
+    <div class="screen" data-s="6">
+      <div class="bar"><span class="logo">C2//FLEET</span><span class="stat">FINDINGS : 1 P2 + 8 SIG</span></div>
+      <div class="tabs"><b>1 FLEET</b><b class="on">2 FINDINGS</b><b>3 PROGRAMS</b><b>4 HUNT</b><b>5 AI</b><b>6 TEAM</b><b>7 TERM</b><b>8 CHAT</b></div>
+      <div class="pad">
+        <div class="crumbs"><b style="color:var(--g)">06 - FINDINGS</b> - the evidence base, live from all cycles</div>
+        <div class="fnd S-P2"><div class="fh"><span class="sev">P2</span><span class="pill w">EXAMPLE PROGRAM</span><small class="code">ATK &middot; C2FF &middot; 11:42</small><span class="btn gh" style="margin-left:auto">AI &raquo;</span></div>
+          [cors] CORS reflechi avec credentials sur /api/v2/users<br>
+          <span class="code">PoC (3 points): 1) curl -si with evil origin 2) observe ACAO reflected + credentials 3) confirm session-dependent data readable</span></div>
+        <div class="fnd S-SIG"><div class="fh"><span class="sev">SIG</span><span class="pill">SECRETS</span><small style="color:var(--dim)">hardcoded secret: app.main.js</small></div></div>
+      </div>
+    </div>
+
+    <div class="screen" data-s="7">
+      <div class="bar"><span class="logo">C2//FLEET</span><span class="stat">SESSION : LAN - 4 members</span></div>
+      <div class="tabs"><b>1 FLEET</b><b>2 FINDINGS</b><b>3 PROGRAMS</b><b>4 HUNT</b><b>5 AI</b><b>6 TEAM</b><b class="on">7 TERM</b><b>8 CHAT</b></div>
+      <div class="pad">
+        <div class="crumbs"><b style="color:var(--g)">07 - SESSION</b> - one click from solo to shared room</div>
+        <div class="row">
+          <div class="card"><h3>LEVELS</h3><table class="tb">
+            <tr><th>LOCAL</th><td>127.0.0.1 &middot; no key</td></tr>
+            <tr><th>LAN</th><td>room key on every route</td></tr>
+            <tr><th>WORLD</th><td>verified trycloudflare URL &middot; HTTPS</td></tr></table></div>
+          <div class="card"><h3>ROOM</h3><p>members with roles (admin/guest), kick + blocklist, session chat, and the WebRTC audio mesh - peer-to-peer voices, server relays signalling only.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="foot">
+  <button onclick="prev()" aria-label="previous">&#8592;</button>
+  <span id="lbl">00 / 07 - OVERVIEW</span>
+  <button onclick="next()" aria-label="next">&#8594;</button>
+</div>
+
+<script>
+const TITLES = ["OVERVIEW","FLEET","PROGRAMS","HUNT - pipeline","HUNT - RECON","HUNT - PLAN","FINDINGS","SESSION"];
+const rail = document.getElementById('rail');
+const screens = [...document.querySelectorAll('.screen')];
+rail.innerHTML = screens.map((s,i)=>'<button data-i="'+i+'">'+String(i).padStart(2,'0')+' '+TITLES[i].split(' ')[0].replace('HUNT','H')+'</button>').join('');
+let cur = 0;
+function go(i){
+  cur = Math.max(0, Math.min(screens.length-1, i));
+  screens.forEach((s2,k)=>s2.classList.toggle('on', k===cur));
+  [...rail.children].forEach((b,k)=>b.classList.toggle('on', k===cur));
+  document.getElementById('lbl').textContent = String(cur).padStart(2,'0')+' / 0'+(screens.length-1)+' - '+TITLES[cur];
+}
+const next_ = ()=>go(cur+1), p_=()=>go(cur-1);
+const next = next_, prev = p_;
+document.addEventListener('keydown', e=>{
+  if (e.key==='ArrowRight'||e.key==='ArrowDown') next();
+  if (e.key==='ArrowLeft'||e.key==='ArrowUp') prev();
+  const n = parseInt(e.key,10);
+  if (n>=0 && n<screens.length) go(n);
+});
+rail.addEventListener('click', e=>{ const b=e.target.closest('button'); if(b) go(+b.dataset.i); });
+go(0);
+</script>
+</body>
+</html>
