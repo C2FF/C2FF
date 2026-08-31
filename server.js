@@ -281,6 +281,7 @@ const fleet = require('./fleet.js');
 const RECON = require('./recon.js');
 const ATTACK = require('./attack.js');
 const PLAN = require('./plan.js');
+const ARSENAL = require('./arsenal.js');
 fleet.init({
   file: FLEET_FILE,
   onFinding: (f) => {
@@ -796,6 +797,65 @@ const MAIN = (req, res) => {
         const st = fleet.apply(body);
         return sendJson(res, { ok: true, fleet: st });
       }
+      // ---- ARSENAL : bases CVE (KEV/EPSS/Exploit-DB) -> mouvements suggérés executables ----
+      if (p === '/api/arsenal') {
+        if (body.op === 'sync') return sendJson(res, ARSENAL.sync(String(body.what || '')));
+        if (body.op === 'moves' || body.op === 'exec') {
+          const name = String(body.name || '').toLowerCase();
+          const progs = (() => { try { return JSON.parse(fs.readFileSync(PROGRAMS_FILE, 'utf8')); } catch (e) { return []; } })();
+          const prog = progs.find(x => x.id === name) || progs.find(x => String(x.name || '').toLowerCase() === name);
+          if (!prog) return sendJson(res, { ok: false, err: 'programme introuvable' });
+          let surf = {}; try { surf = JSON.parse(fs.readFileSync(path.join(DATA, 'surface.json'), 'utf8'))[prog.id] || null; } catch (e) {}
+          if (!surf) return sendJson(res, { ok: false, err: 'recon requis : lance RECON avant ARSENAL' });
+          // cve deja vues dans les findings du programme (rattache les exploits)
+          const cves = [...new Set(state.findings.filter(f => f.program === prog.id).flatMap(f => (String(f.text || '').match(/CVE-\d{4}-\d{4,7}/g) || [])))];
+          const r = ARSENAL.movesFor(surf, cves);
+          if (!r.ok) return sendJson(res, r);
+          const mv = ARSENAL.topMoves(r.moves, 40);
+          const stash = { ts: Date.now(), host: surf.host, program: prog.id, moves: mv, tech: r.tech };
+          try { fs.writeFileSync(path.join(DATA, 'arsenal.json'), JSON.stringify(stash, null, 1)); } catch (e) {}
+          if (body.op === 'moves') {
+            ARSENAL.osvDetails(mv.filter(m => m.kind === 'cve' && m.kev).map(m => m.cve), 6).then(det => {
+              for (const m of mv) if (det[m.cve]) { m.sum = det[m.cve].sum; m.sev = det[m.cve].sev; }
+              for (const m of mv) m.cmd = ARSENAL.cmdFor(m, surf.host);
+              try { fs.writeFileSync(path.join(DATA, 'arsenal.json'), JSON.stringify(stash, null, 1)); } catch (e) {}
+            }).catch(() => {});
+            for (const m of mv) m.cmd = ARSENAL.cmdFor(m, surf.host);
+            return sendJson(res, { ok: true, tech: r.tech, moves: mv, host: surf.host });
+          }
+          // exec : mouvement cible, commande scope (host = celui du recon du programme)
+          const m = mv.find(x => x.id === String(body.id || ''));
+          if (!m) return sendJson(res, { ok: false, err: 'mouvement introuvable : recalcule MOVES' });
+          m.cmd = ARSENAL.cmdFor(m, surf.host);
+          const proof = { t: Date.now(), host: surf.host, id: m.id, cmd: m.cmd, out: '' };
+          const fin = out => {
+            proof.out = out;
+            const sev = (m.kev && out && !/0 matches|no results|no findings/i.test(out)) ? 'P2' : 'SIG';
+            state.seq++;
+            state.findings.unshift({
+              key: 'ars:' + m.id + ':' + prog.id, id: 'F' + String(state.seq).padStart(4, '0'), t: Date.now(),
+              program: prog.id, run: 'ARSENAL', agent: 'C2FF', sev, status: 'analyse',
+              text: trunc('[' + m.cve + '] ' + m.title + m.why + '\nPoC (3 etapes) : 1) ' + m.cmd + ' 2) sortie : ' + out.slice(0, 200) + ' 3) confirme l exploitabilite sur la version detectee', 400),
+            });
+            persistFindings();
+            sendJson(res, { ok: true, proof });
+          };
+          if (/^nuclei/.test(m.cmd.trim())) {
+            const bin = m.cmd.trim().split(' ')[0];
+            const target = m.cmd.split('-u ')[1].split(' ')[0];
+            const pr = spawn(bin, ['-u', target, '-id', m.cve, '-silent', '-timeout', '8', '-rlimit', '40'], { timeout: 120000 });
+            let out = '';
+            pr.stdout.on('data', d => { out += d; if (out.length > 4000) pr.kill(); });
+            pr.stderr.on('data', d => { out += d; });
+            pr.on('close', () => fin(clip(out || '(aucun match - la version reelle est peut-etre corrigee)', 1000)));
+          } else {
+            // mouvement exploit/curl : pas d'exec auto - la commande est le livrable
+            return sendJson(res, { ok: true, proof: { t: Date.now(), id: m.id, cmd: m.cmd, out: '' }, manual: true });
+          }
+          return;
+        }
+        return sendJson(res, { ok: false });
+      }
       if (p === '/api/ai') {
         if (body.op === 'test') {
           // teste avec les champs du formulaire (ou la config sauvee si vides)
@@ -845,6 +905,10 @@ const MAIN = (req, res) => {
   }
 
   if (p === '/api/state') return apiState(res, req);
+  if (p === '/api/arsenal' && req.method === 'GET') {
+    let stash = null; try { stash = JSON.parse(fs.readFileSync(path.join(DATA, 'arsenal.json'), 'utf8')); } catch (e) {}
+    return sendJson(res, { bases: ARSENAL.basesState(), syncing: ARSENAL.syncing(), log: ARSENAL.syncLog.slice(-8), stash });
+  }
   if (p === '/api/term/stream') {
     // SSE : replay du buffer puis output live. Distant : admin non banni seulement.
     const h = cleanHandle(url.searchParams.get('handle') || '');

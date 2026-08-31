@@ -12,7 +12,7 @@ Fleet probing, findings triage, program management, agent coordination and multi
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-2ea043)](https://nodejs.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-2a7a3d)](#quick-start)
 [![Platforms](https://img.shields.io/badge/platform-linux_·_macOS_·_WSL2-2a7a3d)](#quick-start)
-[![Languages](https://img.shields.io/badge/UI-80_languages-2a7a3d)](#console-tour)
+[![Languages](https://img.shields.io/badge/UI-82_languages_fully_translated-2a7a3d)](#console-tour)
 
 [The stack](#the-stack-at-a-glance) · [Session levels](#three-levels-of-access) · [The engine](#the-engine) · [Quick start](#quick-start) · [Console tour](#console-tour) · [Team sessions](#team-sessions) · [Agent integration](#agent-integration) · [Architecture](#architecture) · [Security & ethics](#security--ethics) · [Roadmap](#roadmap)
 
@@ -33,7 +33,7 @@ It is deliberately **not** another headless scanner: C2FF keeps a human in comma
 
 | Layer | What runs | Where |
 |---|---|---|
-| Console | `index.html` + `app.js` - terminal-look UI, no framework, 12 fully translated languages | your browser |
+| Console | `index.html` + `app.js` - terminal-look UI, no framework, 82 fully translated languages | your browser |
 | Core | `server.js` - HTTP API, auth rooms, roles, tunnel control, audio signaling | one Node process |
 | Engine | `fleet.js` - 21 deterministic probe modules, budgeted cycles | `curl`, local |
 | Hunt | `recon.js` + `attack.js` + `plan.js` - surface mapping, targeted probes, work plan | `https`, local |
@@ -156,7 +156,7 @@ pkill -f 'C2FF/watchdog.sh' ; pkill -f 'C2FF/server.js'
 5. **SESSION** - your handle, the room, the three access levels, members with roles, session chat and the audio mesh (detailed below)
 6. **COORDINATION** - private channel toward your wired agent
 7. **AI** - optional gateway config (OpenAI-compatible / Ollama / Anthropic), one-click connection test
-- the header language selector switches the whole UI instantly (80 entries, 12 fully translated, RTL for Arabic/Hebrew/Farsi/Urdu/Pashto/Sindhi); keys `1-8` jump between tabs; the UI polls every 1.5 s
+- the header language selector switches the whole UI instantly (82 languages, all fully translated, RTL for Arabic/Hebrew/Farsi/Urdu/Pashto/Sindhi); keys `1-8` jump between tabs; the UI polls every 1.5 s
 
 ## Team sessions
 
@@ -268,7 +268,7 @@ You are responsible for each program's rules. Test only what you are allowed to 
 - [x] Team sessions: room key, LAN go-live/shore, presence, attribution
 - [x] Session chat, admin/guest roles, kick + blocklist
 - [x] WORLD tunnel (cloudflared) with auto-verified public invite
-- [x] WebRTC audio mesh + UI in 80 language entries (12 fully translated)
+- [x] WebRTC audio mesh + UI in 82 languages, all fully translated
 - [ ] Findings filters (severity, status) and text search
 - [ ] One-click report export (markdown, ready to submit)
 - [ ] Per-module on/off toggle + engine budget from the UI
