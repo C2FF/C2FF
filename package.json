@@ -1,7 +1,7 @@
 {
   "name": "C2FF",
-  "version": "1.0.0",
-  "description": "Poste de chasse bug bounty autonome - 100% local, moteur FLEET sans tokens",
+  "version": "1.1.0",
+  "description": "C2FF - autonomous, 100% local bug bounty hunting console - fleet probing engine, findings database, zero tokens",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

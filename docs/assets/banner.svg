@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="220" viewBox="0 0 880 220" role="img" aria-label="C2FF banner">
+  <defs>
+    <clipPath id="r"><rect width="880" height="220" rx="16" fill="#0b0e14"/></clipPath>
+  </defs>
+  <g clip-path="url(#r)">
+    <rect width="880" height="220" fill="#0b0e14"/>
+    <circle cx="118" cy="110" r="34" fill="none" stroke="#3b82f6" stroke-width="6"/>
+    <text x="118" y="124" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="34" font-weight="700" fill="#ffffff">C2</text>
+    <rect x="196" y="62" width="6" height="96" rx="3" fill="#3b82f6"/>
+    <text x="226" y="118" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="72" font-weight="650" fill="#ffffff" letter-spacing="2">C2FF</text>
+    <text x="230" y="156" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="21" fill="#8a94a6">Autonomous local bug bounty engine</text>
+    <rect x="0" y="212" width="880" height="8" fill="#3b82f6"/>
+  </g>
+</svg>
