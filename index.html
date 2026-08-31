@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>C2FF - poste de chasse</title>
+<style>
+:root{color-scheme:dark;--bg:#04070a;--panel:#070d14;--edge:#0e2233;--fg:#cfe8ff;--dim:#3a6a8a;--neon:#39ff14;--cyan:#00e5ff;--pink:#ff2e88;--amber:#ffb000;--red:#ff5d5d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.5 "Fira Code","JetBrains Mono",ui-monospace,Menlo,Consolas,monospace}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,0,0,.12) 2px 4px);z-index:9}
+.wrap{max-width:1560px;margin:0 auto;padding:12px 18px 40px;position:relative;z-index:1}
+header{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--edge);padding-bottom:8px;flex-wrap:wrap}
+h1{font-size:18px;letter-spacing:2px;margin:0;color:var(--neon);text-shadow:0 0 14px rgba(57,255,20,.5)}
+.cursor{animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.sub{color:var(--dim);font-size:12px}
+.clock{margin-left:auto;color:var(--dim)}
+nav{display:flex;gap:6px;margin:10px 0 0;flex-wrap:wrap}
+.navbtn{background:var(--panel);border:1px solid var(--edge);color:var(--fg);padding:6px 16px;border-radius:6px 6px 0 0;cursor:pointer;font:inherit;letter-spacing:1px}
+.navbtn.active{color:var(--neon);border-color:var(--neon);box-shadow:0 -2px 10px rgba(57,255,20,.25)}
+.navbtn small{color:var(--dim);margin-left:4px}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.stat{border:1px solid var(--edge);border-radius:6px;padding:5px 12px;min-width:110px;background:var(--panel)}
+.stat .k{color:var(--dim);font-size:10px;letter-spacing:1px}
+.stat .v{font-size:19px;color:var(--neon);text-shadow:0 0 8px rgba(57,255,20,.4)}
+.view{display:none;border:1px solid var(--edge);border-radius:8px;background:var(--panel);padding:12px}
+.view.active{display:block}
+h2{font-size:12px;color:var(--cyan);letter-spacing:2px;margin:6px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:10px}
+.card{border:1px solid var(--edge);border-radius:8px;padding:10px 12px;background:#050b11;margin-bottom:10px}
+.card.glow{box-shadow:inset 0 0 44px rgba(0,229,255,.04)}
+.pill{display:inline-block;padding:1px 9px;border-radius:10px;font-size:10px;letter-spacing:1px;border:1px solid}
+.p-prog{color:var(--cyan);border-color:#00e5ff55;background:#00e5ff15}
+.p-live{color:var(--neon);border-color:#39ff1455;background:#39ff1415}
+.p-done{color:#7fd0ff;border-color:#0e2233}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor;margin-right:6px}
+.dot.run{animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.acard{border-left:2px solid var(--edge);padding:4px 0 4px 10px;margin:6px 0}
+.acard .nm{color:var(--pink);letter-spacing:1px}
+.acard.st-done .nm{color:#7fd0ff}
+.acard.st-error .nm{color:var(--red)}
+.last{color:#eaffea;font-size:11.5px;margin:4px 0;white-space:pre-wrap;opacity:.92}
+.feed{font-size:10.5px;color:#5c8f74;max-height:120px;overflow-y:auto}
+.feed div{padding:1px 0;border-bottom:1px dashed #0c1a26}
+.more{cursor:pointer;color:var(--dim);font-size:10.5px;margin-top:3px}
+.fnd{border:1px solid var(--edge);border-left-width:3px;border-radius:6px;padding:6px 10px;margin:6px 0;background:#050b11}
+.fnd .fh{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.fnd .sev{font-weight:700}
+.fnd.S-P1{border-left-color:var(--red)}.fnd.S-P1 .sev{color:var(--red)}
+.fnd.S-P2{border-left-color:var(--amber)}.fnd.S-P2 .sev{color:var(--amber)}
+.fnd.S-P3{border-left-color:#ffe95d}.fnd.S-P3 .sev{color:#ffe95d}
+.fnd.S-HIT{border-left-color:var(--neon)}.fnd.S-HIT .sev{color:var(--neon)}
+.fnd .txt{font-size:11.5px;color:#9fdcb8;word-break:break-word;margin-top:3px}
+.fnd select{background:#04101a;color:var(--fg);border:1px solid var(--edge);border-radius:4px;font:inherit;font-size:10.5px}
+input,select,textarea{background:#04101a;color:var(--fg);border:1px solid var(--edge);border-radius:5px;font:inherit;padding:4px 8px}
+input:focus,textarea:focus{outline:none;border-color:var(--neon)}
+button.go{background:#0a1f12;color:var(--neon);border:1px solid #39ff1455;border-radius:5px;padding:5px 14px;cursor:pointer;letter-spacing:1px}
+button.go:hover{box-shadow:0 0 10px rgba(57,255,20,.4)}
+button.ghost{background:transparent;border:1px solid var(--edge);color:var(--dim);border-radius:5px;padding:3px 10px;cursor:pointer;font-size:11px}
+.prog{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}
+.prog .card h3{margin:0 0 6px;color:var(--cyan);font-size:14px;letter-spacing:1px}
+.prog .scope{font-size:11px;color:#9fdcb8;word-break:break-all}
+.prog .hdr{font-size:10.5px;color:var(--amber);margin:4px 0}
+.prog .go{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
+#chatbox{display:flex;flex-direction:column;height:64vh}
+#chatlog{flex:1;overflow-y:auto;border:1px solid var(--edge);border-radius:6px;padding:10px;background:#03080d}
+.msg{margin:4px 0;padding:6px 10px;border-radius:6px;max-width:88%;word-break:break-word;white-space:pre-wrap}
+.msg.user{background:#0a1f2a;border-left:2px solid var(--cyan);margin-left:auto;text-align:left}
+.msg.claude{background:#0a1408;border-left:2px solid var(--neon)}
+.msg .who{font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:2px}
+.msg.queue{background:#1a1403;border-left:2px solid var(--amber)}
+#chatform{display:flex;gap:8px;margin-top:8px}
+#chatinput{flex:1}
+#toasts{position:fixed;right:14px;top:12px;z-index:20;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{pointer-events:auto;min-width:300px;max-width:420px;background:#0a1118;border:1px solid var(--edge);border-radius:8px;padding:8px 12px;box-shadow:0 0 18px rgba(0,0,0,.6);transition:opacity .3s}
+.toast.P1{border-color:var(--red);box-shadow:0 0 16px rgba(255,93,93,.4)}
+.toast.P2{border-color:var(--amber)}
+.toast.HIT{border-color:var(--neon)}
+.toast .th{font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:3px}
+.toast .tt{font-size:11.5px;word-break:break-word}
+.toast.gone{opacity:0}
+.badge{background:var(--pink);color:#fff;border-radius:9px;padding:0 6px;font-size:10px;margin-left:4px}
+form.newf{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+form.newf input[type=text]{flex:1;min-width:280px}
+footer{color:var(--dim);font-size:10.5px;margin-top:14px;letter-spacing:1px}
+.p1{color:var(--red);font-weight:700}.p2{color:var(--amber);font-weight:700}.p3{color:#ffe95d}
+.hl-c{color:var(--cyan)}.hl-x{color:var(--pink);font-weight:700}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:#0e2233;border-radius:4px}::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>C2FF<span class="cursor">▮</span></h1>
+  <span class="sub">poste de chasse multi-programmes - coordination User &lt;-&gt; CLAUDE</span>
+  <span class="clock" id="clock"></span>
+</header>
+<nav>
+  <button class="navbtn active" data-tab="live">LIVE <small id="nRun"></small></button>
+  <button class="navbtn" data-tab="findings">FINDINGS <small id="nFnd"></small></button>
+  <button class="navbtn" data-tab="programs">PROGRAMMES <small id="nProg"></small></button>
+  <button class="navbtn" data-tab="chat">COORDINATION <small id="nChat"></small></button>
+</nav>
+<div class="stats">
+  <div class="stat"><div class="k">RUNS</div><div class="v" id="sRuns">0</div></div>
+  <div class="stat"><div class="k">AGENTS ACTIFS</div><div class="v" id="sAct">0</div></div>
+  <div class="stat"><div class="k">SIGNAUX</div><div class="v" id="sSig">0</div></div>
+</div>
+
+<section class="view active" id="v-live">
+  <h2>FLOTTE // tous programmes, agents en course d'abord</h2>
+  <div id="runList"></div>
+</section>
+
+<section class="view" id="v-findings">
+  <h2>BASE DE FINDINGS // marquage triage persistant</h2>
+  <form class="newf" id="newFinding">
+    <select id="nfSev"><option>HIT</option><option>P1</option><option>P2</option><option>P3</option><option>SIG</option></select>
+    <select id="nfProg"></select>
+    <input type="text" id="nfText" placeholder="finding manuel : endpoint + preuve + sev defendable…">
+    <button class="go" type="submit">+ AJOUTER</button>
+  </form>
+  <div id="fndList"></div>
+</section>
+
+<section class="view" id="v-programs">
+  <h2>MOTEUR FLEET // cycles locaux sans tokens : pause/relance illimités</h2>
+  <div class="card" id="fleetBar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <span class="pill" id="fleetSt">FLEET : ?</span>
+    <button class="go" id="fleetStart">▶ DEMARRER</button>
+    <button class="ghost" id="fleetPause">⏸ PAUSE</button>
+    <button class="ghost" id="fleetCycle">⚡ CYCLE MAINTENANT</button>
+    <small style="color:var(--dim)" id="fleetInfo"></small>
+  </div>
+  <h2>PROGRAMMES // scope, header requis, lancement</h2>
+  <div class="prog" id="progList"></div>
+  <div class="card" style="margin-top:10px">
+    <h2 style="margin-top:0">+ NOUVEAU PROGRAMME</h2>
+    <form id="progForm" style="display:flex;gap:6px;flex-wrap:wrap">
+      <input type="text" id="npId" placeholder="id (ex: paypal)" style="width:130px" required>
+      <input type="text" id="npName" placeholder="Nom du programme" style="width:170px" required>
+      <input type="text" id="npHeader" placeholder="header requis (ex: X-Bug-Bounty: xxx)" style="width:240px">
+      <input type="text" id="npScope" placeholder="scope : domaine1, domaine2, …" style="flex:1">
+      <button class="go" type="submit">+ ENREGISTRER</button>
+    </form>
+  </div>
+</section>
+
+<section class="view" id="v-chat">
+  <h2>COIN PRIVE DE COORDINATION // toi &harr; CLAUDE en direct</h2>
+  <div id="chatbox">
+    <div id="chatlog"></div>
+    <form id="chatform"><input id="chatinput" placeholder="message direct vers CLAUDE (il le recoit dans la seconde)…" autocomplete="off"><button class="go" type="submit">ENVOYER</button></form>
+  </div>
+</section>
+
+<footer>C2FF - 100% LOCAL - moteur FLEET sans tokens - Claude lit la coordination via monitor, lance les playbooks, publie les verdicts ici</footer>
+</div>
+<div id="toasts"></div>
+<script src="/app.js"></script>
+</body>
+</html>

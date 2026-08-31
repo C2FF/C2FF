@@ -1,0 +1,15 @@
+{
+  "name": "C2FF",
+  "version": "1.0.0",
+  "description": "Poste de chasse bug bounty autonome - 100% local, moteur FLEET sans tokens",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:watchdog": "bash watchdog.sh"
+  },
+  "bin": { "C2FF": "./server.js" },
+  "engines": { "node": ">=18" },
+  "keywords": ["bugbounty", "recon", "security", "cwe", "local-first", "offensive-security"],
+  "author": "C2FF",
+  "license": "MIT"
+}
