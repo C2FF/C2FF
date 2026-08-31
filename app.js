@@ -45,6 +45,8 @@ const LANGS = [
 ];
 const I18N = {
   fr: {
+    amb_on: 'AMBIANCE: ON', amb_off: 'AMBIANCE: OFF', amb_ok: 'ambiance vivante - la teinte glisse, 30 s par famille (vert, bleu, jaune...)',
+    amb_stop: 'ambiance figee sur le vert d origine',
     nt_on: 'NOTIFS : ON', nt_off: 'NOTIFS : OFF', nt_ok: 'notifications navigateur activees - bip sur P1 et P2',
     nt_denied: 'notifications bloquees par le navigateur : autorise-les dans les reglages du site',
     term_denied: 'terminal refuse ou indisponible : localhost requis, ou salle OUVERTE en tant qu admin',
@@ -106,6 +108,8 @@ const I18N = {
     w_me: 'OPERATOR', w_claude: 'CLAUDE', w_ia: 'IA', w_launch: '⚡ LANCEMENT',
   },
   en: {
+    amb_on: 'AMBIANCE: ON', amb_off: 'AMBIANCE: OFF', amb_ok: 'living ambiance - the hue slides, 30 s per family (green, blue, yellow...)',
+    amb_stop: 'ambiance frozen on the original green',
     nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'browser notifications enabled - P1 and P2 beeped',
     nt_denied: 'notifications blocked by the browser: allow them in the site settings',
     term_denied: 'terminal denied or unavailable: localhost required, or an OPEN room as admin',
@@ -167,6 +171,8 @@ const I18N = {
     tm_mic_denied: 'microphone denied or unavailable: HTTPS required (WORLD tunnel or localhost) and permission must be granted',
   },
   es: {
+    amb_on: 'AMBIENTE: ON', amb_off: 'AMBIENTE: OFF', amb_ok: 'ambiente vivo - el tono desliza, 30 s por familia (verde, azul, amarillo...)',
+    amb_stop: 'ambiente congelado en el verde original',
     nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'notificaciones del navegador activadas - bip en P1 y P2',
     nt_denied: 'notificaciones bloqueadas por el navegador: permítelas en los ajustes del sitio',
     term_denied: 'terminal denegado o no disponible: se requiere localhost, o sala ABIERTA como admin',
@@ -228,6 +234,8 @@ const I18N = {
     tm_mic_denied: 'micrófono denegado o no disponible: se requiere HTTPS (túnel MUNDO o localhost) y conceder el permiso',
   },
   de: {
+    amb_on: 'AMBIANCE: AN', amb_off: 'AMBIANCE: AUS', amb_ok: 'lebendige Atmosphäre - der Farbton gleitet, 30 s pro Familie (Grün, Blau, Gelb...)',
+    amb_stop: 'Atmosphäre eingefroren auf dem Original-Grün',
     nt_on: 'NOTIFS: AN', nt_off: 'NOTIFS: AUS', nt_ok: 'Browser-Benachrichtigungen aktiv - Piepen bei P1 und P2',
     nt_denied: 'Benachrichtigungen vom Browser blockiert: in den Seiteneinstellungen erlauben',
     term_denied: 'Terminal verweigert oder nicht verfügbar: localhost nötig, oder offener Raum als Admin',
@@ -287,6 +295,8 @@ const I18N = {
     tm_mic_denied: 'Mikrofon verweigert oder nicht verfügbar: HTTPS nötig (WELT-Tunnel oder localhost) und Berechtigung erteilen',
   },
   pt: {
+    amb_on: 'AMBIENTE: ON', amb_off: 'AMBIENTE: OFF', amb_ok: 'ambiente vivo - o tom desliza, 30 s por família (verde, azul, amarelo...)',
+    amb_stop: 'ambiente congelado no verde original',
     nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'notificações do navegador ativas - bip em P1 e P2',
     nt_denied: 'notificações bloqueadas pelo navegador: permita-as nas configurações do site',
     term_denied: 'terminal recusado ou indisponível: localhost necessário, ou sala ABERTA como admin',
@@ -346,6 +356,8 @@ const I18N = {
     tm_mic_denied: 'microfone recusado ou indisponível: HTTPS obrigatório (túnel MUNDO ou localhost) e conceder a permissão',
   },
   it: {
+    amb_on: 'AMBIENTE: ON', amb_off: 'AMBIENTE: OFF', amb_ok: 'atmosfera viva - la tinta scorre, 30 s per famiglia (verde, blu, giallo...)',
+    amb_stop: 'atmosfera bloccata sul verde originale',
     nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'notifiche del browser attive - bip su P1 e P2',
     nt_denied: 'notifiche bloccate dal browser: autorizzale nelle impostazioni del sito',
     term_denied: 'terminale negato o non disponibile: serve localhost, o stanza APERTA come admin',
@@ -405,6 +417,8 @@ const I18N = {
     tm_mic_denied: 'microfono negato o non disponibile: serve HTTPS (tunnel MONDO o localhost) e concedere il permesso',
   },
   ar: {
+    amb_on: 'الجو: تشغيل', amb_off: 'الجو: إيقاف', amb_ok: 'أجواء حية - اللون ينزلق، 30 ثانية لكل عائلة (أخضر، أزرق، أصفر...)',
+    amb_stop: 'الجو مثبت على الأخضر الأصلي',
     nt_on: 'الإشعارات: تشغيل', nt_off: 'الإشعارات: إيقاف', nt_ok: 'تم تفعيل إشعارات المتصفح - نغمة على P1 و P2',
     nt_denied: 'الإشعارات محجوبة من المتصفح: اسمح بها من إعدادات الموقع',
     term_denied: 'الطرفية مرفوضة أو غير متاحة: localhost مطلوب، أو غرفة مفتوحة بصلاحية مشرف',
@@ -464,6 +478,8 @@ const I18N = {
     tm_mic_denied: 'الميكروفون مرفوض أو غير متاح: HTTPS مطلوب (نفق عالم أو localhost) مع منح الإذن',
   },
   zh: {
+    amb_on: '氛围: 开', amb_off: '氛围: 关', amb_ok: '活氛围 - 色相缓慢滑动, 每族 30 秒 (绿, 蓝, 黄...)',
+    amb_stop: '氛围固定在原版绿',
     nt_on: '通知: 开', nt_off: '通知: 关', nt_ok: '浏览器通知已开启 - P1 和 P2 会有提示音',
     nt_denied: '浏览器通知被拦截：请在站点设置中允许',
     term_denied: '终端被拒绝或不可用：需要 localhost，或以管理员身份开启房间',
@@ -523,6 +539,8 @@ const I18N = {
     tm_mic_denied: '麦克风被拒绝或不可用：需要 HTTPS（世界隧道或 localhost）并授权麦克风',
   },
   ru: {
+    amb_on: 'АТМОСФЕРА: ВКЛ', amb_off: 'АТМОСФЕРА: ВЫКЛ', amb_ok: 'живая атмосфера - оттенок плывёт, 30 с на семейство (зелёный, синий, жёлтый...)',
+    amb_stop: 'атмосфера заморожена на оригинальном зелёном',
     nt_on: 'NOTIFS: ВКЛ', nt_off: 'NOTIFS: ВЫКЛ', nt_ok: 'уведомления браузера включены - писк на P1 и P2',
     nt_denied: 'уведомления заблокированы браузером: разрешите в настройках сайта',
     term_denied: 'терминал отклонён или недоступен: нужен localhost или открытая комната с ролью админ',
@@ -582,6 +600,8 @@ const I18N = {
     tm_mic_denied: 'микрофон отклонён или недоступен: требуется HTTPS (мировой туннель или localhost) и разрешение доступа',
   },
   ja: {
+    amb_on: '雰囲気: ON', amb_off: '雰囲気: OFF', amb_ok: '生きた雰囲気 - 色相が滑らかに移動, 各30秒 (緑, 青, 黄...)',
+    amb_stop: '雰囲気を元の緑に固定',
     nt_on: '通知: ON', nt_off: '通知: OFF', nt_ok: 'ブラウザ通知を有効化 - P1 と P2 でビープ',
     nt_denied: '通知がブラウザでブロック：サイト設定で許可して',
     term_denied: 'ターミナル拒否か利用不可：localhost か管理者としてルームを開く必要あり',
@@ -641,6 +661,8 @@ const I18N = {
     tm_mic_denied: 'マイクが拒否か利用不可：HTTPS（ワールドトンネルか localhost）と権限の許可が必要',
   },
   ko: {
+    amb_on: '분위기: ON', amb_off: '분위기: OFF', amb_ok: '살아있는 분위기 - 색조가 흐름, 각 30초 (녹색, 파랑, 노랑...)',
+    amb_stop: '분위기가 원래 녹색에 고정',
     nt_on: '알림: ON', nt_off: '알림: OFF', nt_ok: '브라우저 알림 활성화 - P1과 P2에 삑',
     nt_denied: '알림이 브라우저에서 차단됨: 사이트 설정에서 허용',
     term_denied: '터미널 거부 또는 불가: localhost 또는 관리자로 연 방 필요',
@@ -700,6 +722,8 @@ const I18N = {
     tm_mic_denied: '마이크 거부 또는 불가: HTTPS(월드 터널 또는 localhost)와 권한 허용 필요',
   },
   hi: {
+    amb_on: 'माहौल: ON', amb_off: 'माहौल: OFF', amb_ok: 'जीवंत माहौल - रंग खिसकता है, हर 30 सेकंड (हरा, नीला, पीला...)',
+    amb_stop: 'माहौल मूल हरे पर स्थिर',
     nt_on: 'सूचनाएं: ON', nt_off: 'सूचनाएं: OFF', nt_ok: 'ब्राउज़र सूचनाएं चालू - P1 और P2 पर बीप',
     nt_denied: 'सूचनाएं ब्राउज़र में ब्लॉक हैं: साइट सेटिंग्स में अनुमति दें',
     term_denied: 'टर्मिनल अस्वीकृत या अनुपलब्ध: localhost या एडमिन के रूप में खुला कमरा चाहिए',
@@ -1336,6 +1360,28 @@ $('notifBtn').addEventListener('click', () => {
   drawNotifBtn();
 });
 drawNotifBtn();
+
+// ---------- ambiance chromatique vivante ----------
+// la teinte de toute la console glisse : 30 s par famille (vert, bleu, jaune...),
+// rotation continue 2 deg/s = tour complet en 3 min. Toggle header, persiste localement.
+const AMB = { live: true };
+try { AMB.live = localStorage.getItem('c2ff-ambiance') !== 'off'; } catch (e) {}
+const ambTick = () => {
+  const reduced = matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (AMB.live && !reduced) document.documentElement.style.setProperty('--hue', ((112 + Date.now() / 1000 * 2) % 360).toFixed(1));
+  else document.documentElement.style.setProperty('--hue', '112');
+};
+setInterval(ambTick, 1000);
+ambTick();
+function drawAmbBtn() { const b = $('ambBtn'); if (b) b.textContent = AMB.live ? T('amb_on') : T('amb_off'); }
+$('ambBtn').addEventListener('click', () => {
+  AMB.live = !AMB.live;
+  try { localStorage.setItem('c2ff-ambiance', AMB.live ? 'on' : 'off'); } catch (e) {}
+  ambTick();
+  drawAmbBtn();
+  toast('THEME', AMB.live ? T('amb_ok') : T('amb_stop'), '');
+});
+drawAmbBtn();
 
 // ---------- terminal de travail ----------
 // shell reel cote serveur (1 par identite), output en SSE, input en POST ligne par ligne.
