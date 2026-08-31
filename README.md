@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/banner.svg" alt="C2FF" width="640">
+<img src="docs/assets/banner.png" alt="C2FF" width="640">
 
 **Autonomous, 100% local bug bounty hunting console**
 
