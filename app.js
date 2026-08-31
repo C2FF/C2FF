@@ -48,6 +48,14 @@ const I18N = {
     fl_off: 'FLEET : ARRETE', fl_paused: 'FLEET : EN PAUSE', fl_active: 'FLEET : ACTIF ({n} cycles)',
     fl_last: 'dernier cycle', fl_none: 'aucun cycle encore', fl_info: 'intervalle {i} min, budget {b} req/cycle',
     sub_ttl: 'command & control framework',
+    navt: 'Team', tm_h2: 'Mode team - sessions de groupe a distance',
+    tm_p: "Ouvre la salle et partage le lien d'invitation : ton equipe voit la flotte, les findings, la coordination et peut trier en direct, depuis n'importe ou. Le serveur reste ta machine : pour un acces a distance relance C2FF avec C2FF_BIND=0.0.0.0 (sinon seul localhost passe). Tout passe par la cle de salle - regenere-la pour virer tout le monde d'un coup.",
+    tm_handle: 'Ton pseudo (16 caracteres max)', tm_save_h: 'Choisir', tm_room_ph: 'nom de la salle (ex : c2ff-core)',
+    tm_save: 'Appliquer', tm_on: 'SALLE OUVERTE : {r} - {n} en ligne', tm_off: 'MODE TEAM DESACTIVE - session locale solo',
+    tm_room: 'Salle', tm_key: 'Cle de salle', tm_regen: 'Regenerer la cle', tm_regen_ok: 'nouvelle cle generee - les anciens liens sont morts',
+    tm_invite: 'Lien d invitation (a copier vers ton equipe)', tm_copy: 'Copier', tm_copied: 'copie dans le presse-papiers',
+    tm_members: 'Membres', tm_nobody: 'personne encore - envoie le lien a ton equipe', tm_you: '(toi)', tm_here: 'present',
+    tm_saved: 'pseudo enregistre', tm_no_handle: 'pseudo vide', tm_cfg_ok: 'salle mise a jour', tm_cfg_no: 'echec',
     navf: 'Flotte', navfd: 'Findings', navp: 'Programmes', navai: 'IA', navc: 'Coordination',
     st_runs: 'Runs', st_beacons: 'Beacons actifs', st_sig: 'Signaux',
     h2f: "Flotte - tous programmes, agents en course d'abord",
@@ -117,6 +125,14 @@ const I18N = {
     to_ai_ok: 'config saved', to_ai_no: 'save failed', to_ai_no_cfg: 'AI not configured - set it in the AI tab',
     to_ai_head: 'AI ANALYSIS', to_ai_bad: 'AI ANALYSIS failed',
     w_me: 'OPERATOR', w_claude: 'CLAUDE', w_ia: 'AI', w_launch: '⚡ LAUNCH',
+    navt: 'Team', tm_h2: 'Team mode - remote group sessions',
+    tm_p: "Open the room and share the invite link: your team sees the fleet, findings, coordination and can triage live, from anywhere. The server stays on your machine: for remote access relaunch C2FF with C2FF_BIND=0.0.0.0 (otherwise only localhost gets through). Everything is gated by the room key - regenerate it to kick everyone at once.",
+    tm_handle: 'Your handle (16 chars max)', tm_save_h: 'Set', tm_room_ph: 'room name (ex: c2ff-core)',
+    tm_save: 'Apply', tm_on: 'ROOM OPEN: {r} - {n} online', tm_off: 'TEAM MODE OFF - local solo session',
+    tm_room: 'Room', tm_key: 'Room key', tm_regen: 'Regenerate key', tm_regen_ok: 'new key generated - old links are dead',
+    tm_invite: 'Invite link (copy to your team)', tm_copy: 'Copy', tm_copied: 'copied to clipboard',
+    tm_members: 'Members', tm_nobody: 'nobody yet - send the invite link', tm_you: '(you)', tm_here: 'here',
+    tm_saved: 'handle saved', tm_no_handle: 'empty handle', tm_cfg_ok: 'room updated', tm_cfg_no: 'failed',
   },
   es: {
     fl_off: 'FLOTA : DETENIDA', fl_paused: 'FLOTA : EN PAUSA', fl_active: 'FLOTA : ACTIVA ({n} ciclos)',
@@ -490,11 +506,24 @@ function applyI18n() {
   $('langSel').value = LANG;
 }
 
-const state = { tab: 'live', chatSeen: 0, fndSeen: 0, firstLoad: true, unread: 0, data: { runs: [], findings: [], programs: [], chat: [], modes: [] } };
+const state = { tab: 'live', chatSeen: 0, fndSeen: 0, firstLoad: true, unread: 0, tick: 0, data: { runs: [], findings: [], programs: [], chat: [], modes: [], team: {} } };
+// mode team : cle de salle capturee dans l'URL d'invitation (?k=...) puis
+// envoyee sur chaque appel API ; locale on n'en a pas besoin
+let TEAMKEY = '';
+let HANDLE = '';
+try {
+  HANDLE = localStorage.getItem('c2ff-handle') || '';
+  TEAMKEY = localStorage.getItem('c2ff-key') || '';
+  const k = new URLSearchParams(location.search).get('k');
+  if (k) { TEAMKEY = k; localStorage.setItem('c2ff-key', k); history.replaceState(null, '', location.pathname); }
+} catch (e) {}
+const KHEAD = () => TEAMKEY ? { 'x-c2ff-key': TEAMKEY } : {};
+function jget(url) { return fetch(url, { headers: KHEAD() }); }
+function jpost(url, body) { return fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...KHEAD() }, body: JSON.stringify(body) }); }
 const expanded = new Set();
 let forceDraw = true; // premier paint integral, puis re-rendu differentiel
 
-const TABS = { live: 'FLOTTE', findings: 'FINDINGS', programs: 'PROGRAMMES', ai: 'IA', chat: 'COORDINATION' };
+const TABS = { live: 'FLOTTE', findings: 'FINDINGS', programs: 'PROGRAMMES', ai: 'IA', team: 'TEAM', chat: 'COORDINATION' };
 function setTab(t) {
   state.tab = t;
   document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
@@ -517,7 +546,7 @@ function toast(title, text, cls) {
 // ---------- rendu differentiel ----------
 // une vue ne se redessine que si ses donnees ont change, et jamais
 // quand l'utilisateur interagit avec un element de la vue (selects, inputs)
-const drawn = { runs: '', fnd: '', prog: '', chat: '', ai: '' };
+const drawn = { runs: '', fnd: '', prog: '', chat: '', ai: '', team: '' };
 function focusInside(sel) {
   const r = $(sel);
   const a = document.activeElement;
@@ -583,7 +612,7 @@ function drawFindings() {
       '<div class="txt">' + hl(f.text) + '</div></div>';
   }).join('') || '<div class="fnd">' + T('f_none') + '</div>';
   document.querySelectorAll('.fnd select').forEach(s => s.addEventListener('change', () => {
-    fetch('/api/findings', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'patch', key: s.dataset.k, status: s.value }) });
+    jpost('/api/findings', { op: 'patch', key: s.dataset.k, status: s.value, name: HANDLE });
   }));
   document.querySelectorAll('.ia-run').forEach(b => b.addEventListener('click', () => {
     b.disabled = true; b.textContent = 'IA…';
@@ -608,7 +637,7 @@ function drawFleet() {
 $('fleetStart').addEventListener('click', () => drawFleetLater({ enabled: true, paused: false }, T('to_fl_on')));
 $('fleetPause').addEventListener('click', () => drawFleetLater({ paused: true }, T('to_fl_pa')));
 $('fleetCycle').addEventListener('click', () => drawFleetLater({ op: 'test' }, T('to_fl_cy')));
-function drawFleetLater(body, txt) { fetch('/api/fleet', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(() => setTimeout(refresh, 300)); if (txt) toast('FLEET', txt, 'HIT'); }
+function drawFleetLater(body, txt) { jpost('/api/fleet', body).then(() => setTimeout(refresh, 300)); if (txt) toast('FLEET', txt, 'HIT'); }
 
 // ---------- programmes ----------
 function drawPrograms() {
@@ -637,7 +666,7 @@ function drawPrograms() {
     const p = b.dataset.p;
     const sel = document.querySelector('.mode[data-p="' + p + '"]');
     const m = modes.find(x => x.key === sel.value);
-    fetch('/api/fleet', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'run', program: p, mode: sel.value }) });
+    jpost('/api/fleet', { op: 'run', program: p, mode: sel.value });
     toast(T('w_launch'), TF('to_launch', { m: m ? m.label : sel.value, c: m ? m.cwes : '?', p: p.toUpperCase() }), 'HIT');
     setTimeout(refresh, 500);
   }));
@@ -654,14 +683,14 @@ $('progForm').addEventListener('submit', e => {
     scope: $('npScope').value.split(',').map(s => s.trim()).filter(Boolean),
     creds: '', runs: [],
   });
-  fetch('/api/programs', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ programs: list }) }).then(refresh);
+  jpost('/api/programs', { programs: list }).then(refresh);
   $('progForm').reset();
 });
 
 // nouveau finding
 $('newFinding').addEventListener('submit', e => {
   e.preventDefault();
-  fetch('/api/findings', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sev: $('nfSev').value, program: $('nfProg').value, text: $('nfText').value }) }).then(refresh);
+  jpost('/api/findings', { sev: $('nfSev').value, program: $('nfProg').value, text: $('nfText').value, name: HANDLE }).then(refresh);
   $('nfText').value = '';
 });
 
@@ -675,7 +704,7 @@ function drawChat() {
   const log = $('chatlog');
   log.innerHTML = c.map(m =>
     '<div class="msg ' + esc(m.from) + (m.kind === 'queue' ? ' queue' : '') + '"><div class="who">' +
-    (m.kind === 'queue' ? T('w_launch') + ' ' : '') + esc(m.from === 'user' ? T('w_me') : m.from === 'ia' ? T('w_ia') : T('w_claude')) + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + '</div>' +
+    (m.kind === 'queue' ? T('w_launch') + ' ' : '') + esc(m.name || (m.from === 'user' ? T('w_me') : m.from === 'ia' ? T('w_ia') : T('w_claude'))) + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + '</div>' +
     esc(m.text || (m.playbook ? m.playbook + ' › ' + (m.program || '?') : '')) + '</div>'
   ).join('') || '<div class="msg claude">' + T('ch_empty') + '</div>';
   log.scrollTop = log.scrollHeight;
@@ -684,7 +713,7 @@ $('chatform').addEventListener('submit', e => {
   e.preventDefault();
   const t = $('chatinput').value.trim();
   if (!t) return;
-  fetch('/api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: t }) });
+  jpost('/api/chat', { text: t, name: HANDLE });
   state.chatSeen++; // optimiste : on affiche au prochain refresh de toute facon
   $('chatinput').value = '';
   setTimeout(refresh, 250);
@@ -711,24 +740,82 @@ function drawAI() {
   }
 }
 $('aiSave').addEventListener('click', () => {
-  fetch('/api/ai', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
+  jpost('/api/ai', {
     enabled: $('aiEnabled').value === 'on', protocol: $('aiProtocol').value,
     baseURL: $('aiBaseURL').value.trim(), model: $('aiModel').value.trim(),
     apiKey: $('aiKey').value.trim() || undefined,
-  }) }).then(r => r.json()).then(j => {
+  }).then(r => r.json()).then(j => {
     toast('AGENT IA', j.ok ? T('to_ai_ok') : T('to_ai_no'), j.ok ? 'HIT' : 'P2');
     setTimeout(refresh, 300);
   });
 });
 $('aiTest').addEventListener('click', () => {
-  $('aiTestOut').textContent = T('ai_testing');
-  fetch('/api/ai', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
+  $('aiTest').disabled = true;
+  jpost('/api/ai', {
     op: 'test', protocol: $('aiProtocol').value,
     baseURL: $('aiBaseURL').value.trim(), model: $('aiModel').value.trim(),
     apiKey: $('aiKey').value.trim() || undefined,
-  }) }).then(r => r.json()).then(j => {
+  }).then(r => r.json()).then(j => {
+    $('aiTest').disabled = false;
     $('aiTestOut').textContent = j.ok ? T('ai_ok') + j.reply : T('ai_fail') + (j.error || '?');
-  }).catch(e => { $('aiTestOut').textContent = T('ai_fail') + e.message; });
+  }).catch(e => { $('aiTest').disabled = false; $('aiTestOut').textContent = T('ai_fail') + e.message; });
+});
+
+// ---------- mode team : sessions de groupe a distance ----------
+function drawTeam() {
+  const tm = state.data.team || {};
+  const sig = JSON.stringify([tm.enabled, tm.room, tm.members, HANDLE]);
+  if (sig === drawn.team && !forceDraw) return;
+  drawn.team = sig;
+  $('tmStatus').textContent = tm.enabled ? TF('tm_on', { r: tm.room || '-', n: tm.online || 0 }) : T('tm_off');
+  $('tmStatus').className = 'pill ' + (tm.enabled ? 'p-live' : 'p-done');
+  $('tmRoom').textContent = tm.room || '-';
+  $('tmKey').textContent = tm.enabled ? (TEAMKEY || '-') : '-';
+  // config : ne jamais ecraser pendant la saisie
+  if (!focusInside('v-team')) {
+    set('tmHandleEl', HANDLE ? HANDLE : '');
+    set('tmRoomEl', tm.room || '');
+    set('tmOn', tm.enabled ? 'on' : 'off');
+  }
+  $('tmMembers').innerHTML = (tm.members || []).map(m =>
+    '<div class="tm-m"><span class="dot ' + (m.active ? 'run' : '') + '" style="' + (m.active ? 'color:var(--green)' : 'color:var(--faint)') + '"></span>' +
+    '<b style="color:' + (m.h === HANDLE ? 'var(--green)' : 'var(--text)') + '">' + esc(m.h) + (m.h === HANDLE ? ' <small style="color:var(--faint)">' + T('tm_you') + '</small>' : '') + '</b>' +
+    '<span class="pill ' + (m.active ? 'p-live' : 'p-done') + '">' + (m.active ? T('tm_here') : Math.round(m.ms / 60000) + ' min') + '</span>' +
+    '<small style="color:var(--faint);margin-left:auto">' + m.reqs + ' req</small></div>'
+  ).join('') || '<div style="color:var(--faint);font-size:11.5px">' + T('tm_nobody') + '</div>';
+  // lien d'invitation : la cle dans l'URL (n'est utile que si C2FF_BIND=0.0.0.0)
+  const invite = tm.enabled && (tm.room || tm.enabled)
+    ? location.origin + '/?k=' + (TEAMKEY || 'LA_CLE') + '  (handle : ' + (HANDLE || 'choisir un pseudo') + ')'
+    : '';
+  $('tmInvite').textContent = invite;
+}
+function set(id, v) { const el = $(id); if (el) el.value = v; }
+$('tmSaveHandle').addEventListener('click', () => {
+  HANDLE = String($('tmHandleEl').value).replace(/[^\w \-.]/g, '').trim().slice(0, 16);
+  try { localStorage.setItem('c2ff-handle', HANDLE); } catch (e) {}
+  toast('TEAM', HANDLE ? T('tm_saved') + ' : ' + HANDLE : T('tm_no_handle'), HANDLE ? 'HIT' : 'P2');
+  forceDraw = true; refresh();
+});
+$('tmSave').addEventListener('click', () => {
+  jpost('/api/team', { op: 'config', enabled: $('tmOn').value === 'on', room: $('tmRoomEl').value }).then(r => r.json()).then(j => {
+    toast('TEAM', j.ok ? T('tm_cfg_ok') : T('tm_cfg_no'), j.ok ? 'HIT' : 'P2');
+    setTimeout(refresh, 300);
+  });
+});
+$('tmRegen').addEventListener('click', () => {
+  jpost('/api/team', { op: 'regen' }).then(r => r.json()).then(j => {
+    toast('TEAM', T('tm_regen_ok'), 'HIT');
+    setTimeout(refresh, 300);
+  });
+});
+// copie du lien d'invitation
+$('tmCopy').addEventListener('click', () => {
+  const t = $('tmInvite').textContent;
+  if (!t) return;
+  const ta = document.createElement('textarea');
+  ta.value = t; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); toast('TEAM', T('tm_copied'), 'HIT'); } catch (e) {}
+  ta.remove();
 });
 
 // ---------- langue / init i18n ----------
@@ -742,29 +829,33 @@ applyI18n();
 document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') { if (e.key === 'Escape') e.target.blur(); return; }
-  const m = { '1': 'live', '2': 'findings', '3': 'programs', '4': 'ai', '5': 'chat' }[e.key];
+  const m = { '1': 'live', '2': 'findings', '3': 'programs', '4': 'ai', '5': 'team', '6': 'chat' }[e.key];
   if (m) setTab(m);
 });
 setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);
 
 let inflight = false;
 async function refresh() {
-  if (inflight) return; inflight = true;
+  if (inflight) return; inflight = true; state.tick++;
   try {
-    const d = await (await fetch('/api/state')).json();
+    const d = await (await jget('/api/state')).json();
     const prevChat = state.firstLoad ? null : state.data.chat.length;
     const prevFnd = state.data.findings.length;
     state.data = d;
     const topChat = d.chat[d.chat.length - 1];
     if (!state.firstLoad && d.chat.length > prevChat && topChat && topChat.kind === 'chat') {
-      toast('COORDINATION', (topChat.from === 'claude' ? 'CLAUDE : ' : 'OPERATOR : ') + (topChat.text || ''), '');
+      toast('COORDINATION', (topChat.from === 'claude' ? T('w_claude') : esc(topChat.name) || T('w_me')) + ' : ' + (topChat.text || ''), '');
     }
     if (!state.firstLoad) {
       d.findings.slice(0, Math.max(0, d.findings.length - prevFnd)).forEach(f => {
         if (['P1', 'P2', 'HIT'].includes(f.sev)) toast('[' + (f.program || '').toUpperCase() + '] ' + f.run + ' · ' + f.agent, f.text, f.sev === 'P1' ? 'P1' : f.sev);
       });
     }
-    drawRuns(d.runs); drawFindings(); drawPrograms(); drawChat(); drawFleet(); drawAI();
+    drawRuns(d.runs); drawFindings(); drawPrograms(); drawChat(); drawFleet(); drawAI(); drawTeam();
+    // presence team : battement toutes les ~5 s (3 polls)
+    if (state.tick % 3 === 0 && HANDLE) {
+      jpost('/api/team', { op: 'beat', handle: HANDLE }).then(r => r.json()).then(j => { if (j.team) state.data.team = j.team; }).catch(() => {});
+    }
     forceDraw = false;
     state.firstLoad = false;
   } catch (e) { /* serveur occupe */ }

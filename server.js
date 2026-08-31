@@ -4,10 +4,13 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const PORT = parseInt(process.argv[2] || process.env['C2FF_PORT'] || '4181', 10);
+const BIND = process.env['C2FF_BIND'] || '127.0.0.1';
 const ROOT = __dirname;
 const DATA = path.join(ROOT, 'data');
+try { fs.mkdirSync(DATA, { recursive: true }); } catch (e) {}
 const RUNS_BASE = process.env['C2FF_RUNS_BASE'] || '';
 
 const PROGRAMS_FILE = path.join(DATA, 'programs.json');
@@ -15,6 +18,7 @@ const CHAT_FILE = path.join(DATA, 'chat.jsonl');
 const FINDINGS_FILE = path.join(DATA, 'findings.jsonl');
 const FLEET_FILE = path.join(DATA, 'fleet.json');
 const AI_FILE = path.join(DATA, 'ai.json');
+const TEAM_FILE = path.join(DATA, 'team.json');
 
 // ---------- utilitaires ----------
 const trunc = (s, n) => { s = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n) + '…' : s; };
@@ -71,6 +75,39 @@ const AI_ANALYST_PROMPT = "Tu es analyste bug bounty dans le framework C2FF. On 
   "(probe deterministe locale). Reponds en 6 lignes max, structure : VERDICT defendable (SIG / P3 / P2 / P1) ; " +
   "pourquoi c'est (ou pas) un vrai probleme ; impact concret ; next probe en 1 commande curl pour confirmer " +
   "ou infirmer. Pas de blabla, pas de speculations sans preuve.";
+
+// ---------- mode team : sessions de groupe a distance ----------
+function teamCfg() {
+  const c = readJson(TEAM_FILE, null) || {};
+  return { enabled: !!c.enabled, room: String(c.room || ''), key: String(c.key || '') };
+}
+function saveTeamCfg(c) { try { fs.writeFileSync(TEAM_FILE, JSON.stringify(c, null, 1)); } catch (e) {} }
+function genKey() { return 'c2ff-' + crypto.randomBytes(12).toString('hex'); }
+const PRESENCE = new Map(); // handle -> { last, reqs }
+const cleanHandle = h => String(h == null ? '' : h).replace(/[^\w \-.]{1,}/g, '').trim().slice(0, 16);
+// depuis localhost : acces complet. Depuis ailleurs : la cle de salle suffit.
+function teamAllowed(req, url) {
+  const t = teamCfg();
+  if (!t.enabled) return true;
+  const addr = String(req.socket.remoteAddress || '');
+  if (addr === '127.0.0.1' || addr === '::1' || addr === '::ffff:127.0.0.1') return true;
+  return (url.searchParams.get('k') || req.headers['x-c2ff-key'] || '') === t.key;
+}
+function teamState() {
+  const t = teamCfg();
+  const now = Date.now();
+  const members = [];
+  for (const [h, m] of PRESENCE) {
+    const ms = now - m.last;
+    if (ms > 600000) { PRESENCE.delete(h); continue; }
+    members.push({ h, last: m.last, ms, active: ms < 25000, reqs: m.reqs });
+  }
+  members.sort((a, b) => a.last - b.last);
+  return {
+    enabled: t.enabled, room: t.room, protected: t.enabled,
+    members, online: members.filter(m => m.active).length,
+  };
+}
 
 // ---------- programmes ----------
 const DEFAULT_PROGRAMS = [
@@ -321,7 +358,8 @@ function apiState(res) {
   const ai = aiCfg();
   sendJson(res, {
     now: new Date().toISOString(), runs, findings: state.findings, programs: loadPrograms(), chat: lastChat(80),
-    fleet: fleet.state(), modes: fleet.catalog(), ai: { enabled: ai.enabled, protocol: ai.protocol, baseURL: ai.baseURL, model: ai.model, ready: !!(ai.baseURL && ai.model) },
+    fleet: fleet.state(), modes: fleet.catalog(), team: teamState(),
+    ai: { enabled: ai.enabled, protocol: ai.protocol, baseURL: ai.baseURL, model: ai.model, ready: !!(ai.baseURL && ai.model) },
   });
 }
 
@@ -329,11 +367,38 @@ const server = http.createServer((req, res) => {
   sweep();
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
+  if (p.startsWith('/api/')) {
+    if (!teamAllowed(req, url)) return send(res, 403, 'text/plain', 'team key required');
+  }
 
   if (req.method === 'POST') {
     readBody(req, async body => {
+      if (p === '/api/team') {
+        if (body.op === 'beat') {
+          const h = cleanHandle(body.handle);
+          if (h) PRESENCE.set(h, { last: Date.now(), reqs: (PRESENCE.get(h) || { reqs: 0 }).reqs + 1 });
+          return sendJson(res, { ok: true, team: teamState() });
+        }
+        if (body.op === 'config') {
+          const cur = teamCfg();
+          const next = {
+            enabled: typeof body.enabled === 'boolean' ? body.enabled : cur.enabled,
+            room: typeof body.room === 'string' ? body.room.trim().slice(0, 32) : cur.room,
+            key: cur.key || genKey(),
+          };
+          saveTeamCfg(next);
+          return sendJson(res, { ok: true, team: next });
+        }
+        if (body.op === 'regen') {
+          const cur = teamCfg();
+          const next = { enabled: cur.enabled, room: cur.room, key: genKey() };
+          saveTeamCfg(next);
+          return sendJson(res, { ok: true, team: next });
+        }
+        return sendJson(res, { ok: false, error: 'unknown op' });
+      }
       if (p === '/api/chat') {
-        appendJsonl(CHAT_FILE, { t: Date.now(), from: 'user', kind: 'chat', text: trunc(body.text || '', 4000) });
+        appendJsonl(CHAT_FILE, { t: Date.now(), from: 'user', name: cleanHandle(body.name) || 'OPERATOR', kind: 'chat', text: trunc(body.text || '', 4000) });
         return sendJson(res, { ok: true });
       }
       if (p === '/api/queue') {
@@ -343,14 +408,17 @@ const server = http.createServer((req, res) => {
       if (p === '/api/findings') {
         if (body.op === 'patch' && body.key) {
           const f = state.findings.find(x => x.key === body.key);
-          if (f && typeof body.status === 'string') f.status = body.status;
+          if (f && typeof body.status === 'string') {
+            f.status = body.status;
+            f.tri = (f.tri || []).concat([{ by: cleanHandle(body.name) || 'OPERATOR', st: body.status, t: Date.now() }]).slice(-20);
+          }
           persistFindings();
           return sendJson(res, { ok: true });
         }
         state.seq++;
         state.findings.unshift({
           key: 'manual:' + Date.now(), id: 'F' + String(state.seq).padStart(4, '0'), t: Date.now(),
-          program: body.program || (loadPrograms()[0] || {}).id || '', run: 'MANUEL', agent: 'OPERATOR',
+          program: body.program || (loadPrograms()[0] || {}).id || '', run: 'MANUEL', agent: cleanHandle(body.name) || 'OPERATOR',
           sev: ['P1', 'P2', 'P3', 'HIT', 'SIG'].includes(body.sev) ? body.sev : 'HIT',
           text: trunc(body.text || '', 400), status: 'analyse',
         });
@@ -438,4 +506,4 @@ const server = http.createServer((req, res) => {
 });
 
 sweep();
-server.listen(PORT, '127.0.0.1', () => console.log('C2//FLEET : http://localhost:' + PORT));
+server.listen(PORT, BIND, () => console.log('C2//FLEET : http://' + (BIND === '0.0.0.0' ? '<ip-locale> (lan)' : 'localhost') + ':' + PORT + (BIND !== '127.0.0.1' ? ' - mode team accessible' : '')));
