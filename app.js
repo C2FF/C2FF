@@ -1443,10 +1443,12 @@ drawSoundBtn();
 
 // ---------- ambiance chromatique vivante ----------
 // un cycle = 5 familles (SEG chacune, cf ambTick). Ordre volontairement DESORDONNE : chaque saut
-// traverse la roue chromatique (vert -> bleu -> jaune -> violet -> cyan -> vert),
-// toujours par le plus court chemin, easing smoothstep : arrivee posee, jamais de saut.
+// traverse la roue chromatique, toujours par le plus court chemin, easing smoothstep :
+// arrivee posee, jamais de saut. Les arrêts ne tombent JAMAIS sur les teintes primaires
+// (112/232/48/300/170 seraient le vert/bleu/jaune/magenta/cyan purs) : ils restent
+// volontairement ENTRE deux familles, teintes mélangées, jamais primaires.
 const AMB = { live: true };
-const AMB_STOPS = [112, 232, 48, 300, 170]; // vert, bleu, jaune, violet, cyan
+const AMB_STOPS = [131, 252, 66, 330, 191]; // milieux entre les teintes primaires, jamais primaires
 try { AMB.live = localStorage.getItem('c2ff-ambiance') !== 'off'; } catch (e) {}
 const ambTick = () => {
   // deux teintes vivent ensemble : --hue pilote la lumiere, --hue2 (decale + respire
@@ -1461,7 +1463,7 @@ const ambTick = () => {
     const a = AMB_STOPS[i], b = (i + 1 < AMB_STOPS.length) ? AMB_STOPS[i + 1] : AMB_STOPS[0];
     const d = ((b - a + 540) % 360) - 180; // plus court chemin sur la roue
     h = (a + d * u + 360) % 360;
-  } else h = 112;
+  } else h = 131; // fige AMBIANCE OFF / reduced-motion : teinte entre vert et cyan
   const root = document.documentElement.style;
   root.setProperty('--hue', h.toFixed(1));
   const h2 = (h + 48 + 14 * Math.sin(Date.now() / 21000) + 360) % 360; // decalage qui respire 34-62 deg
