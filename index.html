@@ -8,18 +8,18 @@
 :root{
   color-scheme:dark;
   --hue:112; /* pilote par app.js en mode AMBIANCE - 112 = le vert C2FF d'origine */
-  --bg:hsl(var(--hue) 42% 3%);
-  --panel:hsl(var(--hue) 38% 5%);
-  --panel2:hsl(var(--hue) 36% 7%);
-  --panel3:hsl(var(--hue) 34% 9%);
-  --line:hsl(var(--hue) 32% 18%);
-  --line-hi:hsl(var(--hue) 32% 36%);
+  --bg:hsl(var(--hue) 28% 2.6%);
+  --panel:hsl(var(--hue) 26% 4.6%);
+  --panel2:hsl(var(--hue) 24% 6.6%);
+  --panel3:hsl(var(--hue) 23% 8.6%);
+  --line:hsl(var(--hue) 22% 18%);
+  --line-hi:hsl(var(--hue) 26% 36%);
   --green:hsl(var(--hue) 68% 55%);
   --green-soft:hsl(var(--hue) 68% 55% / .13);
   --green-dim:hsl(var(--hue) 58% 62%);
-  --text:hsl(var(--hue) 26% 91%);
-  --muted:hsl(var(--hue) 16% 62%);
-  --faint:hsl(var(--hue) 13% 42%);
+  --text:hsl(var(--hue) 22% 92.5%);
+  --muted:hsl(var(--hue) 14% 64%);
+  --faint:hsl(var(--hue) 12% 43%);
   --warn:#ffb020;
   --danger:#ff4d4d;
 }
@@ -40,9 +40,9 @@ body::after{content:"";position:fixed;left:0;right:0;height:120px;pointer-events
    metal qui traverse l'ecran de temps en temps. Tintee par --hue comme tout le reste. */
 body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:
   radial-gradient(1100px 560px at 78% -12%,hsl(var(--hue) 60% 54% / .035),transparent 62%),
-  repeating-linear-gradient(45deg,rgba(255,255,255,.024) 0 2px,transparent 2px 5px),
-  repeating-linear-gradient(-45deg,rgba(255,255,255,.024) 0 2px,transparent 2px 5px),
-  repeating-linear-gradient(0deg,hsl(var(--hue) 30% 4% / .5) 0 6px,transparent 6px 12px);
+  repeating-linear-gradient(45deg,rgba(255,255,255,.045) 0 2px,transparent 2px 4px),
+  repeating-linear-gradient(-45deg,rgba(255,255,255,.045) 0 2px,transparent 2px 5px),
+  repeating-linear-gradient(0deg,hsl(var(--hue) 30% 4% / .65) 0 6px,transparent 6px 12px);
   animation:weave 34s ease-in-out infinite}
 @keyframes weave{0%,100%{background-position:0 0,0 0,0 0,0 0}
   50%{background-position:0 0,5px 5px,-5px -5px,0 0}}
