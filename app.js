@@ -148,7 +148,8 @@ function drawPrograms() {
 // nouveau programme
 $('progForm').addEventListener('submit', e => {
   e.preventDefault();
-  const id = $('npId').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  let id = $('npName').value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  if (!id) return;
   const list = state.data.programs.slice();
   list.push({
     id, name: $('npName').value.trim(), platform: 'manuel', header: $('npHeader').value.trim(),
