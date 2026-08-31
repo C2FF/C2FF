@@ -42,7 +42,14 @@ It is deliberately **not** another headless scanner: C2FF keeps a human in comma
 
 Dependency-free JavaScript only. If you can run Node, you can run C2FF.
 
-> **Before you install:** open the interactive [design tour](docs/design-tour.html) - a visual walkthrough of the console (mock screens, clickable flow, arrow keys) so you know exactly what you are getting.
+> **Before you install:** browse the [console gallery](docs/design-tour.html) - real screenshots of all eight tabs, navigable with the arrow keys; drag any image to pan it (grab cursor), wheel to zoom. The three below give the idea instantly:
+
+<p align="center">
+  <img src="docs/assets/shots/programs.jpg" alt="PROGRAMS - declare a program, pick a mode, GO" width="820">
+</p>
+<p align="center">
+  <img src="docs/assets/shots/hunt.jpg" alt="HUNT - RECON, ATTACK, PLAN with proof" width="820">
+</p>
 
 ## Three levels of access
 
@@ -208,7 +215,7 @@ flowchart LR
 
 ### The design, as a map
 
-The same flow, from the hunter's seat - what you click, in order. And when you want to *see* it before installing: [docs/design-tour.html](docs/design-tour.html), the interactive version of this map with mock screens and arrow-key navigation.
+The same flow, from the hunter's seat - what you click, in order. And when you want to *see* it before installing: [docs/design-tour.html](docs/design-tour.html), the console gallery - the eight real tabs of the running app, pannable and zoomable in the browser (open the file locally, or from any static server - GitHub renders it raw only).
 
 ```mermaid
 flowchart TD
