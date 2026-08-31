@@ -14,9 +14,9 @@
   --panel3:hsl(var(--hue) 75% 9%);
   --line:hsl(var(--hue) 75% 18%);
   --line-hi:hsl(var(--hue) 75% 36%);
-  --green:hsl(var(--hue) 98% 57%);
-  --green-soft:hsl(var(--hue) 98% 57% / .14);
-  --green-dim:hsl(var(--hue) 85% 64%);
+  --green:hsl(var(--hue) 90% 56%);
+  --green-soft:hsl(var(--hue) 90% 56% / .14);
+  --green-dim:hsl(var(--hue) 80% 63%);
   --text:hsl(var(--hue) 100% 93%);
   --muted:hsl(var(--hue) 26% 64%);
   --faint:hsl(var(--hue) 20% 42%);
@@ -33,7 +33,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;bac
   repeating-linear-gradient(90deg,transparent 0 39px,hsl(var(--hue) 97% 54% / .022) 39px 40px)}
 /* balayage CRT lent, la console vit */
 body::after{content:"";position:fixed;left:0;right:0;height:120px;pointer-events:none;z-index:0;
-  background:linear-gradient(180deg,transparent,hsl(var(--hue) 97% 54% / .028),transparent);
+  background:linear-gradient(180deg,transparent,hsl(var(--hue) 97% 54% / .018),transparent);
   animation:scan 9s linear infinite}
 @keyframes scan{0%{top:-15%}100%{top:110%}}
 @media (prefers-reduced-motion:reduce){body::after{display:none}
@@ -43,23 +43,24 @@ body::after{content:"";position:fixed;left:0;right:0;height:120px;pointer-events
 /* armure croisee tissee (2 faisceaux diagonaux) qui respire doucement + balayage
    metal qui traverse l'ecran de temps en temps. Tintee par --hue comme tout le reste. */
 body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:
-  radial-gradient(1100px 560px at 78% -12%,hsl(var(--hue) 97% 54% / .055),transparent 62%),
-  repeating-linear-gradient(45deg,rgba(255,255,255,.017) 0 2px,transparent 2px 5px),
-  repeating-linear-gradient(-45deg,rgba(255,255,255,.017) 0 2px,transparent 2px 5px),
-  repeating-linear-gradient(0deg,hsl(var(--hue) 30% 4% / .55) 0 6px,transparent 6px 12px);
-  animation:weave 22s ease-in-out infinite}
+  radial-gradient(1100px 560px at 78% -12%,hsl(var(--hue) 97% 54% / .04),transparent 62%),
+  repeating-linear-gradient(45deg,rgba(255,255,255,.012) 0 2px,transparent 2px 5px),
+  repeating-linear-gradient(-45deg,rgba(255,255,255,.012) 0 2px,transparent 2px 5px),
+  repeating-linear-gradient(0deg,hsl(var(--hue) 30% 4% / .4) 0 6px,transparent 6px 12px);
+  animation:weave 34s ease-in-out infinite}
 @keyframes weave{0%,100%{background-position:0 0,0 0,0 0,0 0}
-  50%{background-position:0 0,7px 7px,-7px -7px,0 0}}
+  50%{background-position:0 0,5px 5px,-5px -5px,0 0}}
 .msheen{position:fixed;inset:0;pointer-events:none;z-index:0;background:
-  linear-gradient(115deg,transparent 36%,hsl(var(--hue) 18% 55% / .04) 45%,hsl(var(--hue) 45% 88% / .09) 50%,hsl(var(--hue) 18% 55% / .04) 55%,transparent 64%) no-repeat;
+  linear-gradient(115deg,transparent 36%,hsl(var(--hue) 18% 55% / .028) 45%,hsl(var(--hue) 45% 88% / .06) 50%,hsl(var(--hue) 18% 55% / .028) 55%,transparent 64%) no-repeat;
   background-size:300% 100%;background-position:-150% 0;
-  animation:metsheen 34s linear infinite}
-@keyframes metsheen{0%{background-position:-150% 0}58%{background-position:250% 0}100%{background-position:250% 0}}
+  animation:metsheen 44s linear infinite}
+@keyframes metsheen{0%{background-position:-150% 0}50%{background-position:250% 0}100%{background-position:250% 0}}
 @media (prefers-reduced-motion:reduce){.msheen{display:none}body::before{animation:none}}
 
 /* ── bords de metal ── */
 /* le cadre de chaque carte est un degradé metal brossé dont l'angle tourne tres
-   lentement : les aretes accrochent la lumiere et la rendent, comme une piece usinée. */
+   lentement : les aretes accrochent la lumiere et la rendent, comme une piece usinée.
+   Confort : contrastes d'aretes contenus, aucun blanc pur, lumieres sous .10 d'alpha. */
 @property --mdir{syntax:"<angle>";inherits:false;initial-value:135deg}
 @keyframes metaledge{0%{--mdir:135deg}100%{--mdir:495deg}}
 
@@ -70,9 +71,9 @@ header{display:flex;align-items:center;gap:13px;padding:14px 0 12px;border-botto
 .logo .mark{width:26px;height:26px;border-radius:6px;border:1.5px solid var(--green);display:grid;place-items:center;
   color:var(--green);font-weight:700;font-size:10px;background:var(--green-soft);
   animation:markpulse 3.2s ease-in-out infinite}
-@keyframes markpulse{0%,100%{box-shadow:0 0 0 hsl(var(--hue) 97% 54% / 0)}50%{box-shadow:0 0 16px hsl(var(--hue) 97% 54% / .45),inset 0 0 8px hsl(var(--hue) 97% 54% / .25)}}
+@keyframes markpulse{0%,100%{box-shadow:0 0 0 hsl(var(--hue) 97% 54% / 0)}50%{box-shadow:0 0 14px hsl(var(--hue) 97% 54% / .26),inset 0 0 7px hsl(var(--hue) 97% 54% / .14)}}
 h1{font-size:16px;font-weight:800;letter-spacing:1px;margin:0;color:var(--text)}
-h1 b{color:var(--green);font-weight:800;text-shadow:0 0 10px hsl(var(--hue) 97% 54% / .5);animation:textflicker 7s linear infinite}
+h1 b{color:var(--green);font-weight:800;text-shadow:0 0 9px hsl(var(--hue) 97% 54% / .3);animation:textflicker 7s linear infinite}
 @keyframes textflicker{0%,92%,96%,100%{opacity:1}93%,95.5%{opacity:.6}}
 .vtag{color:var(--faint);font-size:10.5px;letter-spacing:.5px}
 .sub{color:var(--muted);font-size:11.5px;letter-spacing:.4px;text-transform:uppercase}
@@ -91,7 +92,7 @@ nav{display:flex;gap:1px;border-bottom:1px solid var(--line);position:sticky;top
   transition:color .15s}
 .navbtn::before{content:"> ";color:var(--faint)}
 .navbtn:hover{color:var(--text)}
-.navbtn.active{color:var(--green);border-bottom-color:var(--green);text-shadow:0 0 12px hsl(var(--hue) 97% 54% / .45)}
+.navbtn.active{color:var(--green);border-bottom-color:var(--green);text-shadow:0 0 10px hsl(var(--hue) 97% 54% / .28)}
 .navbtn.active::before{color:var(--green)}
 .navbtn small{color:var(--faint);margin-left:6px}
 
@@ -103,8 +104,8 @@ nav{display:flex;gap:1px;border-bottom:1px solid var(--line);position:sticky;top
 .stat .k{color:var(--faint);font-size:9.5px;letter-spacing:1.1px;text-transform:uppercase}
 .stat .k::before{content:"> "}
 .stat .v{font-size:20px;font-weight:700;color:var(--green);margin-top:2px;font-variant-numeric:tabular-nums;
-  text-shadow:0 0 12px hsl(var(--hue) 97% 54% / .35);animation:vglow 4s ease-in-out infinite}
-@keyframes vglow{0%,100%{text-shadow:0 0 12px hsl(var(--hue) 97% 54% / .35)}50%{text-shadow:0 0 22px hsl(var(--hue) 97% 54% / .6)}}
+  text-shadow:0 0 10px hsl(var(--hue) 97% 54% / .16);animation:vglow 6s ease-in-out infinite}
+@keyframes vglow{0%,100%{text-shadow:0 0 10px hsl(var(--hue) 97% 54% / .16)}50%{text-shadow:0 0 16px hsl(var(--hue) 97% 54% / .28)}}
 
 /* ── views ── */
 .view{display:none;padding:16px 0}
@@ -116,7 +117,7 @@ h2::before{content:"> ";color:var(--green)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
 .card{border:1px solid var(--line);border-radius:7px;padding:12px 14px;background:var(--panel);margin-bottom:12px;
   position:relative;transition:border-color .2s,box-shadow .2s,transform .2s}
-.card:hover{border-color:var(--line-hi);box-shadow:0 0 22px hsl(var(--hue) 97% 54% / .1)}
+.card:hover{border-color:var(--line-hi);box-shadow:0 0 18px hsl(var(--hue) 97% 54% / .07)}
 .card.glow{border-color:var(--line-hi);background:linear-gradient(180deg,var(--panel2),var(--panel))}
 .card.glow::after{content:"";position:absolute;top:0;left:8%;width:34%;height:1px;
   background:linear-gradient(90deg,transparent,var(--green),transparent);opacity:.7;
@@ -154,7 +155,7 @@ h2::before{content:"> ";color:var(--green)}
 .fnd.S-P1{border-left-color:var(--danger)}.fnd.S-P1 .sev{color:var(--danger)}
 .fnd.S-P2{border-left-color:var(--warn)}.fnd.S-P2 .sev{color:var(--warn)}
 .fnd.S-P3{border-left-color:#ffe95d}.fnd.S-P3 .sev{color:#ffe95d}
-.fnd.S-HIT{border-left-color:var(--green)}.fnd.S-HIT .sev{color:var(--green);text-shadow:0 0 10px hsl(var(--hue) 97% 54% / .5)}
+.fnd.S-HIT{border-left-color:var(--green)}.fnd.S-HIT .sev{color:var(--green);text-shadow:0 0 9px hsl(var(--hue) 97% 54% / .3)}
 .fnd .txt{font-size:12px;color:hsl(var(--hue) 60% 85%);word-break:break-word;margin-top:4px}
 .fnd select{background:var(--panel3);color:var(--text);border:1px solid var(--line);border-radius:4px;font:inherit;font-size:11px}
 
@@ -208,7 +209,7 @@ audio.c2ffAudio{display:none}
 form.newf{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 form.newf input[type=text]{flex:1;min-width:260px}
 footer{color:var(--faint);font-size:11px;margin-top:20px;padding-top:14px;border-top:1px solid var(--line);letter-spacing:.6px}
-footer b{color:var(--green);font-weight:700;text-shadow:0 0 10px hsl(var(--hue) 97% 54% / .4)}
+footer b{color:var(--green);font-weight:700;text-shadow:0 0 9px hsl(var(--hue) 97% 54% / .25)}
 .p1{color:var(--danger);font-weight:700}.p2{color:var(--warn);font-weight:700}.p3{color:#ffe95d}
 .hl-c{color:var(--green-dim)}.hl-x{color:#ff8d7a;font-weight:700}
 ::-webkit-scrollbar{width:9px;height:9px}
@@ -219,16 +220,16 @@ footer b{color:var(--green);font-weight:700;text-shadow:0 0 10px hsl(var(--hue) 
    lentement : les aretes accrochent la lumiere et la rendent, comme une piece usinée. */
 .card{border-color:transparent;
   background-image:linear-gradient(180deg,var(--panel2),var(--panel)),
-    linear-gradient(var(--mdir),hsl(var(--hue) 16% 48%),hsl(var(--hue) 8% 13%) 24%,hsl(var(--hue) 20% 35%) 52%,hsl(var(--hue) 6% 11%) 76%,hsl(var(--hue) 16% 46%));
+    linear-gradient(var(--mdir),hsl(var(--hue) 14% 40%),hsl(var(--hue) 8% 13%) 24%,hsl(var(--hue) 16% 28%) 52%,hsl(var(--hue) 6% 11%) 76%,hsl(var(--hue) 14% 38%));
   background-origin:padding-box,border-box;background-clip:padding-box,border-box;
-  animation:metaledge 26s linear infinite}
+  animation:metaledge 46s linear infinite}
 .stat{border-color:transparent;
   background-image:linear-gradient(180deg,var(--panel2),var(--panel)),
-    linear-gradient(135deg,hsl(var(--hue) 15% 44%),hsl(var(--hue) 8% 13%) 26%,hsl(var(--hue) 18% 32%) 55%,hsl(var(--hue) 6% 11%) 78%,hsl(var(--hue) 15% 42%));
+    linear-gradient(135deg,hsl(var(--hue) 13% 38%),hsl(var(--hue) 8% 13%) 26%,hsl(var(--hue) 15% 26%) 55%,hsl(var(--hue) 6% 11%) 78%,hsl(var(--hue) 13% 36%));
   background-origin:padding-box,border-box;background-clip:padding-box,border-box}
 header,nav{border-bottom-color:transparent;
-  border-image:linear-gradient(90deg,hsl(var(--hue) 8% 8%),hsl(var(--hue) 14% 40%) 50%,hsl(var(--hue) 8% 8%)) 1}
-.card.glow{border-color:transparent;box-shadow:0 0 26px hsl(var(--hue) 97% 54% / .14)}
+  border-image:linear-gradient(90deg,hsl(var(--hue) 8% 8%),hsl(var(--hue) 14% 34%) 50%,hsl(var(--hue) 8% 8%)) 1}
+.card.glow{border-color:transparent;box-shadow:0 0 26px hsl(var(--hue) 97% 54% / .1)}
 </style>
 </head>
 <body>

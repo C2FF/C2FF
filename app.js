@@ -47,7 +47,7 @@ const I18N = {
   fr: {
     snd_on: 'SON : ON', snd_off: 'SON : OFF', snd_ok: 'sons d interface actifs - bibliotheque : clic, onglet, copie, alertes',
     snd_stop: 'sourdine totale activee : plus aucun son C2FF',
-    amb_on: 'AMBIANCE: ON', amb_off: 'AMBIANCE: OFF', amb_ok: 'ambiance vivante - la teinte glisse, 15 s par famille (vert, bleu, jaune...)',
+    amb_on: 'AMBIANCE: ON', amb_off: 'AMBIANCE: OFF', amb_ok: 'ambiance vivante - la teinte glisse doucement a travers les familles (vert, bleu, jaune...)',
     amb_stop: 'ambiance figee sur le vert d origine',
     nt_on: 'NOTIFS : ON', nt_off: 'NOTIFS : OFF', nt_ok: 'notifications navigateur activees - bip sur P1 et P2',
     nt_denied: 'notifications bloquees par le navigateur : autorise-les dans les reglages du site',
@@ -112,7 +112,7 @@ const I18N = {
   en: {
     snd_on: 'SOUND: ON', snd_off: 'SOUND: OFF', snd_ok: 'interface sounds on - library: click, tab, copy, alerts',
     snd_stop: 'total mute enabled: no more C2FF sounds',
-    amb_on: 'AMBIANCE: ON', amb_off: 'AMBIANCE: OFF', amb_ok: 'living ambiance - the hue slides, 15 s per family (green, blue, yellow...)',
+    amb_on: 'AMBIANCE: ON', amb_off: 'AMBIANCE: OFF', amb_ok: 'living ambiance - the hue glides softly across the families (green, blue, yellow...)',
     amb_stop: 'ambiance frozen on the original green',
     nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'browser notifications enabled - P1 and P2 beeped',
     nt_denied: 'notifications blocked by the browser: allow them in the site settings',
@@ -177,7 +177,7 @@ const I18N = {
   es: {
     snd_on: 'SONIDO: ON', snd_off: 'SONIDO: OFF', snd_ok: 'sonidos de interfaz activos - biblioteca: clic, pestaña, copiar, alertas',
     snd_stop: 'silencio total activado: sin más sonidos de C2FF',
-    amb_on: 'AMBIENTE: ON', amb_off: 'AMBIENTE: OFF', amb_ok: 'ambiente vivo - el tono desliza, 15 s por familia (verde, azul, amarillo...)',
+    amb_on: 'AMBIENTE: ON', amb_off: 'AMBIENTE: OFF', amb_ok: 'ambiente vivo - el tono se desliza suavemente entre las familias (verde, azul, amarillo...)',
     amb_stop: 'ambiente congelado en el verde original',
     nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'notificaciones del navegador activadas - bip en P1 y P2',
     nt_denied: 'notificaciones bloqueadas por el navegador: permítelas en los ajustes del sitio',
@@ -242,7 +242,7 @@ const I18N = {
   de: {
     snd_on: 'TON: AN', snd_off: 'TON: AUS', snd_ok: 'Oberflächenklänge aktiv - Bibliothek: Klick, Tab, Kopieren, Alarme',
     snd_stop: 'Stummschaltung aktiv: keine C2FF-Klänge mehr',
-    amb_on: 'AMBIANCE: AN', amb_off: 'AMBIANCE: AUS', amb_ok: 'lebendige Atmosphäre - der Farbton gleitet, 15 s pro Familie (Grün, Blau, Gelb...)',
+    amb_on: 'AMBIANCE: AN', amb_off: 'AMBIANCE: AUS', amb_ok: 'lebendige Atmosphäre - der Farbton gleitet sanft zwischen den Familien (Grün, Blau, Gelb...)',
     amb_stop: 'Atmosphäre eingefroren auf dem Original-Grün',
     nt_on: 'NOTIFS: AN', nt_off: 'NOTIFS: AUS', nt_ok: 'Browser-Benachrichtigungen aktiv - Piepen bei P1 und P2',
     nt_denied: 'Benachrichtigungen vom Browser blockiert: in den Seiteneinstellungen erlauben',
@@ -305,7 +305,7 @@ const I18N = {
   pt: {
     snd_on: 'SOM: ON', snd_off: 'SOM: OFF', snd_ok: 'sons de interface ativos - biblioteca: clique, aba, copiar, alertas',
     snd_stop: 'mudo total ativado: sem mais sons do C2FF',
-    amb_on: 'AMBIENTE: ON', amb_off: 'AMBIENTE: OFF', amb_ok: 'ambiente vivo - o tom desliza, 15 s por família (verde, azul, amarelo...)',
+    amb_on: 'AMBIENTE: ON', amb_off: 'AMBIENTE: OFF', amb_ok: 'ambiente vivo - o tom desliza suavemente entre as famílias (verde, azul, amarelo...)',
     amb_stop: 'ambiente congelado no verde original',
     nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'notificações do navegador ativas - bip em P1 e P2',
     nt_denied: 'notificações bloqueadas pelo navegador: permita-as nas configurações do site',
@@ -368,7 +368,7 @@ const I18N = {
   it: {
     snd_on: 'SUONO: ON', snd_off: 'SUONO: OFF', snd_ok: 'suoni interfaccia attivi - libreria: clic, scheda, copia, allarmi',
     snd_stop: 'muto totale attivo: nessun suono C2FF',
-    amb_on: 'AMBIENTE: ON', amb_off: 'AMBIENTE: OFF', amb_ok: 'atmosfera viva - la tinta scorre, 15 s per famiglia (verde, blu, giallo...)',
+    amb_on: 'AMBIENTE: ON', amb_off: 'AMBIENTE: OFF', amb_ok: 'atmosfera viva - la tinta scorre dolcemente tra le famiglie (verde, blu, giallo...)',
     amb_stop: 'atmosfera bloccata sul verde originale',
     nt_on: 'NOTIFS: ON', nt_off: 'NOTIFS: OFF', nt_ok: 'notifiche del browser attive - bip su P1 e P2',
     nt_denied: 'notifiche bloccate dal browser: autorizzale nelle impostazioni del sito',
@@ -431,7 +431,7 @@ const I18N = {
   ar: {
     snd_on: 'الصوت: تشغيل', snd_off: 'الصوت: إيقاف', snd_ok: 'أصوات الواجهة مفعلة - المكتبة: نقر، تبويب، نسخ، تنبيهات',
     snd_stop: 'الصمت الكامل مفعل: لا أصوات C2FF بعد الآن',
-    amb_on: 'الجو: تشغيل', amb_off: 'الجو: إيقاف', amb_ok: 'أجواء حية - اللون ينزلق، 15 ثانية لكل عائلة (أخضر، أزرق، أصفر...)',
+    amb_on: 'الجو: تشغيل', amb_off: 'الجو: إيقاف', amb_ok: 'أجواء حية - اللون ينزلق بهدوء بين العائلات (أخضر، أزرق، أصفر...)',
     amb_stop: 'الجو مثبت على الأخضر الأصلي',
     nt_on: 'الإشعارات: تشغيل', nt_off: 'الإشعارات: إيقاف', nt_ok: 'تم تفعيل إشعارات المتصفح - نغمة على P1 و P2',
     nt_denied: 'الإشعارات محجوبة من المتصفح: اسمح بها من إعدادات الموقع',
@@ -494,7 +494,7 @@ const I18N = {
   zh: {
     snd_on: '音效: 开', snd_off: '音效: 关', snd_ok: '界面音效已开启 - 音效库：点击、切换、复制、警报',
     snd_stop: '已完全静音：不再有 C2FF 音效',
-    amb_on: '氛围: 开', amb_off: '氛围: 关', amb_ok: '活氛围 - 色相缓慢滑动, 每族 15 秒 (绿, 蓝, 黄...)',
+    amb_on: '氛围: 开', amb_off: '氛围: 关', amb_ok: '活氛围 - 色调在色系间缓缓流动 (绿, 蓝, 黄...)',
     amb_stop: '氛围固定在原版绿',
     nt_on: '通知: 开', nt_off: '通知: 关', nt_ok: '浏览器通知已开启 - P1 和 P2 会有提示音',
     nt_denied: '浏览器通知被拦截：请在站点设置中允许',
@@ -557,7 +557,7 @@ const I18N = {
   ru: {
     snd_on: 'ЗВУК: ВКЛ', snd_off: 'ЗВУК: ВЫКЛ', snd_ok: 'звуки интерфейса включены - библиотека: клик, вкладка, копирование, алерты',
     snd_stop: 'полная тишина включена: звуков C2FF больше нет',
-    amb_on: 'АТМОСФЕРА: ВКЛ', amb_off: 'АТМОСФЕРА: ВЫКЛ', amb_ok: 'живая атмосфера - оттенок плывёт, 30 с на семейство (зелёный, синий, жёлтый...)',
+    amb_on: 'АТМОСФЕРА: ВКЛ', amb_off: 'АТМОСФЕРА: ВЫКЛ', amb_ok: 'живая атмосфера - оттенок плавно перетекает между семьями (зелёный, синий, жёлтый...)',
     amb_stop: 'атмосфера заморожена на оригинальном зелёном',
     nt_on: 'NOTIFS: ВКЛ', nt_off: 'NOTIFS: ВЫКЛ', nt_ok: 'уведомления браузера включены - писк на P1 и P2',
     nt_denied: 'уведомления заблокированы браузером: разрешите в настройках сайта',
@@ -620,7 +620,7 @@ const I18N = {
   ja: {
     snd_on: 'サウンド: ON', snd_off: 'サウンド: OFF', snd_ok: 'UIサウンド有効 - ライブラリ: クリック、タブ、コピー、アラート',
     snd_stop: '完全ミュート中: C2FFのサウンドは鳴りません',
-    amb_on: '雰囲気: ON', amb_off: '雰囲気: OFF', amb_ok: '生きた雰囲気 - 色相が滑らかに移動, 各15秒 (緑, 青, 黄...)',
+    amb_on: '雰囲気: ON', amb_off: '雰囲気: OFF', amb_ok: '生きた雰囲気 - 色調がゆっくりと色調間を流れる (緑, 青, 黄...)',
     amb_stop: '雰囲気を元の緑に固定',
     nt_on: '通知: ON', nt_off: '通知: OFF', nt_ok: 'ブラウザ通知を有効化 - P1 と P2 でビープ',
     nt_denied: '通知がブラウザでブロック：サイト設定で許可して',
@@ -683,7 +683,7 @@ const I18N = {
   ko: {
     snd_on: '사운드: ON', snd_off: '사운드: OFF', snd_ok: 'UI 사운드 켜짐 - 라이브러리: 클릭, 탭, 복사, 알림음',
     snd_stop: '전체 음소거 켜짐: C2FF 사운드 없음',
-    amb_on: '분위기: ON', amb_off: '분위기: OFF', amb_ok: '살아있는 분위기 - 색조가 흐름, 각 15초 (녹색, 파랑, 노랑...)',
+    amb_on: '분위기: ON', amb_off: '분위기: OFF', amb_ok: '살아있는 분위기 - 색조가 색상군 사이를 부드럽게 흐름 (녹색, 파랑, 노랑...)',
     amb_stop: '분위기가 원래 녹색에 고정',
     nt_on: '알림: ON', nt_off: '알림: OFF', nt_ok: '브라우저 알림 활성화 - P1과 P2에 삑',
     nt_denied: '알림이 브라우저에서 차단됨: 사이트 설정에서 허용',
@@ -746,7 +746,7 @@ const I18N = {
   hi: {
     snd_on: 'साउंड: ON', snd_off: 'साउंड: OFF', snd_ok: 'इंटरफ़ेस साउंड चालू - लाइब्रेरी: क्लिक, टैब, कॉपी, अलर्ट',
     snd_stop: 'पूर्ण म्यूट चालू: अब कोई C2FF साउंड नहीं',
-    amb_on: 'माहौल: ON', amb_off: 'माहौल: OFF', amb_ok: 'जीवंत माहौल - रंग खिसकता है, हर 15 सेकंड (हरा, नीला, पीला...)',
+    amb_on: 'माहौल: ON', amb_off: 'माहौल: OFF', amb_ok: 'जीवंत माहौल - रंग शांति से वर्गों के बीच बहता है (हरा, नीला, पीला...)',
     amb_stop: 'माहौल मूल हरे पर स्थिर',
     nt_on: 'सूचनाएं: ON', nt_off: 'सूचनाएं: OFF', nt_ok: 'ब्राउज़र सूचनाएं चालू - P1 और P2 पर बीप',
     nt_denied: 'सूचनाएं ब्राउज़र में ब्लॉक हैं: साइट सेटिंग्स में अनुमति दें',
@@ -1439,7 +1439,7 @@ drawNotifBtn();
 drawSoundBtn();
 
 // ---------- ambiance chromatique vivante ----------
-// un cycle = 5 familles, 15 s chacune. Ordre volontairement DESORDONNE : chaque saut
+// un cycle = 5 familles (SEG chacune, cf ambTick). Ordre volontairement DESORDONNE : chaque saut
 // traverse la roue chromatique (vert -> bleu -> jaune -> violet -> cyan -> vert),
 // toujours par le plus court chemin, easing smoothstep : arrivee posee, jamais de saut.
 const AMB = { live: true };
@@ -1448,7 +1448,7 @@ try { AMB.live = localStorage.getItem('c2ff-ambiance') !== 'off'; } catch (e) {}
 const ambTick = () => {
   const reduced = matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (AMB.live && !reduced) {
-    const SEG = 15000, total = SEG * AMB_STOPS.length, pos = Date.now() % total;
+    const SEG = 24000, total = SEG * AMB_STOPS.length, pos = Date.now() % total;
     const i = Math.floor(pos / SEG);
     let u = (pos % SEG) / SEG;
     u = u * u * (3 - 2 * u);
