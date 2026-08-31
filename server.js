@@ -38,23 +38,17 @@ function guessProgram(runId, runLabel, sampleText) {
   const byRun = loadPrograms().find(p => (p.runs || []).includes(runId));
   if (byRun) return byRun.id;
   const hay = (runId + ' ' + (runLabel || '') + ' ' + (sampleText || '')).toLowerCase();
-  if (/blockchain\.com|blockchain\.info|ws\.blockchain/.test(hay)) return 'blockchain';
-  if (/bullish/.test(hay)) return 'bullish';
-  if (/rapyd/.test(hay)) return 'rapyd';
-  if (/nubank|nu\.com\.(mx|co)/.test(hay)) return 'nubank';
-  if (/transferwise|\bwise\b/.test(hay)) return 'wise';
-  return (loadPrograms()[0] || {}).id || 'exemple';
+  for (const p of loadPrograms()) {
+    const scopes = (p.scope || []).map(x => String(x).replace(/^\*\./, '').replace(/\s+only$/i, '').toLowerCase());
+    if (scopes.some(sc => sc && hay.includes(sc))) return p.id;
+  }
+  return (loadPrograms()[0] || {}).id || '';
 }
 
 // ---------- labels des runs connus ----------
-const RUN_LABELS = {
-  'wf_88743a37-910': 'HORDE P1/P2',
-  'wf_dd7c2985-83a': 'VAGUE LFI',
-  'wf_7ccb9b3c-46d': 'JACKPOT PARTNERS',
-  'wf_b4059542-158': 'DUO SQLI',
-  'wf_e68ff29c-147': 'DUO RCE/SSTI',
-  'wf_90702594-023': 'BINOME SSRF',
-};
+// renseigner ici un mapping { '<runId>': 'label' } si besoin,
+// sinon les labels sont deduits des transcripts d agents
+const RUN_LABELS = {};
 
 // ---------- detection signaux ----------
 const FINDING_RE = /(P1|P2|\bP3\b|finding|hypoth[eè]se|hypothesis|vulnerab|vuln[eé]rab|bypass|idor|bola|sqli|sql injection|inject|traversal|passwd|race condition|secret|credential|auth bypass|exploitabl|open redirect|privilege|escalat|jackpot|verdict|confirmed|confirme|takeover|unfurl|ssrf|ssti)/i;
@@ -116,7 +110,7 @@ fleet.setSource(() => loadPrograms());
 fleet.startLoop();
 
 function runState(id) {
-  if (!state.runs.has(id)) state.runs.set(id, { id, label: RUN_LABELS[id] || id, program: 'etoro', agents: new Map() });
+  if (!state.runs.has(id)) state.runs.set(id, { id, label: RUN_LABELS[id] || id, program: '', agents: new Map() });
   return state.runs.get(id);
 }
 function agentState(run, base) {
@@ -235,7 +229,6 @@ function sweep() {
       }
       state.labelTried[id] = true;
     }
-    if (run.program === 'etoro' && !guessProgram(id, run.label, '')) {} // fallback programme par defaut
     const sample = (state.findings.find(f => f.run === run.label) || {}).text || '';
     run.program = guessProgram(id, run.label, sample);
     for (const f of files.sort()) {
@@ -305,7 +298,7 @@ const server = http.createServer((req, res) => {
         state.seq++;
         state.findings.unshift({
           key: 'manual:' + Date.now(), id: 'F' + String(state.seq).padStart(4, '0'), t: Date.now(),
-          program: body.program || 'etoro', run: 'MANUEL', agent: 'OPERATOR',
+          program: body.program || (loadPrograms()[0] || {}).id || '', run: 'MANUEL', agent: 'OPERATOR',
           sev: ['P1', 'P2', 'P3', 'HIT', 'SIG'].includes(body.sev) ? body.sev : 'HIT',
           text: trunc(body.text || '', 400), status: 'analyse',
         });

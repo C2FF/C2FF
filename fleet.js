@@ -6,7 +6,7 @@ const fs = require('fs');
 const { execFile } = require('child_process');
 
 const fleet = {
-  enabled: false, paused: false, program: 'etoro',
+  enabled: false, paused: false, program: '',
   intervalMin: 30, requestBudgetPerCycle: 60, gapMs: 600,
   modules: ['SECHEADERS', 'CORS', 'ERRLEAK', 'DOTFILES', 'TECHSIG', 'ROBOTS', 'OPTIONS', 'JSSECRETS'],
   activePrograms: [],

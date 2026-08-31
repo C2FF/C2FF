@@ -14,7 +14,7 @@ function hl(t) {
 }
 
 const PLAYBOOKS = [
-  ['RECON-HORIZON', 'Recon large : axes BIZLOGIC / AUTH-JWT / JS / N-DAY / subs / etoroX / mobile (7 axes + judge)'],
+  ['RECON-HORIZON', 'Recon large : axes BIZLOGIC / AUTH-JWT / JS / N-DAY / subs / api / mobile (7 axes + judge)'],
   ['SQLI-DUO', 'Pipeline SQLI : recon params injectables -> offensive ciblee (boolean/time/error)'],
   ['SSRF-DUO', 'Pipeline SSRF : surfaces de fetch d URL -> offensive (metadata, redirect chaines)'],
   ['LFI-WAVE', 'Vague LFI : traversals, include, file read sur la surface cible'],
@@ -103,7 +103,7 @@ function drawFindings() {
   if (focusInside('fndList')) return;
   drawn.fnd = sig;
   $('nFnd').textContent = String(state.data.findings.length);
-  const progs = [...new Set(['etoro', 'blockchain', 'bullish', 'rapyd', 'nubank', 'wise', ...state.data.programs.map(p => p.id)])];
+  const progs = state.data.programs.map(p => p.id);
   if ($('nfProg').options.length !== progs.length) {
     $('nfProg').innerHTML = progs.map(p => '<option>' + p + '</option>').join('');
   }
