@@ -1332,31 +1332,34 @@ try { NOTIF.on = localStorage.getItem('c2ff-notifs') !== 'off'; } catch (e) {}
 const SND = { on: true };
 try { SND.on = localStorage.getItem('c2ff-snd') !== 'off'; } catch (e) {}
 let AC = null;
-// bibliotheque de sons : une signature par theme d'evenement.
-// chaque entree = [frequence Hz, depart s, duree s] ; w = onde, g = volume.
+// bibliotheque de sons : une signature par theme d'evenement, timbres et registres
+// franchement distincts pour que l'oreille les separe sans y penser.
+// chaque note = [frequence Hz, depart s, duree s, (glissando vers Hz)] ; w = onde, g = volume.
 const SND_LIB = {
-  click: { w: 'sine',   g: 0.045, n: [[2100, 0, 0.035]] },
-  tab:   { w: 'sine',   g: 0.05,  n: [[590, 0, 0.05], [930, 0.06, 0.07]] },
-  copy:  { w: 'sine',   g: 0.05,  n: [[980, 0, 0.06]] },
-  chat:  { w: 'sine',   g: 0.055, n: [[520, 0, 0.09]] },
-  join:  { w: 'sine',   g: 0.06,  n: [[440, 0, 0.09], [660, 0.1, 0.12]] },
-  leave: { w: 'sine',   g: 0.06,  n: [[660, 0, 0.09], [440, 0.1, 0.14]] },
-  p1:    { w: 'square', g: 0.1,   n: [[880, 0, 0.12], [1180, 0.14, 0.18]] },
-  p2:    { w: 'square', g: 0.09,  n: [[760, 0, 0.14]] },
-  hit:   { w: 'sine',   g: 0.055, n: [[640, 0, 0.07], [840, 0.09, 0.11]] },
-  err:   { w: 'square', g: 0.09,  n: [[180, 0, 0.18]] },
-  togg:  { w: 'sine',   g: 0.05,  n: [[700, 0, 0.05]] },
+  click: { w: 'square',   g: 0.035, n: [[1750, 0, 0.022]] },
+  tab:   { w: 'triangle', g: 0.06,  n: [[523, 0, 0.045], [784, 0.055, 0.07]] },
+  copy:  { w: 'sine',     g: 0.05,  n: [[700, 0, 0.09, 1650]] },
+  chat:  { w: 'triangle', g: 0.06,  n: [[659, 0, 0.11]] },
+  join:  { w: 'triangle', g: 0.06,  n: [[392, 0, 0.08], [523, 0.09, 0.08], [659, 0.18, 0.13]] },
+  leave: { w: 'sine',     g: 0.055, n: [[659, 0, 0.08], [523, 0.09, 0.08], [392, 0.18, 0.16]] },
+  p1:    { w: 'square',   g: 0.1,   n: [[988, 0, 0.09], [1320, 0.12, 0.11], [988, 0.26, 0.09], [1320, 0.38, 0.16]] },
+  p2:    { w: 'sawtooth', g: 0.07,  n: [[620, 0, 0.13], [620, 0.17, 0.09]] },
+  hit:   { w: 'sine',     g: 0.06,  n: [[1319, 0, 0.14], [1568, 0.06, 0.2]] },
+  err:   { w: 'sawtooth', g: 0.08,  n: [[140, 0, 0.2, 95]] },
+  togg:  { w: 'triangle', g: 0.05,  n: [[880, 0, 0.03]] },
 };
 function sndNotes(wave, notes, gain) {
   if (!SND.on) return;
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)();
     if (AC.state === 'suspended') AC.resume();
-    notes.forEach(([f, at, dur]) => {
+    notes.forEach(([f, at, dur, slide]) => {
       const o = AC.createOscillator(), g = AC.createGain();
-      o.type = wave; o.frequency.value = f;
-      o.connect(g); g.connect(AC.destination);
+      o.type = wave;
       const t0 = AC.currentTime + at;
+      o.frequency.setValueAtTime(f, t0);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, t0 + dur);
+      o.connect(g); g.connect(AC.destination);
       g.gain.setValueAtTime(0.0001, t0);
       g.gain.exponentialRampToValueAtTime(gain, t0 + 0.015);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
