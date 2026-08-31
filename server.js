@@ -5,9 +5,10 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const os = require('os');
 
 const PORT = parseInt(process.argv[2] || process.env['C2FF_PORT'] || '4181', 10);
-const BIND = process.env['C2FF_BIND'] || '127.0.0.1';
+let BIND = process.env['C2FF_BIND'] || '127.0.0.1';
 const ROOT = __dirname;
 const DATA = path.join(ROOT, 'data');
 try { fs.mkdirSync(DATA, { recursive: true }); } catch (e) {}
@@ -19,6 +20,12 @@ const FINDINGS_FILE = path.join(DATA, 'findings.jsonl');
 const FLEET_FILE = path.join(DATA, 'fleet.json');
 const AI_FILE = path.join(DATA, 'ai.json');
 const TEAM_FILE = path.join(DATA, 'team.json');
+// golive (bouton UI) persiste "live" dans team.json : le respawn (auto ou watchdog)
+// reprend le bind reseau sans env. C2FF_BIND reste l'override manuel.
+if (!process.env['C2FF_BIND']) {
+  const tb = readJson(TEAM_FILE, null) || {};
+  if (tb.live) BIND = '0.0.0.0';
+}
 
 // ---------- utilitaires ----------
 const trunc = (s, n) => { s = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n) + '…' : s; };
@@ -79,18 +86,25 @@ const AI_ANALYST_PROMPT = "Tu es analyste bug bounty dans le framework C2FF. On 
 // ---------- mode team : sessions de groupe a distance ----------
 function teamCfg() {
   const c = readJson(TEAM_FILE, null) || {};
-  return { enabled: !!c.enabled, room: String(c.room || ''), key: String(c.key || '') };
+  return { enabled: !!c.enabled, room: String(c.room || ''), key: String(c.key || ''), live: !!c.live };
 }
 function saveTeamCfg(c) { try { fs.writeFileSync(TEAM_FILE, JSON.stringify(c, null, 1)); } catch (e) {} }
 function genKey() { return 'c2ff-' + crypto.randomBytes(12).toString('hex'); }
 const PRESENCE = new Map(); // handle -> { last, reqs }
 const cleanHandle = h => String(h == null ? '' : h).replace(/[^\w \-.]{1,}/g, '').trim().slice(0, 16);
+const isLoopback = req => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(String(req.socket.remoteAddress || ''));
+const lanAddr = () => {
+  try {
+    for (const list of Object.values(os.networkInterfaces()))
+      for (const i of list || []) if (i.family === 'IPv4' && !i.internal) return i.address + ':' + PORT;
+  } catch (e) {}
+  return '';
+};
 // depuis localhost : acces complet. Depuis ailleurs : la cle de salle suffit.
 function teamAllowed(req, url) {
   const t = teamCfg();
   if (!t.enabled) return true;
-  const addr = String(req.socket.remoteAddress || '');
-  if (addr === '127.0.0.1' || addr === '::1' || addr === '::ffff:127.0.0.1') return true;
+  if (isLoopback(req)) return true;
   return (url.searchParams.get('k') || req.headers['x-c2ff-key'] || '') === t.key;
 }
 function teamState() {
@@ -105,6 +119,7 @@ function teamState() {
   members.sort((a, b) => a.last - b.last);
   return {
     enabled: t.enabled, room: t.room, protected: t.enabled,
+    bind: BIND === '0.0.0.0' ? 'lan' : 'local', lan: lanAddr(),
     members, online: members.filter(m => m.active).length,
   };
 }
@@ -395,6 +410,20 @@ const server = http.createServer((req, res) => {
           saveTeamCfg(next);
           return sendJson(res, { ok: true, team: next });
         }
+        // golive : le serveur se re-bind en 0.0.0.0 (respawn propre). shore : retour 127.0.0.1.
+        // decision de bind = decision locale, loopback uniquement.
+        if (body.op === 'golive' || body.op === 'shore') {
+          if (!isLoopback(req)) return sendJson(res, { ok: false, error: 'loopback only' });
+          const cur = teamCfg();
+          if (!cur.enabled) return sendJson(res, { ok: false, error: 'enable the room first' });
+          const next = { enabled: cur.enabled, room: cur.room, key: cur.key, live: body.op === 'golive' };
+          saveTeamCfg(next);
+          try {
+            require('child_process').spawn(process.execPath, process.argv.slice(1), { env: process.env, detached: true, stdio: 'ignore', cwd: ROOT }).unref();
+          } catch (e) {}
+          setTimeout(() => { try { process.exit(0); } catch (e) {} }, 250);
+          return sendJson(res, { ok: true, restarting: true, team: next });
+        }
         return sendJson(res, { ok: false, error: 'unknown op' });
       }
       if (p === '/api/chat') {
@@ -507,3 +536,13 @@ const server = http.createServer((req, res) => {
 
 sweep();
 server.listen(PORT, BIND, () => console.log('C2//FLEET : http://' + (BIND === '0.0.0.0' ? '<ip-locale> (lan)' : 'localhost') + ':' + PORT + (BIND !== '127.0.0.1' ? ' - mode team accessible' : '')));
+// respawn chain : le remplacant attend la liberation du port (le vieux process vient de mourir)
+let bindTries = 0;
+server.on('error', e => {
+  if (e.code === 'EADDRINUSE' && bindTries++ < 60) {
+    setTimeout(() => { try { server.listen(PORT, BIND); } catch (e2) {} }, 500);
+    return;
+  }
+  console.error('server error:', e.message);
+  process.exit(1);
+});

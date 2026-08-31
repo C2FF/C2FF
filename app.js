@@ -49,13 +49,16 @@ const I18N = {
     fl_last: 'dernier cycle', fl_none: 'aucun cycle encore', fl_info: 'intervalle {i} min, budget {b} req/cycle',
     sub_ttl: 'command & control framework',
     navt: 'Team', tm_h2: 'Mode team - sessions de groupe a distance',
-    tm_p: "Ouvre la salle et partage le lien d'invitation : ton equipe voit la flotte, les findings, la coordination et peut trier en direct, depuis n'importe ou. Le serveur reste ta machine : pour un acces a distance relance C2FF avec C2FF_BIND=0.0.0.0 (sinon seul localhost passe). Tout passe par la cle de salle - regenere-la pour virer tout le monde d'un coup.",
+    tm_p: "Ouvre la salle et partage le lien d'invitation : ton equipe voit la flotte, les findings, la coordination et peut trier en direct, depuis n'importe ou. Le serveur reste ta machine : clique OUVRIR AU RESEAU pour le rebinder en acces LAN d'un clic (le serveur relance tout seul en 2 s, lien LAN affiche). Revenir local = REVENIR LOCAL. Tout passe par la cle de salle - regenere-la pour virer tout le monde d'un coup.",
     tm_handle: 'Ton pseudo (16 caracteres max)', tm_save_h: 'Choisir', tm_room_ph: 'nom de la salle (ex : c2ff-core)',
     tm_save: 'Appliquer', tm_on: 'SALLE OUVERTE : {r} - {n} en ligne', tm_off: 'MODE TEAM DESACTIVE - session locale solo',
     tm_room: 'Salle', tm_key: 'Cle de salle', tm_regen: 'Regenerer la cle', tm_regen_ok: 'nouvelle cle generee - les anciens liens sont morts',
     tm_invite: 'Lien d invitation (a copier vers ton equipe)', tm_copy: 'Copier', tm_copied: 'copie dans le presse-papiers',
     tm_members: 'Membres', tm_nobody: 'personne encore - envoie le lien a ton equipe', tm_you: '(toi)', tm_here: 'present',
     tm_saved: 'pseudo enregistre', tm_no_handle: 'pseudo vide', tm_cfg_ok: 'salle mise a jour', tm_cfg_no: 'echec',
+    tm_live: 'OUVRIR AU RESEAU', tm_shore: 'REVENIR LOCAL', tm_need_on: 'active d abord la salle (ON)',
+    tm_bind_lan: 'RESEAU : {a}', tm_bind_lo: 'LOCAL : localhost seulement',
+    to_team_live: '[GO-LIVE] serveur relance en acces reseau - lien LAN affiche, reconnexion dans 2 s', to_team_shore: 'serveur relance en local (127.0.0.1)',
     navf: 'Flotte', navfd: 'Findings', navp: 'Programmes', navai: 'IA', navc: 'Coordination',
     st_runs: 'Runs', st_beacons: 'Beacons actifs', st_sig: 'Signaux',
     h2f: "Flotte - tous programmes, agents en course d'abord",
@@ -126,13 +129,16 @@ const I18N = {
     to_ai_head: 'AI ANALYSIS', to_ai_bad: 'AI ANALYSIS failed',
     w_me: 'OPERATOR', w_claude: 'CLAUDE', w_ia: 'AI', w_launch: '⚡ LAUNCH',
     navt: 'Team', tm_h2: 'Team mode - remote group sessions',
-    tm_p: "Open the room and share the invite link: your team sees the fleet, findings, coordination and can triage live, from anywhere. The server stays on your machine: for remote access relaunch C2FF with C2FF_BIND=0.0.0.0 (otherwise only localhost gets through). Everything is gated by the room key - regenerate it to kick everyone at once.",
+    tm_p: "Open the room and share the invite link: your team sees the fleet, findings, coordination and can triage live, from anywhere. The server stays on your machine: click OPEN TO NETWORK to re-bind it for LAN access in one click (the server restarts itself in 2 s, LAN link shown). BACK LOCAL switches back. Everything is gated by the room key - regenerate it to kick everyone at once.",
     tm_handle: 'Your handle (16 chars max)', tm_save_h: 'Set', tm_room_ph: 'room name (ex: c2ff-core)',
     tm_save: 'Apply', tm_on: 'ROOM OPEN: {r} - {n} online', tm_off: 'TEAM MODE OFF - local solo session',
     tm_room: 'Room', tm_key: 'Room key', tm_regen: 'Regenerate key', tm_regen_ok: 'new key generated - old links are dead',
     tm_invite: 'Invite link (copy to your team)', tm_copy: 'Copy', tm_copied: 'copied to clipboard',
     tm_members: 'Members', tm_nobody: 'nobody yet - send the invite link', tm_you: '(you)', tm_here: 'here',
     tm_saved: 'handle saved', tm_no_handle: 'empty handle', tm_cfg_ok: 'room updated', tm_cfg_no: 'failed',
+    tm_live: 'OPEN TO NETWORK', tm_shore: 'BACK LOCAL', tm_need_on: 'enable the room first (ON)',
+    tm_bind_lan: 'NETWORK: {a}', tm_bind_lo: 'LOCAL: localhost only',
+    to_team_live: '[GO-LIVE] server relaunched with network access - LAN link shown, reconnect in 2 s', to_team_shore: 'server relaunched local (127.0.0.1)',
   },
   es: {
     fl_off: 'FLOTA : DETENIDA', fl_paused: 'FLOTA : EN PAUSA', fl_active: 'FLOTA : ACTIVA ({n} ciclos)',
@@ -764,11 +770,18 @@ $('aiTest').addEventListener('click', () => {
 // ---------- mode team : sessions de groupe a distance ----------
 function drawTeam() {
   const tm = state.data.team || {};
-  const sig = JSON.stringify([tm.enabled, tm.room, tm.members, HANDLE]);
+  const remote = tm.bind === 'lan';
+  const sig = JSON.stringify([tm.enabled, tm.room, tm.members, HANDLE, tm.bind, tm.lan]);
   if (sig === drawn.team && !forceDraw) return;
   drawn.team = sig;
   $('tmStatus').textContent = tm.enabled ? TF('tm_on', { r: tm.room || '-', n: tm.online || 0 }) : T('tm_off');
   $('tmStatus').className = 'pill ' + (tm.enabled ? 'p-live' : 'p-done');
+  const bindEl = $('tmBind');
+  if (bindEl) {
+    bindEl.textContent = remote ? TF('tm_bind_lan', { a: tm.lan || '?' }) : T('tm_bind_lo');
+    bindEl.className = 'pill ' + (remote ? 'p-live' : 'p-done');
+    bindEl.hidden = !tm.enabled;
+  }
   $('tmRoom').textContent = tm.room || '-';
   $('tmKey').textContent = tm.enabled ? (TEAMKEY || '-') : '-';
   // config : ne jamais ecraser pendant la saisie
@@ -783,12 +796,23 @@ function drawTeam() {
     '<span class="pill ' + (m.active ? 'p-live' : 'p-done') + '">' + (m.active ? T('tm_here') : Math.round(m.ms / 60000) + ' min') + '</span>' +
     '<small style="color:var(--faint);margin-left:auto">' + m.reqs + ' req</small></div>'
   ).join('') || '<div style="color:var(--faint);font-size:11.5px">' + T('tm_nobody') + '</div>';
-  // lien d'invitation : la cle dans l'URL (n'est utile que si C2FF_BIND=0.0.0.0)
-  const invite = tm.enabled && (tm.room || tm.enabled)
-    ? location.origin + '/?k=' + (TEAMKEY || 'LA_CLE') + '  (handle : ' + (HANDLE || 'choisir un pseudo') + ')'
+  // lien d'invitation : en mode reseau, l'IP LAN reelle (sinon localhost)
+  const invite = tm.enabled
+    ? (remote ? 'http://' + (tm.lan || 'IP-LAN:PORT') : location.origin)
+      + '/?k=' + (TEAMKEY || 'LA_CLE') + '  (handle : ' + (HANDLE || 'choisir un pseudo') + ')'
     : '';
   $('tmInvite').textContent = invite;
+  const liveBtn = $('tmLive');
+  if (liveBtn) { liveBtn.textContent = remote ? T('tm_shore') : T('tm_live'); liveBtn.hidden = !tm.enabled; }
 }
+$('tmLive').addEventListener('click', () => {
+  const remote = (state.data.team || {}).bind === 'lan';
+  jpost('/api/team', { op: remote ? 'shore' : 'golive' }).then(r => r.json()).then(j => {
+    if (!j.ok) return toast('TEAM', j.error || T('tm_need_on'), 'P2');
+    toast('TEAM', remote ? T('to_team_shore') : T('to_team_live'), 'HIT');
+    // le serveur respawn : le poll rattrapera dans les 2 s
+  }).catch(() => {});
+});
 function set(id, v) { const el = $(id); if (el) el.value = v; }
 $('tmSaveHandle').addEventListener('click', () => {
   HANDLE = String($('tmHandleEl').value).replace(/[^\w \-.]/g, '').trim().slice(0, 16);
