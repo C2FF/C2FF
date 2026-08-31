@@ -127,8 +127,8 @@ function drawPrograms() {
     (p.regle ? '<div class="hdr">⌦ regle : ' + esc(p.regle) + '</div>' : '') +
     '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">' +
     '<select class="pb" data-p="' + esc(p.id) + '">' + PLAYBOOKS.map(x => '<option value="' + x[0] + '">' + x[0] + '</option>').join('') + '</select>' +
-    '<button class="go launch" data-p="' + esc(p.id) + '">GO ›</button>' +
-    '<small style="color:var(--dim);flex:1;min-width:160px">Choisis un playbook puis GO</small></div>' +
+    '<input type="text" class="nnote" data-p="' + esc(p.id) + '" placeholder="note d activation (cible, creds, contraintes) - optionnel" style="flex:1;min-width:210px">' +
+    '<button class="go launch" data-p="' + esc(p.id) + '">GO ›</button></div>' +
     '<div class="subtle" style="color:var(--dim);font-size:10.5px" id="pbdesc-' + esc(p.id) + '"></div></div>'
   ).join('');
   document.querySelectorAll('.prog .pb').forEach(sel => {
@@ -138,10 +138,11 @@ function drawPrograms() {
   document.querySelectorAll('.launch').forEach(b => b.addEventListener('click', () => {
     const p = b.dataset.p;
     const sel = document.querySelector('.pb[data-p="' + p + '"]');
-    const note = prompt('note d activation pour CLAUDE (cible, creds, contraintes) :', '');
-    if (note === null) return;
+    const noteEl = document.querySelector('.nnote[data-p="' + p + '"]');
+    const note = noteEl ? noteEl.value.trim() : '';
     fetch('/api/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ playbook: sel.value, program: p, note: note }) });
-    toast('LANCHEMENT', '[GO] ' + sel.value + ' sur ' + p.toUpperCase() + ' - transmission a CLAUDE…', 'HIT');
+    if (noteEl) noteEl.value = '';
+    toast('LANCHEMENT', '[GO] ' + sel.value + ' sur ' + p.toUpperCase() + ' - transmission a l analyse…', 'HIT');
   }));
 }
 
