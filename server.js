@@ -120,7 +120,7 @@ function teamState() {
   return {
     enabled: t.enabled, room: t.room, protected: t.enabled,
     bind: BIND === '0.0.0.0' ? 'lan' : 'local', lan: lanAddr(),
-    tunnel: TUNNEL ? (TUNNEL.url || (TUNNEL.err ? 'err:' + TUNNEL.err : 'starting')) : '',
+    tunnel: TUNNEL ? (TUNNEL.ready && TUNNEL.url ? TUNNEL.url : (TUNNEL.err ? 'err:' + TUNNEL.err : 'starting')) : '',
     chat: lastChat(200).filter(m => m.kind === 'team').slice(-100),
     members, online: members.filter(m => m.active).length,
   };
@@ -442,6 +442,22 @@ const MAIN = (req, res) => {
               proc.stderr.on('data', grab); proc.stdout.on('data', grab);
               proc.on('error', () => { TUNNEL = { proc, proxy, url: '', err: 'cloudflared absent - installe-le (https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)' }; });
               proc.on('exit', () => { if (TUNNEL && TUNNEL.proc === proc) { try { proxy.close(); } catch (e) {} TUNNEL = null; } });
+              // auto-verification : le lien n'est declare OUVERT que lorsqu il repond pour de vrai
+              const verify = n => {
+                if (!TUNNEL || TUNNEL.proc !== proc || !TUNNEL.url || TUNNEL.ready) return;
+                const rq = require('https').get(TUNNEL.url + '/api/state?k=' + teamCfg().key, { timeout: 5000 }, r => {
+                  r.resume();
+                  if (r.statusCode === 200) { TUNNEL.ready = true; return; }
+                  rqretry(n);
+                });
+                rq.on('timeout', () => { rq.destroy(); });
+                rq.on('error', () => rqretry(n));
+              };
+              const rqretry = n => { if (n > 0 && TUNNEL && TUNNEL.proc === proc && TUNNEL.url) setTimeout(() => verify(n - 1), 2000); };
+              const _vwatch = setInterval(() => {
+                if (!TUNNEL || TUNNEL.proc !== proc || TUNNEL.ready) return clearInterval(_vwatch);
+                if (TUNNEL.url) verify(10);
+              }, 2000);
             } catch (e) {}
           });
           return sendJson(res, { ok: true, team: teamState() });
