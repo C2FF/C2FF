@@ -7829,6 +7829,13 @@ function focusInside(sel) {
   const a = document.activeElement;
   return r && a && a.tagName !== 'BODY' && r.contains(a);
 }
+// action destructive (bouton dans la vue) : le bouton garde le focus apres le
+// clic, focusInside bloque alors tout re-render de la liste - l'element supprime
+// reste peint jusqu'au rechargement. Perdre le focus AVANT de rafraichir.
+function blurNow() {
+  const a = document.activeElement;
+  if (a && a.blur) { try { a.blur(); } catch (e) {} }
+}
 
 // ---------- rendu flux ----------
 function drawRuns(runs) {
@@ -7898,7 +7905,7 @@ function drawFindings() {
   document.querySelectorAll('.fdel').forEach(b => b.addEventListener('click', () => {
     jpost('/api/findings', { op: 'delete', key: b.dataset.k, name: HANDLE }).then(r => r.json()).then(j => {
       if (!j.ok) { toast('FINDINGS', j.error || 'echec', 'P2'); sndPlay('err'); return; }
-      drawn.fnd = ''; refresh();
+      drawn.fnd = ''; blurNow(); refresh();
     }).catch(() => sndPlay('err'));
   }));
   document.querySelectorAll('.ia-run').forEach(b => b.addEventListener('click', () => {
@@ -7993,7 +8000,7 @@ function drawPrograms() {
       huntSel = arSel = '';
       SURF = {}; ATKS = {}; JSI = {};
       drawn.prog = drawn.hunt = drawn.ars = drawn.pip = ''; PIP_PROGS_SIG = '';
-      refresh();
+      blurNow(); refresh();
     }).catch(() => sndPlay('err'));
   }));
 }
@@ -8394,7 +8401,7 @@ $('huntPurge').addEventListener('click', () => {
     SURF = {}; ATKS = {}; JSI = {};
     drawn.hunt = drawn.ars = '';
     toast('PURGE', 'recon purge pour ' + p, 'HIT'); sndPlay('click');
-    refresh();
+    blurNow(); refresh();
   }).catch(() => sndPlay('err'));
 });
 $('huntRecon').addEventListener('click', () => {
