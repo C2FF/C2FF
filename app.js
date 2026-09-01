@@ -8141,7 +8141,7 @@ function drawPlanCard() {
 }
 // ---------- PIPELINE : fil conducteur, programme actif partage ----------
 // un seul programme actif pour tous les onglets ; bandeau d'etapes 1-5
-let PIP = {}, activeProg = '';
+let PIP = {}, activeProg = '', PIP_PROGS_SIG = '';
 try { activeProg = localStorage.getItem('c2ff_prog') || ''; } catch (e) {}
 function setProg(id) {
   if (!id) return;
@@ -8717,6 +8717,7 @@ $('progForm').addEventListener('submit', e => {
     creds: '', runs: [],
   });
   jpost('/api/programs', { programs: list }).then(refresh);
+  setProg(id);   // le nouveau programme devient actif : HUNT/bandeau le suivent
   $('progForm').reset();
 });
 
@@ -9292,6 +9293,10 @@ async function refresh() {
     }
     if (ttop) NOTIF.lastTeamT = ttop.t;
     drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawUrls(); drawMods(); drawAuth(); drawAdv(); drawChat(); drawFleet(); drawAI(); drawTeam();
+    // programmes crees/supprimes : le bandeau pipeline suit (sinon message
+    // demo "cree ton programme" colle jusqu'au rechargement de la page)
+    const _progsSig = d.programs.map(p => p.id).join(',');
+    if (_progsSig !== (PIP_PROGS_SIG || '')) { PIP_PROGS_SIG = _progsSig; fetchPipeline(); }
     // presence team : battement toutes les ~5 s (3 polls)
     if (state.tick % 3 === 0 && HANDLE) {
       jpost('/api/team', { op: 'beat', handle: HANDLE }).then(r => r.json()).then(j => {
