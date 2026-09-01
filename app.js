@@ -8893,13 +8893,25 @@ $('aiTest').addEventListener('click', () => {
 // distants uniquement : via le lien tunnel/LAN, la modal s'impose avant tout.
 // signup (premiere fois) ou signin (pseudo + pin connus), puis attente de validation.
 const IS_LOCAL = /^(localhost|127\.|::1|\[::1\])$/.test(location.hostname);
-let JOIN_OPEN = false, JOIN_WAIT = false, PENDING_H = '';
+let JOIN_OPEN = false, JOIN_WAIT = false, PENDING_H = '', JOIN_MODE = 'signup';
+function setJoinMode(mode) {
+  JOIN_MODE = mode === 'signin' ? 'signin' : 'signup';
+  const signup = JOIN_MODE === 'signup';
+  $('jmSignup').className = signup ? 'go' : 'ghost';
+  $('jmSignin').className = signup ? 'ghost' : 'go';
+  $('jmPin2').style.display = signup ? '' : 'none';
+  $('jmIntro').textContent = signup
+    ? "choisis un pseudo (unique dans la session) et un pin d'acces - l'admin valide ton entree"
+    : 'ton pseudo et ton pin pour revenir dans la session';
+  $('jmGo').textContent = signup ? "DEMANDER L'ENTREE ›" : 'SE CONNECTER ›';
+}
 function showJoin(wait, msg) {
   JOIN_OPEN = true;
   JOIN_WAIT = !!wait;
   const m = $('joinModal');
   if (!m) return;
   m.style.display = 'grid';
+  setJoinMode(JOIN_MODE);
   $('jmWait').hidden = !JOIN_WAIT;
   $('jmForm').hidden = JOIN_WAIT;
   $('jmErr').textContent = msg || '';
@@ -8918,7 +8930,7 @@ function tryJoin() {
   const err = t => { $('jmErr').textContent = t; };
   if (h.length < 2) return err('pseudo : 2 caracteres min');
   if (!/^\d{4,8}$/.test(p1)) return err('pin : 4 a 8 chiffres');
-  if (p1 !== p2) return err('les deux pins different');
+  if (JOIN_MODE === 'signup' && p1 !== p2) return err('les deux pins different');
   $('jmGo').disabled = true;
   jpost('/api/team', { op: 'join', handle: h, pin: p1 }).then(r => r.json()).then(j => {
     $('jmGo').disabled = false;
@@ -8933,6 +8945,8 @@ function tryJoin() {
 }
 // le bouton est type submit : le submit du formulaire suffit (pas de double POST)
 $('jmForm').addEventListener('submit', e => { e.preventDefault(); tryJoin(); });
+$('jmSignup').addEventListener('click', () => setJoinMode('signup'));
+$('jmSignin').addEventListener('click', () => setJoinMode('signin'));
 $('jmEdit').addEventListener('click', () => showJoin(false, ''));
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && JOIN_OPEN && JOIN_WAIT) showJoin(false, 'autre pseudo ?');
@@ -8950,6 +8964,10 @@ function drawTeam() {
   const rk = TRANK[myRole] || 0;
   const amAdmin = rk >= 4;
   rtcTick();
+  // interaction en cours dans la liste ? (select de grade ouvert, bouton focalise)
+  // ms de presence change a chaque poll : sans ce garde, le re-render detruit le
+  // select sous le curseur. drawn reset : le rendu repart des que le focus sort.
+  if (focusInside('#tmMembers') || focusInside('#tmPending')) { drawn.team = ''; return; }
   const sig = JSON.stringify([tm.enabled, tm.room, tm.members, HANDLE, tm.bind, tm.lan, tun, tm.chat, tm.you, microOn, tm.requests]);
   if (sig === drawn.team && !forceDraw) return;
   drawn.team = sig;
@@ -9142,7 +9160,7 @@ $('tmMembers').addEventListener('change', e => {
   if (!sel) return;
   jpost('/api/team', { op: 'role.set', h: sel.dataset.h, r: sel.value, by: HANDLE }).then(r => r.json()).then(j => {
     toast('SESSION', j.ok ? T('tm_role_ok') : (j.error || T('tm_cfg_no')), j.ok ? 'HIT' : 'P2');
-    setTimeout(refresh, 300);
+    blurNow(); forceDraw = true; setTimeout(refresh, 300);
   }).catch(() => {});
 });
 $('tmPending').addEventListener('click', e => {
@@ -9153,7 +9171,7 @@ $('tmPending').addEventListener('click', e => {
   jpost('/api/team', { op: ok ? 'approve' : 'deny', h, by: HANDLE }).then(r => r.json()).then(j => {
     if (j.team) state.data.team = j.team;
     toast('SESSION', j.ok ? (ok ? h + ' entre dans la session' : h + ' refuse et bloque') : (j.error || T('tm_cfg_no')), j.ok ? 'HIT' : 'P2');
-    forceDraw = true; refresh();
+    blurNow(); forceDraw = true; refresh();
   }).catch(() => {});
 });
 $('tmMembers').addEventListener('click', e => {
@@ -9162,7 +9180,7 @@ $('tmMembers').addEventListener('click', e => {
   jpost('/api/team', { op: 'kick', h: b.dataset.h, by: HANDLE }).then(r => r.json()).then(j => {
     if (j.team) state.data.team = j.team;
     toast('SESSION', j.ok ? T('tm_kick_ok') : (j.error || T('tm_cfg_no')), j.ok ? 'HIT' : 'P2');
-    setTimeout(refresh, 300);
+    blurNow(); forceDraw = true; setTimeout(refresh, 300);
   }).catch(() => {});
 });
 function set(id, v) { const el = $(id); if (el) el.value = v; }

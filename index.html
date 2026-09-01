@@ -499,6 +499,10 @@ header,nav{border-bottom-color:transparent;
 <div id="joinModal" style="position:fixed;inset:0;z-index:100;background:hsl(var(--hue) 30% 3% / .85);display:none;place-items:center">
   <div class="card" style="width:min(430px,92vw);padding:22px;margin:12px">
     <h2 style="margin:0 0 6px">SESSION PRIVEE</h2>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button type="button" class="go" id="jmSignup" style="flex:1;font-size:11px">PREMIERE VISITE</button>
+      <button type="button" class="ghost" id="jmSignin" style="flex:1;font-size:11px">DEJA MEMBRE</button>
+    </div>
     <p style="margin:0 0 12px;font-size:12px;color:var(--muted)" id="jmIntro">choisis un pseudo (unique dans la session) et un pin d'acces - l'admin valide ton entree</p>
     <form id="jmForm">
       <input type="text" id="jmHandle" maxlength="16" placeholder="pseudo" autocomplete="off" style="width:100%">
