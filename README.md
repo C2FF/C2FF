@@ -186,14 +186,15 @@ Eight tabs, keys `1-8`:
 
 ## Team sessions
 
-Team mode turns the solo console into a shared room: a generated key gates every API route, members invite themselves with one link, and every action is attributed. Full walkthrough:
+Team mode turns the solo console into a shared room: a generated key gates every API route, members invite themselves with one link, every entry is validated by an admin, and every action is attributed. Full walkthrough:
 
 1. TEAM tab - choose a handle (max 16 chars), set the room name, turn it ON, apply
 2. **OPEN TO NETWORK** - the server re-binds to `0.0.0.0` via self-respawn (2 s, watchdog-safe) and the invite link shows your real LAN address
 3. Or **OPEN TO WORLD** - a public tunnel URL is generated, verified, then shown with its own COPY button; share it anywhere
-4. Invited members open the link, pick a handle, and join: live member list with role, presence and request count
-5. As admin you switch roles and kick troublemakers; regenerating the key removes everyone at once
-6. Enable the mic for the WebRTC audio mesh - voice is peer-to-peer between browsers, the server only relays signalling for 30 s windows
+4. Invited members open the link and get a mandatory join modal: they pick a unique handle and a 4-8 digit PIN (first visit = signup, later visits = signin with the same handle + PIN). The request lands in the admin's queue
+5. The admin gets a toast + notification per request and accepts or denies it from the TEAM tab (co-admins can validate too). While pending, the visitor sees nothing but a waiting screen - no recon data leaves the server. A denied handle is blocked from re-requesting
+6. Five grades: `admin` > `co-admin` (validate entries, kick) > `hunter` (full hunting) > `member` (default) > `observer` (read-only, no actions). As admin you switch roles from the member list; kick is admin/co-admin
+7. Enable the mic for the WebRTC audio mesh - voice is peer-to-peer between browsers, the server only relays signalling for 30 s windows
 
 Why the tunnel is safe: tunnel traffic arrives locally through the built-in proxy and is never treated as loopback, so the room key applies exactly as if members came from outside. No port forwarding, no firewall hole - closing the tunnel restores LAN/LOCAL in one click.
 
@@ -269,7 +270,7 @@ State files live in `data/`:
 |---|---|
 | `programs.json` | registered programs: name, scope, required header, per-program AUTH credentials (masked by the API) |
 | `findings.jsonl` | every signal and manual finding, with triage status |
-| `team.json` | room config: enabled, room name, key, roles, blocked handles, live flag |
+| `team.json` | room config: enabled, room name, key, roles, members (hashed PIN, grade, approval status), blocked handles, live flag |
 | `chat.jsonl` | coordination channel + team session messages |
 | `surface.json` | per-program recon: pages, APIs, params, JS bundles, tech, subdomains |
 | `urls.json` | per-program passive URL history: Wayback + OTX endpoints, params with frequency, sensitive extensions |

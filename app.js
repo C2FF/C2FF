@@ -7794,8 +7794,8 @@ try {
   if (k) { TEAMKEY = k; localStorage.setItem('c2ff-key', k); history.replaceState(null, '', location.pathname); }
 } catch (e) {}
 const KHEAD = () => TEAMKEY ? { 'x-c2ff-key': TEAMKEY } : {};
-function jget(url) { return fetch(url, { headers: KHEAD() }); }
-function jpost(url, body) { return fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...KHEAD() }, body: JSON.stringify(body) }); }
+function jget(url) { return fetch(url, { headers: { ...KHEAD(), 'x-c2ff-handle': HANDLE || '' } }); }
+function jpost(url, body) { return fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...KHEAD(), 'x-c2ff-handle': HANDLE || '' }, body: JSON.stringify(body) }); }
 const expanded = new Set();
 let forceDraw = true; // premier paint integral, puis re-rendu differentiel
 
@@ -8889,16 +8889,80 @@ $('aiTest').addEventListener('click', () => {
   }).catch(e => { $('aiTest').disabled = false; $('aiTestOut').textContent = T('ai_fail') + e.message; });
 });
 
+// ---------- connexion a la session : pseudo + pin, validation par l'admin ----------
+// distants uniquement : via le lien tunnel/LAN, la modal s'impose avant tout.
+// signup (premiere fois) ou signin (pseudo + pin connus), puis attente de validation.
+const IS_LOCAL = /^(localhost|127\.|::1|\[::1\])$/.test(location.hostname);
+let JOIN_OPEN = false, JOIN_WAIT = false, PENDING_H = '';
+function showJoin(wait, msg) {
+  JOIN_OPEN = true;
+  JOIN_WAIT = !!wait;
+  const m = $('joinModal');
+  if (!m) return;
+  m.style.display = 'grid';
+  $('jmWait').hidden = !JOIN_WAIT;
+  $('jmForm').hidden = JOIN_WAIT;
+  $('jmErr').textContent = msg || '';
+  if (!JOIN_WAIT) setTimeout(() => { try { $('jmHandle').focus(); } catch (e) {} }, 50);
+}
+function hideJoin() {
+  JOIN_OPEN = false;
+  JOIN_WAIT = false;
+  PENDING_H = '';
+  const m = $('joinModal');
+  if (m) m.style.display = 'none';
+}
+function tryJoin() {
+  const h = String($('jmHandle').value || '').replace(/[^\w \-.]/g, '').trim().slice(0, 16);
+  const p1 = String($('jmPin').value || '').trim(), p2 = String($('jmPin2').value || '').trim();
+  const err = t => { $('jmErr').textContent = t; };
+  if (h.length < 2) return err('pseudo : 2 caracteres min');
+  if (!/^\d{4,8}$/.test(p1)) return err('pin : 4 a 8 chiffres');
+  if (p1 !== p2) return err('les deux pins different');
+  $('jmGo').disabled = true;
+  jpost('/api/team', { op: 'join', handle: h, pin: p1 }).then(r => r.json()).then(j => {
+    $('jmGo').disabled = false;
+    if (!j.ok) return err(j.error || 'refuse');
+    if (j.pending) { PENDING_H = h; return showJoin(true); }
+    HANDLE = h;
+    try { localStorage.setItem('c2ff-handle', h); } catch (e) {}
+    hideJoin();
+    toast('SESSION', 'connecte : ' + h, 'HIT');
+    forceDraw = true; refresh();
+  }).catch(() => { $('jmGo').disabled = false; err('serveur injoignable'); });
+}
+// le bouton est type submit : le submit du formulaire suffit (pas de double POST)
+$('jmForm').addEventListener('submit', e => { e.preventDefault(); tryJoin(); });
+$('jmEdit').addEventListener('click', () => showJoin(false, ''));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && JOIN_OPEN && JOIN_WAIT) showJoin(false, 'autre pseudo ?');
+});
+
 // ---------- mode team : sessions de groupe a distance ----------
+const TRANK = { admin: 4, coadmin: 3, hunter: 2, member: 1, viewer: 0 };
+const TRLBL = { admin: 'admin', coadmin: 'co-admin', hunter: 'chasseur', member: 'membre', viewer: 'observateur' };
+let SEEN_REQ = '';
 function drawTeam() {
   const tm = state.data.team || {};
   const remote = tm.bind === 'lan';
   const tun = typeof tm.tunnel === 'string' ? tm.tunnel : '';
-  const amAdmin = (tm.you || 'guest') === 'admin';
+  const myRole = tm.meRole || tm.you || 'viewer';
+  const rk = TRANK[myRole] || 0;
+  const amAdmin = rk >= 4;
   rtcTick();
-  const sig = JSON.stringify([tm.enabled, tm.room, tm.members, HANDLE, tm.bind, tm.lan, tun, tm.chat, tm.you, microOn]);
+  const sig = JSON.stringify([tm.enabled, tm.room, tm.members, HANDLE, tm.bind, tm.lan, tun, tm.chat, tm.you, microOn, tm.requests]);
   if (sig === drawn.team && !forceDraw) return;
   drawn.team = sig;
+  // demandes d'entree : toast + notif a l'arrivee de chaque nouveau pseudo
+  const reqs = tm.requests || [];
+  if (rk >= 3) {
+    const prev = new Set((SEEN_REQ || '').split('|').filter(Boolean));
+    reqs.filter(r => !prev.has(r.h)).forEach(r => {
+      toast('DEMANDE D\'ACCES', r.h + ' veut entrer dans la session', 'P2');
+      if (NOTIF.on) popNotify('DEMANDE D\'ACCES', r.h + ' veut entrer dans la session', 'P2');
+    });
+    SEEN_REQ = reqs.map(r => r.h).sort().join('|');
+  }
   $('tmStatus').textContent = tm.enabled ? TF('tm_on', { r: tm.room || '-', n: tm.online || 0 }) : T('tm_off');
   $('tmStatus').className = 'pill ' + (tm.enabled ? 'p-live' : 'p-done');
   const bindEl = $('tmBind');
@@ -8915,14 +8979,28 @@ function drawTeam() {
     set('tmRoomEl', tm.room || '');
     set('tmOn', tm.enabled ? 'on' : 'off');
   }
+  const pendEl = $('tmPending');
+  if (pendEl) {
+    pendEl.hidden = !tm.enabled || !reqs.length;
+    pendEl.innerHTML = tm.enabled && reqs.length
+      ? '<div style="font-size:11px;color:var(--dim);margin-bottom:6px">DEMANDES D\'ACCES - accepter ou refuser :</div>' +
+        reqs.map(r =>
+          '<div class="tm-m"><b>' + esc(r.h) + '</b><span class="pill p-done" style="margin-left:8px">en attente</span>' +
+          '<span style="margin-left:auto"></span>' +
+          '<button class="go tmok" data-h="' + esc(r.h) + '" style="padding:4px 10px">Accepter</button>' +
+          '<button class="ghost tmno" data-h="' + esc(r.h) + '" style="color:var(--red)">Refuser</button></div>'
+        ).join('')
+      : '';
+  }
   $('tmMembers').innerHTML = (tm.members || []).map(m =>
     '<div class="tm-m"><span class="dot ' + (m.active ? 'run' : '') + '" style="' + (m.active ? 'color:var(--green)' : 'color:var(--faint)') + '"></span>' +
     '<b style="color:' + (m.h === HANDLE ? 'var(--green)' : 'var(--text)') + '">' + esc(m.h) + (m.h === HANDLE ? ' <small style="color:var(--faint)">' + T('tm_you') + '</small>' : '') + '</b>' +
-    '<span class="pill ' + (m.role === 'admin' ? 'p-prog' : 'p-done') + '">' + (m.role === 'admin' ? T('tm_admin') : T('tm_guest')) + '</span>' +
+    '<span class="pill ' + (m.role === 'admin' ? 'p-prog' : 'p-done') + '">' + (m.st === 'pending' ? 'en attente' : (TRLBL[m.role] || m.role || 'membre')) + '</span>' +
     '<span class="pill ' + (m.active ? 'p-live' : 'p-done') + '">' + (m.active ? T('tm_here') : Math.round(m.ms / 60000) + ' min') + '</span>' +
     (amAdmin && m.h !== HANDLE ?
-      '<select class="tmrole" data-h="' + esc(m.h) + '"><option value="guest"' + (m.role === 'admin' ? '' : ' selected') + '>' + T('tm_guest') + '</option><option value="admin"' + (m.role === 'admin' ? ' selected' : '') + '>' + T('tm_admin') + '</option></select>' +
-      '<button class="ghost tmkick" data-h="' + esc(m.h) + '">' + T('tm_kick') + '</button>' : '') +
+      '<select class="tmrole" data-h="' + esc(m.h) + '">' + ['viewer', 'member', 'hunter', 'coadmin', 'admin'].map(r =>
+        '<option value="' + r + '"' + (m.role === r ? ' selected' : '') + '>' + TRLBL[r] + '</option>').join('') + '</select>' +
+      (rk >= 3 ? '<button class="ghost tmkick" data-h="' + esc(m.h) + '">' + T('tm_kick') + '</button>' : '') : '') +
     '<small style="color:var(--faint);margin-left:auto">' + m.reqs + ' req</small></div>'
   ).join('') || '<div style="color:var(--faint);font-size:11.5px">' + T('tm_nobody') + '</div>';
   const micBtn = $('tmMic');
@@ -9059,9 +9137,20 @@ $('tmMic').addEventListener('click', micToggle);
 $('tmMembers').addEventListener('change', e => {
   const sel = e.target.closest('select.tmrole');
   if (!sel) return;
-  jpost('/api/team', { op: 'role.set', h: sel.dataset.h, r: sel.value }).then(r => r.json()).then(j => {
+  jpost('/api/team', { op: 'role.set', h: sel.dataset.h, r: sel.value, by: HANDLE }).then(r => r.json()).then(j => {
     toast('SESSION', j.ok ? T('tm_role_ok') : (j.error || T('tm_cfg_no')), j.ok ? 'HIT' : 'P2');
     setTimeout(refresh, 300);
+  }).catch(() => {});
+});
+$('tmPending').addEventListener('click', e => {
+  const ok = e.target.closest('button.tmok');
+  const no = e.target.closest('button.tmno');
+  if (!ok && !no) return;
+  const h = (ok || no).dataset.h;
+  jpost('/api/team', { op: ok ? 'approve' : 'deny', h, by: HANDLE }).then(r => r.json()).then(j => {
+    if (j.team) state.data.team = j.team;
+    toast('SESSION', j.ok ? (ok ? h + ' entre dans la session' : h + ' refuse et bloque') : (j.error || T('tm_cfg_no')), j.ok ? 'HIT' : 'P2');
+    forceDraw = true; refresh();
   }).catch(() => {});
 });
 $('tmMembers').addEventListener('click', e => {
@@ -9436,13 +9525,36 @@ async function refresh() {
     // demo "cree ton programme" colle jusqu'au rechargement de la page)
     const _progsSig = d.programs.map(p => p.id).join(',');
     if (_progsSig !== (PIP_PROGS_SIG || '')) { PIP_PROGS_SIG = _progsSig; fetchPipeline(); }
-    // presence team : battement toutes les ~5 s (3 polls)
-    if (state.tick % 3 === 0 && HANDLE) {
-      jpost('/api/team', { op: 'beat', handle: HANDLE }).then(r => r.json()).then(j => {
+    // presence team : battement toutes les ~5 s (3 polls). Un visiteur en attente
+    // de validation beat aussi : des que l'admin accepte, il entre automatiquement.
+    if (state.tick % 3 === 0 && (HANDLE || (JOIN_OPEN && JOIN_WAIT && PENDING_H))) {
+      const bh = HANDLE || PENDING_H;
+      jpost('/api/team', { op: 'beat', handle: bh }).then(r => r.json()).then(j => {
         if (j.team) state.data.team = j.team;
-        else if (j.error) { toast('SESSION', j.error, 'P2'); HANDLE = ''; try { localStorage.removeItem('c2ff-handle'); } catch (e) {} forceDraw = true; }
+        if (j.me === 'pending') showJoin(true);
+        else if (j.me === 'approved' && !HANDLE) {
+          HANDLE = bh;
+          try { localStorage.setItem('c2ff-handle', bh); } catch (e) {}
+          hideJoin();
+          toast('SESSION', 'accepte dans la session : ' + bh, 'HIT');
+          forceDraw = true;
+        } else if (j.me === 'none') {
+          HANDLE = '';
+          PENDING_H = '';
+          try { localStorage.removeItem('c2ff-handle'); } catch (e) {}
+          if (!IS_LOCAL) showJoin(false, 'pseudo refuse ou supprime - choisis-en un autre');
+        } else if (j.error) {
+          toast('SESSION', j.error, 'P2');
+          HANDLE = '';
+          PENDING_H = '';
+          try { localStorage.removeItem('c2ff-handle'); } catch (e) {}
+          if (!IS_LOCAL) showJoin(false, j.error);
+          forceDraw = true;
+        }
       }).catch(() => {});
     }
+    // visiteur distant sans identite + salle ouverte : la modal de connexion s'impose
+    if (!HANDLE && !IS_LOCAL && (d.team || {}).enabled && !JOIN_OPEN) showJoin(false, '');
     forceDraw = false;
     state.firstLoad = false;
   } catch (e) { /* serveur occupe */ }

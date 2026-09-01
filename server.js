@@ -88,11 +88,17 @@ const AI_ANALYST_PROMPT = "Tu es analyste bug bounty dans le framework C2FF. On 
   "ou infirmer. Pas de blabla, pas de speculations sans preuve.";
 
 // ---------- mode team : sessions de groupe a distance ----------
+const RANKS = { viewer: 0, member: 1, hunter: 2, coadmin: 3, admin: 4 };
 function teamCfg() {
   const c = readJson(TEAM_FILE, null) || {};
+  const members = (c.members && typeof c.members === 'object') ? c.members : {};
+  // migration legacy : roles {handle:'admin'} -> membre approuve sans pin
+  for (const [h, r] of Object.entries(c.roles || {}))
+    if (r === 'admin' && !members[h]) members[h] = { pin: '', role: 'admin', status: 'approved', t: 0 };
   return {
     enabled: !!c.enabled, room: String(c.room || ''), key: String(c.key || ''), live: !!c.live,
     roles: (c.roles && typeof c.roles === 'object') ? c.roles : {},
+    members,
     blocked: Array.isArray(c.blocked) ? c.blocked : [],
   };
 }
@@ -100,12 +106,25 @@ function saveTeamCfg(c) { try { fs.writeFileSync(TEAM_FILE, JSON.stringify(c, nu
 function genKey() { return 'c2ff-' + crypto.randomBytes(12).toString('hex'); }
 const PRESENCE = new Map(); // handle -> { last, reqs }
 const cleanHandle = h => String(h == null ? '' : h).replace(/[^\w \-.]{1,}/g, '').trim().slice(0, 16);
-// roles : le poste local est owner, un handle liste dans team.json peut etre admin, le reste guest
+const hashPin = (h, pin) => crypto.createHash('sha256').update('c2ff-pin:' + h + ':' + pin).digest('hex');
+const reqHandle = req => cleanHandle(req.headers['x-c2ff-handle']);
+// role effectif : le poste local est owner ; sinon le membre approuve (members),
+// fallback legacy roles{h:'admin'} ; un inconnu (ou en attente) = viewer
 const roleOf = (req, h) => {
   if (isLoopback(req)) return 'admin';
   const t = teamCfg();
+  const m = t.members[h];
+  if (m && m.status === 'approved') return RANKS[m.role] !== undefined ? m.role : 'member';
   if (h && t.roles[h] === 'admin') return 'admin';
-  return 'guest';
+  return 'viewer';
+};
+const rankOf = (req, h) => RANKS[roleOf(req, h)] || 0;
+// membre valide de la salle (hors loopback). '' = inconnu ou en attente de validation.
+// salle desactivee : usage solo, tout est permis.
+const memberRole = (req, h) => {
+  if (!teamCfg().enabled || isLoopback(req)) return 'admin';
+  const m = teamCfg().members[h];
+  return (m && m.status === 'approved') ? m.role : '';
 };
 const isLoopback = req => !req.internalTunnel && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(String(req.socket.remoteAddress || ''));
 const lanAddr = () => {
@@ -122,16 +141,23 @@ function teamAllowed(req, url) {
   if (isLoopback(req)) return true;
   return (url.searchParams.get('k') || req.headers['x-c2ff-key'] || '') === t.key;
 }
-function teamState(req) {
+function teamState(req, h) {
+  h = h || (req ? reqHandle(req) : '');
   const t = teamCfg();
   const now = Date.now();
+  const rk = rankOf(req, h);
   const members = [];
-  for (const [h, m] of PRESENCE) {
+  for (const [mh, m] of PRESENCE) {
     const ms = now - m.last;
-    if (ms > 600000) { PRESENCE.delete(h); continue; }
-    members.push({ h, last: m.last, ms, active: ms < 25000, reqs: m.reqs, role: m.role });
+    if (ms > 600000) { PRESENCE.delete(mh); continue; }
+    const mm = t.members[mh];
+    members.push({ h: mh, last: m.last, ms, active: ms < 25000, reqs: m.reqs, role: m.role, st: mm ? mm.status : '' });
   }
   members.sort((a, b) => a.last - b.last);
+  // file d'attente d'entree : visible des ranks >= co-admin seulement
+  const requests = rk >= 3
+    ? Object.entries(t.members).filter(([, m]) => m && m.status === 'pending').map(([mh, m]) => ({ h: mh, t: m.t }))
+    : [];
   return {
     enabled: t.enabled, room: t.room, protected: t.enabled,
     roles: t.roles, blocked: t.blocked,
@@ -139,7 +165,9 @@ function teamState(req) {
     tunnel: TUNNEL ? (TUNNEL.ready && TUNNEL.url ? TUNNEL.url : (TUNNEL.err ? 'err:' + TUNNEL.err : 'starting')) : '',
     chat: lastChat(200).filter(m => m.kind === 'team').slice(-100),
     rtc: rtcList(now),
-    you: req ? roleOf(req, '') : 'guest',
+    you: req ? roleOf(req, h) : 'viewer',
+    meRole: memberRole(req, h),
+    requests,
     members, online: members.filter(m => m.active).length,
   };
 }
@@ -514,6 +542,18 @@ function readBody(req, cb) {
 }
 
 function apiState(res, req) {
+  const th = reqHandle(req);
+  // salle ON + visiteur non valide : etat minimal, aucune donnee de chasse ne sort
+  if (teamCfg().enabled && !isLoopback(req) && !memberRole(req, th)) {
+    const t = teamCfg();
+    const me = t.members[th];
+    return sendJson(res, {
+      now: new Date().toISOString(), runs: [], findings: [], programs: [], chat: [], fleet: null, modes: [],
+      ai: { enabled: false, protocol: '', baseURL: '', model: '', ready: false },
+      team: { enabled: true, room: t.room, bind: 'lan', you: 'pending', meRole: '', requests: [], members: [], online: 0, chat: [] },
+      pendingMe: !!(me && me.status === 'pending'),
+    });
+  }
   const runs = [...state.runs.values()].map(r => {
     // l'agregateur "workflow" se marque termine quand tous les vrais agents ont fini
     const real = [...r.agents.values()].filter(a => a.base !== 'workflow');
@@ -528,7 +568,7 @@ function apiState(res, req) {
   const ai = aiCfg();
   sendJson(res, {
     now: new Date().toISOString(), runs, findings: state.findings, programs: loadPrograms(), chat: lastChat(80),
-    fleet: fleet.state(), modes: fleet.catalog(), team: teamState(req),
+    fleet: fleet.state(), modes: fleet.catalog(), team: teamState(req, th),
     ai: { enabled: ai.enabled, protocol: ai.protocol, baseURL: ai.baseURL, model: ai.model, ready: !!(ai.baseURL && ai.model) },
   });
 }
@@ -539,6 +579,11 @@ const MAIN = (req, res) => {
   const p = url.pathname;
   if (p.startsWith('/api/')) {
     if (!teamAllowed(req, url)) return send(res, 403, 'text/plain', 'team key required');
+    // salle ON + non valide : seul /api/state repond (etat minimal), rien d'autre
+    if (req.method === 'GET' && p !== '/api/state' && p !== '/index.html' && p !== '/' &&
+        teamCfg().enabled && !isLoopback(req) && !memberRole(req, reqHandle(req))) {
+      return sendJson(res, { ok: false, error: 'acces en attente de validation' });
+    }
   }
 
   if (req.method === 'GET' && p === '/api/surface') {
@@ -637,14 +682,69 @@ const MAIN = (req, res) => {
 
   if (req.method === 'POST') {
     readBody(req, async body => {
+      // graduations d'ecriture : hors team, un non-valide ne passe pas, un observateur est en lecture seule
+      if (p !== '/api/team' && teamCfg().enabled && !isLoopback(req)) {
+        const _r = memberRole(req, cleanHandle(body.handle || body.by || body.name || ''));
+        if (!_r) return sendJson(res, { ok: false, error: 'acces en attente de validation' });
+        if (_r === 'viewer') return sendJson(res, { ok: false, error: 'lecture seule (observateur)' });
+      }
       if (p === '/api/team') {
+        // join : signup (pseudo libre + pin 4-8 chiffres) ou signin (pseudo connu + pin).
+        // toute nouvelle entree passe en status pending : un admin/co-admin doit l'accepter.
+        if (body.op === 'join') {
+          const t = teamCfg();
+          if (!t.enabled) return sendJson(res, { ok: false, error: 'salle inactive' });
+          const h = cleanHandle(body.handle);
+          const pin = String(body.pin || '');
+          if (h.length < 2) return sendJson(res, { ok: false, error: 'pseudo requis (2 caracteres min)' });
+          if (t.blocked.includes(h)) return sendJson(res, { ok: false, error: 'pseudo refuse' });
+          if (!/^\d{4,8}$/.test(pin)) return sendJson(res, { ok: false, error: 'pin : 4 a 8 chiffres' });
+          const m = t.members[h];
+          if (!m) {
+            saveTeamCfg({ ...t, members: { ...t.members, [h]: { pin: hashPin(h, pin), role: 'member', status: 'pending', t: Date.now() } } });
+            return sendJson(res, { ok: true, pending: true });
+          }
+          if (m.pin) {
+            if (hashPin(h, pin) !== m.pin) return sendJson(res, { ok: false, error: 'pin errone pour ce pseudo' });
+          } else {
+            m.pin = hashPin(h, pin); // pseudo legacy sans pin : il le definit a la premiere connexion
+            saveTeamCfg(t);
+          }
+          if (m.status !== 'approved') return sendJson(res, { ok: true, pending: true });
+          return sendJson(res, { ok: true, joined: true, role: m.role });
+        }
+        // approve/deny : validation des demandes d'entree (rank >= co-admin).
+        // deny : le pseudo est supprime ET bloque (pas de re-demande spam).
+        if (body.op === 'approve' || body.op === 'deny') {
+          const by = cleanHandle(body.by || body.handle);
+          if (rankOf(req, by) < 3) return sendJson(res, { ok: false, error: 'admin ou co-admin requis' });
+          const h = cleanHandle(body.h);
+          const cur = teamCfg();
+          const m = cur.members[h];
+          if (!m || m.status !== 'pending') return sendJson(res, { ok: false, error: 'demande introuvable' });
+          if (body.op === 'deny') {
+            const members = { ...cur.members };
+            delete members[h];
+            saveTeamCfg({ ...cur, members, blocked: cur.blocked.filter(x => x !== h).concat([h]).slice(-50) });
+            PRESENCE.delete(h);
+          } else {
+            saveTeamCfg({ ...cur, members: { ...cur.members, [h]: { ...m, status: 'approved' } } });
+            if (PRESENCE.has(h)) PRESENCE.get(h).role = m.role || 'member';
+          }
+          return sendJson(res, { ok: true, team: teamState(req, by) });
+        }
         if (body.op === 'beat') {
           const h = cleanHandle(body.handle);
           if (h) {
             if (teamCfg().blocked.includes(h)) return sendJson(res, { ok: false, error: 'kicked from this room' });
             PRESENCE.set(h, { last: Date.now(), reqs: (PRESENCE.get(h) || { reqs: 0 }).reqs + 1, role: roleOf(req, h) });
           }
-          return sendJson(res, { ok: true, team: teamState(req) });
+          const t = teamCfg();
+          const me = t.members[h];
+          return sendJson(res, {
+            ok: true, team: teamState(req, h),
+            me: !h || isLoopback(req) ? 'approved' : (me ? me.status : 'none'),
+          });
         }
         if (body.op === 'rtc') {
           const from = cleanHandle(body.from) || 'invide';
@@ -652,50 +752,52 @@ const MAIN = (req, res) => {
             { from, to: cleanHandle(body.to) || '', typ: String(body.typ || '').slice(0, 8), data: String(body.data || '').slice(0, 8000), t: Date.now() });
           return sendJson(res, { ok: true });
         }
-        // role.set : la table des roles n'est editable que par le poste local
+        // role.set : les 5 grades, decision admin uniquement (le poste local est admin)
         if (body.op === 'role.set') {
-          if (!isLoopback(req)) return sendJson(res, { ok: false, error: 'localhost only' });
+          const by = cleanHandle(body.by || body.handle);
+          if (rankOf(req, by) < 4) return sendJson(res, { ok: false, error: 'admin only' });
           const cur = teamCfg();
-          const h = cleanHandle(body.h), r = body.r === 'admin' ? 'admin' : 'guest';
+          const h = cleanHandle(body.h);
+          const r = ['admin', 'coadmin', 'hunter', 'member', 'viewer'].includes(body.r) ? body.r : 'member';
           if (!h) return sendJson(res, { ok: false, error: 'handle required' });
-          const roles = { ...cur.roles, [h]: r };
-          saveTeamCfg({ ...cur, roles });
+          const members = { ...cur.members };
+          members[h] = members[h] ? { ...members[h], role: r } : { pin: '', role: r, status: 'approved', t: Date.now() };
+          saveTeamCfg({ ...cur, members });
           if (PRESENCE.has(h)) PRESENCE.get(h).role = r;
-          return sendJson(res, { ok: true, team: teamState(req) });
+          return sendJson(res, { ok: true, team: teamState(req, by) });
         }
-        // kick : admin -> le handle est bloque, son beat est refuse instantanement (re-cliquer debloque)
+        // kick : admin ou co-admin -> le handle est bloque, son beat est refuse instantanement (re-cliquer debloque)
         if (body.op === 'kick') {
           const h = cleanHandle(body.h);
-          if (roleOf(req, cleanHandle(body.by || body.handle)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
+          if (rankOf(req, cleanHandle(body.by || body.handle)) < 3) return sendJson(res, { ok: false, error: 'admin ou co-admin requis' });
           if (!h) return sendJson(res, { ok: false, error: 'handle required' });
           const cur = teamCfg();
           saveTeamCfg({ ...cur, blocked: cur.blocked.filter(x => x !== h).concat(cur.blocked.includes(h) ? [] : [h]).slice(-50) });
           PRESENCE.delete(h);
-          return sendJson(res, { ok: true, team: teamState(req) });
+          return sendJson(res, { ok: true, team: teamState(req, cleanHandle(body.by || body.handle)) });
         }
         if (body.op === 'config') {
-          if (roleOf(req, cleanHandle(body.by || body.handle)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
+          if (rankOf(req, cleanHandle(body.by || body.handle)) < 4) return sendJson(res, { ok: false, error: 'admin only' });
           const cur = teamCfg();
-          const next = {
+          saveTeamCfg({
+            ...cur,
             enabled: typeof body.enabled === 'boolean' ? body.enabled : cur.enabled,
             room: typeof body.room === 'string' ? body.room.trim().slice(0, 32) : cur.room,
             key: cur.key || genKey(),
-          };
-          saveTeamCfg(next);
-          return sendJson(res, { ok: true, team: next });
+          });
+          return sendJson(res, { ok: true, team: teamCfg() });
         }
         if (body.op === 'regen') {
-          if (roleOf(req, cleanHandle(body.by || body.handle)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
+          if (rankOf(req, cleanHandle(body.by || body.handle)) < 4) return sendJson(res, { ok: false, error: 'admin only' });
           const cur = teamCfg();
-          const next = { enabled: cur.enabled, room: cur.room, key: genKey() };
-          saveTeamCfg(next);
-          return sendJson(res, { ok: true, team: next });
+          saveTeamCfg({ ...cur, key: genKey() });
+          return sendJson(res, { ok: true, team: teamCfg() });
         }
         // tunnel public opt-in : URL universelle (trycloudflare) pour les membres hors LAN.
         // le tunnel passe par un proxy local marque : ses requetes comptent comme DISTANTES,
         // elles passent donc par la cle de salle au lieu du bypass loopback.
         if (body.op === 'tunnel') {
-          if (roleOf(req, cleanHandle(body.by)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
+          if (rankOf(req, cleanHandle(body.by)) < 4) return sendJson(res, { ok: false, error: 'admin only' });
           if (body.action === 'close') {
             if (TUNNEL) {
               try { TUNNEL.proxy.close(); } catch (e) {}
@@ -741,16 +843,15 @@ const MAIN = (req, res) => {
         // golive : le serveur se re-bind en 0.0.0.0 (respawn propre). shore : retour 127.0.0.1.
         // decision de bind = admin (poste local ou membre admin).
         if (body.op === 'golive' || body.op === 'shore') {
-          if (roleOf(req, cleanHandle(body.by)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
+          if (rankOf(req, cleanHandle(body.by)) < 4) return sendJson(res, { ok: false, error: 'admin only' });
           const cur = teamCfg();
           if (!cur.enabled) return sendJson(res, { ok: false, error: 'enable the room first' });
-          const next = { enabled: cur.enabled, room: cur.room, key: cur.key, live: body.op === 'golive' };
-          saveTeamCfg(next);
+          saveTeamCfg({ ...cur, live: body.op === 'golive' });
           try {
             require('child_process').spawn(process.execPath, process.argv.slice(1), { env: process.env, detached: true, stdio: 'ignore', cwd: ROOT }).unref();
           } catch (e) {}
           setTimeout(() => { try { process.exit(0); } catch (e) {} }, 250);
-          return sendJson(res, { ok: true, restarting: true, team: next });
+          return sendJson(res, { ok: true, restarting: true, team: { ...cur, live: body.op === 'golive' } });
         }
         return sendJson(res, { ok: false, error: 'unknown op' });
       }
