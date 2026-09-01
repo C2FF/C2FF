@@ -246,6 +246,26 @@ footer b{color:var(--green);font-weight:700;text-shadow:0 0 9px hsl(var(--hue) 6
 header,nav{border-bottom-color:transparent;
   border-image:linear-gradient(90deg,hsl(var(--hue) 8% 8%),hsl(var(--hue2) 10% 34%) 50%,hsl(var(--hue) 8% 8%)) 1}
 .card.glow{border-color:transparent;box-shadow:0 0 26px hsl(var(--hue) 62% 54% / .1)}
+
+/* ── ecrans etroits (telephone) ── */
+/* le zoom auto reste neutre ici : le layout reflowe sur une colonne,
+   les champs ne debordent plus, la nav scroll lateralement */
+@media (max-width:760px){
+  .wrap{padding:0 10px 28px}
+  header{gap:7px;padding:10px 0 8px}
+  .sub{display:none}
+  h1{font-size:14px}
+  .stats{gap:6px;margin:10px 0 2px}
+  .stat{min-width:0;flex:1;padding:6px 10px}
+  .stat .v{font-size:17px}
+  .view{padding:10px 0}
+  nav{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .navbtn{padding:9px 10px;font-size:11px;white-space:nowrap;flex:0 0 auto}
+  .prog{grid-template-columns:1fr}
+  input[type="text"],input[type="password"],select,textarea{max-width:100% !important}
+  .card{overflow-x:auto}
+  pre{white-space:pre-wrap;word-break:break-all}
+}
 </style>
 </head>
 <body>

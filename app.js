@@ -9288,7 +9288,11 @@ drawAmbBtn();
 let FIT_ON = true;
 try { FIT_ON = localStorage.getItem('c2ff-fit') !== 'off'; } catch (e) {}
 function applyFit() {
-  const z = FIT_ON ? Math.max(0.9, Math.min(1.6, window.innerWidth / 1440)) : 1;
+  if (!FIT_ON) { document.body.style.zoom = ''; return; }
+  // ecrans etroits (telephone) : zoom neutre, le layout reflowe via @media ;
+  // au-dela : zoom proportionnel a la largeur (reference 1440 px)
+  const w = window.innerWidth;
+  const z = w < 760 ? 1 : Math.max(0.9, Math.min(1.6, w / 1440));
   document.body.style.zoom = z === 1 ? '' : z;
 }
 function drawFitBtn() { const b = $('fitBtn'); if (b) b.textContent = FIT_ON ? 'AJUSTE : AUTO' : 'AJUSTE : OFF'; }
