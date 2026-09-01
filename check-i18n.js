@@ -87,10 +87,10 @@ const hard = (html.match(/>([A-ZÉÈ][a-zA-Zéèàêôûç'!? «»,;\/-]{5,60})<
 if (hard.length) console.log([...new Set(hard)].map(s => s.replace(/^>|<$/g, '')).join(' | '));
 else console.log('aucun');
 
-console.log('\n=== 6. prod (~/bugbounty/c2) vs repo ===');
+console.log('\n=== 6. prod (C2FF_PROD_DIR) vs repo ===');
 try {
-  const ps = fs.readFileSync((process.env.C2FF_PROD_DIR || '') + '/app.js', 'utf8');
-  const ph = fs.readFileSync((process.env.C2FF_PROD_DIR || '') + '/index.html', 'utf8');
+  const ps = fs.readFileSync(process.env.C2FF_PROD_DIR + '/app.js', 'utf8');
+  const ph = fs.readFileSync(process.env.C2FF_PROD_DIR + '/index.html', 'utf8');
   console.log('app.js    : ' + (ps === src ? 'identique' : '!! DIFFERENT'));
   console.log('index.html: ' + (ph === html ? 'identique' : '!! DIFFERENT'));
 } catch (e) { console.log('prod: ' + e.message); }
