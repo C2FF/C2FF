@@ -7825,7 +7825,7 @@ function toast(title, text, cls) {
 // ---------- rendu differentiel ----------
 // une vue ne se redessine que si ses donnees ont change, et jamais
 // quand l'utilisateur interagit avec un element de la vue (selects, inputs)
-const drawn = { runs: '', fnd: '', prog: '', chat: '', ai: '', team: '', pip: '', hunt: '', ars: '', jsi: '' };
+const drawn = { runs: '', fnd: '', prog: '', chat: '', ai: '', team: '', pip: '', hunt: '', ars: '', jsi: '', urls: '' };
 function focusInside(sel) {
   const r = $(sel);
   const a = document.activeElement;
@@ -8372,6 +8372,60 @@ function drawJsi() {
       secs.slice(0, 15).map(s => '<div style="font-size:11px;margin-top:3px;word-break:break-all"><span class="pill" style="color:' + (SEC_COLOR[s.k] || 'var(--warn)') + '">' + esc(s.k) + '</span> <code style="color:var(--text)">' + esc(s.v) + '</code> <small style="color:var(--dim)">' + esc(s.from.split('/').pop().slice(0, 40)) + '</small></div>').join('') + '</div>' : '') +
     (maps.length ? '<div style="margin-top:7px"><b style="color:var(--warn)">sourcemaps</b>' +
       maps.slice(0, 8).map(m => '<div style="font-size:11px;margin-top:3px;word-break:break-all">' + (m.fetched ? '<span style="color:var(--danger)">✔ 200</span>' : '<span style="color:var(--dim)">✖</span>') + ' ' + esc(m.url.slice(0, 100)) + (m.sources && m.sources.length ? ' <small style="color:var(--dim)">' + m.sources.length + ' sources</small>' : '') + '</div>').join('') + '</div>' : '') +
+    '</div>';
+}
+
+// ---- URLS passives : wayback + OTX, mining de params ----
+let USTORE = {}, URLS_BUSY = false, URLS_READY = false;
+function ustoreFor(id) {
+  if (!URLS_READY) {
+    URLS_READY = true;
+    fetch('/api/urls').then(r => r.json()).then(j => {
+      if (j.ok && j.all) { USTORE = j.all; if (state.tab === 'hunt') { drawn.urls = ''; drawUrls(); } }
+    }).catch(() => {});
+  }
+  return USTORE[id];
+}
+$('huntUrls').addEventListener('click', () => {
+  const p = huntSel; if (!p) return;
+  if (URLS_BUSY) return;
+  URLS_BUSY = true;
+  const b = $('huntUrls');
+  b.disabled = true; b.textContent = '⟳ WAYBACK…';
+  jpost('/api/urls', { op: 'run', name: p }).then(r => r.json()).then(j => {
+    URLS_BUSY = false; b.disabled = false; b.textContent = 'URLS';
+    if (!j.ok) { sndPlay('err'); if (!demoErr(j, 'URLS')) toast('URLS', j.err || 'echec', 'P2'); return; }
+    USTORE[p] = j.res || {};
+    sndPlay('hit');
+    toast('URLS', j.res.total + ' urls uniques - ' + (j.res.params || []).length + ' params - ' + (j.res.endpoints || []).length + ' endpoints API', 'HIT');
+    drawn.urls = '';
+    drawUrls();
+  }).catch(() => { URLS_BUSY = false; b.disabled = false; b.textContent = 'URLS'; sndPlay('err'); });
+});
+function drawUrls() {
+  const box = $('huntUrlsOut');
+  if (!box) return;
+  const U = ustoreFor(huntSel) || null;
+  const sig = JSON.stringify(U);
+  if (sig === drawn.urls) return;
+  drawn.urls = sig;
+  if (!U || !U.host) { box.innerHTML = ''; return; }
+  const urls = U.urls || [], ps = U.params || [], eps = U.endpoints || [], exts = U.exts || {};
+  const pillList = (arr, max) => arr.slice(0, max).map(x => '<span class="pill" style="margin:1px 2px 1px 0">' + esc(x.length > 90 ? x.slice(0, 97) + '…' : x) + '</span>').join('') + (arr.length > max ? ' <small style="color:var(--dim)">+' + (arr.length - max) + '</small>' : '');
+  const extsTxt = Object.keys(exts).sort((a, b) => exts[b] - exts[a]).slice(0, 10).map(e => e + ':' + exts[e]).join(' · ');
+  box.innerHTML =
+    '<div class="card" style="margin-top:12px">' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline">' +
+    '<b style="color:var(--green);font-size:12.5px">◈ URLS PASSIVES</b>' +
+    '<small style="color:var(--faint)">' + (U.total || 0) + ' urls uniques (' + esc(U.base || '') + ') · wayback + OTX · ' + new Date(U.ts).toLocaleTimeString('fr-FR') + '</small>' +
+    (eps.length ? '<span class="pill" style="color:var(--warn)">' + eps.length + ' endpoints API</span>' : '') +
+    '</div>' +
+    (ps.length ? '<div style="margin-top:7px"><b style="color:var(--green)">params trouvés (cible tes tests de reflection/authz sur ceux-ci)</b>' +
+      '<div style="margin-top:3px;line-height:1.7;font-size:10.5px">' + ps.slice(0, 40).map(p => '<span class="pill" style="margin:1px 2px 1px 0">' + esc(p.p) + ' ×' + p.n + '</span>').join('') + (ps.length > 40 ? ' <small style="color:var(--dim)">+' + (ps.length - 40) + '</small>' : '') + '</div>' +
+      '<small style="color:var(--dim)">exemples de valeurs : ' + ps.slice(0, 6).map(p => esc(p.p) + '=' + esc(p.ex || '?')).join(' | ') + '</small></div>' : '') +
+    (extsTxt ? '<div style="margin-top:7px"><b style="color:var(--warn)">fichiers sensibles dans l historique</b> <small style="color:var(--text)">' + esc(extsTxt) + '</small></div>' : '') +
+    (eps.length ? '<div style="margin-top:7px"><b style="color:var(--green)">endpoints API historiques</b><div style="margin-top:3px;line-height:1.7;font-size:10.5px;word-break:break-all">' + pillList(eps, 40) + '</div></div>' : '') +
+    (urls.length ? '<details style="margin-top:7px"><summary style="cursor:pointer;color:var(--dim);font-size:11px">toutes les urls (' + urls.length + ')</summary><div style="margin-top:3px;line-height:1.6;font-size:10px;word-break:break-all;max-height:180px;overflow-y:auto">' + pillList(urls, 200) + '</div></details>' : '') +
     '</div>';
 }
 
@@ -8961,7 +9015,7 @@ async function refresh() {
       popNotify('SESSION · ' + (ttop.name || '?'), ttop.text || '', '');
     }
     if (ttop) NOTIF.lastTeamT = ttop.t;
-    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawChat(); drawFleet(); drawAI(); drawTeam();
+    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawUrls(); drawChat(); drawFleet(); drawAI(); drawTeam();
     // presence team : battement toutes les ~5 s (3 polls)
     if (state.tick % 3 === 0 && HANDLE) {
       jpost('/api/team', { op: 'beat', handle: HANDLE }).then(r => r.json()).then(j => {

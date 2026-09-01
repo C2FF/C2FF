@@ -22,6 +22,7 @@ const FLEET_FILE = path.join(DATA, 'fleet.json');
 const AI_FILE = path.join(DATA, 'ai.json');
 const TEAM_FILE = path.join(DATA, 'team.json');
 const JSINT_FILE = path.join(DATA, 'jsint.json');
+const URLS_FILE = path.join(DATA, 'urls.json');
 // golive (bouton UI) persiste "live" dans team.json : le respawn (auto ou watchdog)
 // reprend le bind reseau sans env. C2FF_BIND reste l'override manuel.
 if (!process.env['C2FF_BIND']) {
@@ -289,6 +290,7 @@ const ATTACK = require('./attack.js');
 const PLAN = require('./plan.js');
 const ARSENAL = require('./arsenal.js');
 const JSINT = require('./jsint.js');
+const URLS = require('./urls.js');
 fleet.init({
   file: FLEET_FILE,
   onFinding: (f) => {
@@ -564,6 +566,16 @@ const MAIN = (req, res) => {
     return sendJson(res, { ok: true, prog: h.prog.id, res: all[h.prog.id] || null });
   }
 
+  // URLS passives : wayback CDX + OTX, mining de params
+  if (req.method === 'GET' && p === '/api/urls') {
+    const name = String(url.searchParams.get('name') || '').toLowerCase();
+    let all = {}; try { all = JSON.parse(fs.readFileSync(URLS_FILE, 'utf8')); } catch (e) {}
+    if (!name) return sendJson(res, { ok: true, all });
+    const h = hypProgram(name);
+    if (!h) return sendJson(res, { ok: false, err: 'programme introuvable' });
+    return sendJson(res, { ok: true, prog: h.prog.id, res: all[h.prog.id] || null });
+  }
+
   if (req.method === 'POST') {
     readBody(req, async body => {
       if (p === '/api/team') {
@@ -750,6 +762,30 @@ const MAIN = (req, res) => {
               fs.writeFileSync(JSINT_FILE, JSON.stringify(all, null, 1));
             } catch (e) {
               fs.writeFileSync(JSINT_FILE, JSON.stringify({ [prog.id]: out }, null, 1));
+            }
+            sendJson(res, { ok: true, prog: prog.id, res: out });
+          });
+        }
+        return sendJson(res, { ok: false });
+      }
+
+      // ---- URLS passives : wayback CDX + OTX, mining de params ----
+      if (p === '/api/urls') {
+        if (body.op === 'run') {
+          const name = String(body.name || '').toLowerCase();
+          const progs = loadPrograms();
+          const prog = progs.find(x => x.id === name) || progs.find(x => String(x.name || '').toLowerCase() === name);
+          if (!prog) return sendJson(res, { ok: false, err: 'programme introuvable' });
+          if (isDemo(prog)) return sendJson(res, { ok: false, demo: true, err: 'programme de demonstration : cree ton programme avec ton vrai scope' });
+          let surf = {}; try { surf = JSON.parse(fs.readFileSync(path.join(DATA, 'surface.json'), 'utf8'))[prog.id] || null; } catch (e) {}
+          if (!surf || !surf.host) return sendJson(res, { ok: false, err: 'recon requis : lance RECON avant URLS' });
+          return URLS.urls(surf, prog, out => {
+            try {
+              const all = JSON.parse(fs.readFileSync(URLS_FILE, 'utf8'));
+              all[prog.id] = out;
+              fs.writeFileSync(URLS_FILE, JSON.stringify(all, null, 1));
+            } catch (e) {
+              fs.writeFileSync(URLS_FILE, JSON.stringify({ [prog.id]: out }, null, 1));
             }
             sendJson(res, { ok: true, prog: prog.id, res: out });
           });
