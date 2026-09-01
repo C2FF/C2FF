@@ -7896,7 +7896,7 @@ function drawFindings() {
       '<select data-k="' + esc(f.key) + '" class="fstat">' + sel + '</select>' +
       '<button class="ghost pocgo" data-id="' + esc(f.id) + '">POC ⧉</button>' +
       '<button class="ghost ia-run" data-t="' + esc(f.text.slice(0, 400)) + '">IA »</button>' +
-      '<button class="ghost fdel" data-k="' + esc(f.key) + '" style="color:var(--red)">✕</button></div>' +
+      '<button class="ghost need-coadmin fdel" data-k="' + esc(f.key) + '" style="color:var(--danger)">✕</button></div>' +
       '<div class="txt">' + hl(f.text) + '</div></div>';
   }).join('') || '<div class="fnd">' + T('f_none') + '</div>';
   document.querySelectorAll('.fnd select').forEach(s => s.addEventListener('change', () => {
@@ -7967,7 +7967,7 @@ function drawPrograms() {
     '<select class="mode" data-p="' + esc(p.id) + '">' + modes.map(m => '<option value="' + esc(m.key) + '">' + esc(m.label) + ' · CWE ' + esc(m.cwes) + '</option>').join('') + '</select>' +
     '<button class="go launch" data-p="' + esc(p.id) + '">GO ›</button>' +
     '<button class="ghost huntgo" data-p="' + esc(p.id) + '" style="padding:6px 14px;font-size:11px">' + T('navh') + ' ›</button>' +
-    (p.demo ? '' : '<button class="ghost progd" data-p="' + esc(p.id) + '" style="padding:6px 12px;font-size:11px;color:var(--red)">✕</button>') + '</div>' +
+    (p.demo ? '' : '<button class="ghost need-coadmin progd" data-p="' + esc(p.id) + '" style="padding:6px 12px;font-size:11px;color:var(--danger)">✕</button>') + '</div>' +
     '<div class="subtle" style="color:var(--dim);font-size:10.5px" id="mdesc-' + esc(p.id) + '"></div>' +
     '</div>'
   ).join('');
@@ -9548,6 +9548,8 @@ async function refresh() {
     }
     if (ttop) NOTIF.lastTeamT = ttop.t;
     drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawUrls(); drawMods(); drawAuth(); drawAdv(); drawChat(); drawFleet(); drawAI(); drawTeam(); drawArsenal(); drawFast();
+    const _rk = TRANK[d.team.meRole || d.team.you] || 0;
+    if (document.body.dataset.rank !== String(_rk)) document.body.dataset.rank = String(_rk);
     // programmes crees/supprimes : le bandeau pipeline suit (sinon message
     // demo "cree ton programme" colle jusqu'au rechargement de la page)
     const _progsSig = d.programs.map(p => p.id).join(',');

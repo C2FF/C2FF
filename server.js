@@ -682,11 +682,21 @@ const MAIN = (req, res) => {
 
   if (req.method === 'POST') {
     readBody(req, async body => {
-      // graduations d'ecriture : hors team, un non-valide ne passe pas, un observateur est en lecture seule
-      if (p !== '/api/team' && teamCfg().enabled && !isLoopback(req)) {
+      // graduations d'ecriture : observateur = lecture pure (meme pas le chat),
+      // membre = chasse, co-admin = moderation (suppressions, creds), admin = config.
+      // /api/team et /api/term gatent leurs ops en interne.
+      const MINW = {
+        '/api/chat': 1, '/api/queue': 1, '/api/findings': 1, '/api/jsint': 1, '/api/urls': 1,
+        '/api/auth': 3, '/api/modules': 1, '/api/attack': 1, '/api/advanced': 1, '/api/planrun': 1,
+        '/api/planpatch': 1, '/api/programs': 1, '/api/fast': 1, '/api/recon': 1, '/api/surface': 1,
+        '/api/fleet': 1, '/api/arsenal': 1, '/api/ai': 1,
+      };
+      if (p !== '/api/team' && p !== '/api/term' && teamCfg().enabled && !isLoopback(req)) {
         const _r = memberRole(req, cleanHandle(body.handle || body.by || body.name || ''));
         if (!_r) return sendJson(res, { ok: false, error: 'acces en attente de validation' });
-        if (_r === 'viewer') return sendJson(res, { ok: false, error: 'lecture seule (observateur)' });
+        if ((RANKS[_r] || 0) < (MINW[p] === undefined ? 1 : MINW[p])) {
+          return sendJson(res, { ok: false, error: _r === 'viewer' ? 'lecture seule (observateur)' : 'grade insuffisant pour cette action' });
+        }
       }
       if (p === '/api/team') {
         // join : signup (pseudo libre + pin 4-8 chiffres) ou signin (pseudo connu + pin).
@@ -892,7 +902,7 @@ const MAIN = (req, res) => {
       }
       if (p === '/api/findings') {
         if (body.op === 'delete' && body.key) {
-          if (roleOf(req, cleanHandle(body.name || body.by)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
+          if (rankOf(req, cleanHandle(body.name || body.by)) < 3) return sendJson(res, { ok: false, error: 'admin ou co-admin requis' });
           const i = state.findings.findIndex(x => x.key === body.key);
           if (i >= 0) state.findings.splice(i, 1);
           persistFindings();
@@ -1172,13 +1182,13 @@ const MAIN = (req, res) => {
       if (p === '/api/programs') {
         // purge : vide les donnees recon d'un programme, garde le programme + findings
         if (body.op === 'purge' && body.name) {
-          if (roleOf(req, cleanHandle(body.by || body.name)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
+          if (rankOf(req, cleanHandle(body.by || body.name)) < 3) return sendJson(res, { ok: false, error: 'admin ou co-admin requis' });
           purgeProgData(String(body.name));
           return sendJson(res, { ok: true });
         }
         // suppression : programme + findings + toutes ses donnees recon
         if (body.op === 'delete' && body.name) {
-          if (roleOf(req, cleanHandle(body.by || body.name)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
+          if (rankOf(req, cleanHandle(body.by || body.name)) < 3) return sendJson(res, { ok: false, error: 'admin ou co-admin requis' });
           const id = String(body.name);
           const progs = loadPrograms().filter(x => x.id !== id);
           try { fs.writeFileSync(PROGRAMS_FILE, JSON.stringify(progs, null, 1)); } catch (e) { return sendJson(res, { ok: false }); }
@@ -1200,6 +1210,7 @@ const MAIN = (req, res) => {
           return sendJson(res, { ok: true, id });
         }
         if (Array.isArray(body.programs)) {
+          if (rankOf(req, cleanHandle(body.by || body.handle || '')) < 4) return sendJson(res, { ok: false, error: 'admin only' });
           try { fs.writeFileSync(PROGRAMS_FILE, JSON.stringify(body.programs, null, 1)); return sendJson(res, { ok: true }); }
           catch (e) { return sendJson(res, { ok: false }); }
         }
@@ -1207,7 +1218,7 @@ const MAIN = (req, res) => {
       }
       // ---- FAST TARGETING : recon-lite sans programme, resultats ephemeres ----
       if (p === '/api/fast') {
-        if (roleOf(req, cleanHandle(body.by)) !== 'admin') return sendJson(res, { ok: false, err: 'admin only' });
+        if (rankOf(req, cleanHandle(body.by)) < 1) return sendJson(res, { ok: false, err: 'membre requis' });
         let raw = String(body.target || '').trim();
         if (!raw) return sendJson(res, { ok: false, err: 'cible manquante' });
         if (!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
@@ -1357,8 +1368,9 @@ const MAIN = (req, res) => {
             return sendJson(res, { ok: true, reply: trunc(reply, 2000) });
           } catch (e) { return sendJson(res, { ok: false, error: trunc(e.message, 200) }); }
         }
-        // sauvegarde de la config
+        // sauvegarde de la config : admin uniquement (la cle API ne change pas de main)
         if (typeof body.enabled === 'boolean' || body.baseURL || body.model || body.protocol) {
+          if (rankOf(req, cleanHandle(body.by || body.handle || '')) < 4) return sendJson(res, { ok: false, error: 'admin only' });
           const cur = aiCfg();
           const next = {
             enabled: typeof body.enabled === 'boolean' ? body.enabled : cur.enabled,

@@ -28,6 +28,14 @@
 body{margin:0;background:linear-gradient(168deg,hsl(var(--hue) 28% 4.6%),hsl(var(--hue2) 26% 6%) 55%,hsl(var(--hue) 24% 4.8%)) fixed var(--bg);color:var(--text);
   font:13px/1.55 "JetBrains Mono","Fira Code",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   -webkit-font-smoothing:antialiased}
+/* graduations d'affichage : le grade courant (body[data-rank], pose par app.js)
+   masque tout ce qui exige un rang superieur - besoin-member >= chasseur? non :
+   member=1 chasse, coadmin=3 moderation, admin=4 configuration */
+body[data-rank="0"] .need-member, body[data-rank="0"] .need-coadmin, body[data-rank="0"] .need-admin,
+body[data-rank="1"] .need-coadmin, body[data-rank="1"] .need-admin,
+body[data-rank="2"] .need-coadmin, body[data-rank="2"] .need-admin,
+body[data-rank="3"] .need-admin { display:none !important }
+
 /* balayage CRT lent, la console vit */
 body::after{content:"";position:fixed;left:0;right:0;height:120px;pointer-events:none;z-index:0;
   background:linear-gradient(180deg,transparent,hsl(var(--hue) 62% 54% / .018),transparent);
@@ -291,7 +299,7 @@ header,nav{border-bottom-color:transparent;
   <button class="navbtn" data-tab="findings"><span data-i="navfd">Findings</span> <small id="nFnd"></small></button>
   <button class="navbtn" data-tab="fast"><span>FAST</span></button>
   <button class="navbtn" data-tab="ai"><span data-i="navai">IA</span></button>
-  <button class="navbtn" data-tab="term"><span data-i="navtrm">TERM</span></button>
+  <button class="navbtn need-admin" data-tab="term"><span data-i="navtrm">TERM</span></button>
   <button class="navbtn" data-tab="team"><span data-i="navt">Team</span></button>
   <button class="navbtn" data-tab="chat"><span data-i="navc">Coordination</span> <small id="nChat"></small></button>
 </nav>
@@ -317,8 +325,8 @@ header,nav{border-bottom-color:transparent;
 <section class="view" id="v-fast">
   <h2>FAST TARGETING - scan d'une cible sans creer de programme</h2>
   <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-    <input type="text" id="fastTarget" placeholder="https://cible.com" style="flex:1;min-width:260px">
-    <button class="go" id="fastGo">SCAN ›</button>
+    <input class="need-member" type="text" id="fastTarget" placeholder="https://cible.com" style="flex:1;min-width:260px">
+    <button class="go need-member" id="fastGo">SCAN ›</button>
     <span class="pill" id="fastSt" data-i="h_ready">pret</span>
   </div>
   <div class="card" style="margin-top:10px;color:var(--dim);font-size:11px">
@@ -332,7 +340,7 @@ header,nav{border-bottom-color:transparent;
   <div class="prog" id="progList"></div>
   <div class="card" style="margin-top:12px">
     <h2 style="margin-top:0" data-i="h2new">Nouveau programme</h2>
-    <form id="progForm" style="display:flex;gap:8px;flex-wrap:wrap">
+    <form id="progForm" class="need-member" style="display:flex;gap:8px;flex-wrap:wrap">
       <input type="text" id="npName" data-ip="p_name_ph" placeholder="Nom du programme (ex: PayPal)" style="width:200px" required>
       <input type="text" id="npHeader" data-ip="p_hdr_ph" placeholder="header chercheur requis (ex: X-Bug-Bounty: xxx)" style="width:290px">
       <input type="text" id="npScope" data-ip="p_scope_ph" placeholder="scope : domaine1, domaine2, …" style="flex:1">
@@ -344,16 +352,16 @@ header,nav{border-bottom-color:transparent;
 <section class="view" id="v-hunt">
   <h2 data-i="h2hunt">HUNT - surface reelle d'une cible et preuves</h2>
   <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-    <button class="go" id="huntRecon" data-i="rc_btn">RECON</button>
-    <button class="go" id="huntAtk" data-i="atk_btn">ATTACK</button>
-    <button class="go" id="huntJs">JS INTEL</button>
-    <button class="go" id="huntUrls">URLS</button>
-    <button class="go" id="huntReflect">REFLECT</button>
-    <button class="go" id="huntAuthz">AUTHZ</button>
+    <button class="go need-member" id="huntRecon" data-i="rc_btn">RECON</button>
+    <button class="go need-member" id="huntAtk" data-i="atk_btn">ATTACK</button>
+    <button class="go need-member" id="huntJs">JS INTEL</button>
+    <button class="go need-member" id="huntUrls">URLS</button>
+    <button class="go need-member" id="huntReflect">REFLECT</button>
+    <button class="go need-member" id="huntAuthz">AUTHZ</button>
     <button class="go" id="huntArsBtn">ARSENAL</button>
     <button class="go" id="huntAdvBtn">ADV</button>
     <button class="ghost" id="huntAuthBtn">AUTH</button>
-    <button class="ghost" id="huntPurge" style="color:var(--danger)">PURGE RECON</button>
+    <button class="ghost need-coadmin" id="huntPurge" style="color:var(--danger)">PURGE RECON</button>
     <span class="pill" id="huntSt" data-i="h_ready">pret</span>
   </div>
   <div class="card" id="huntSurf" style="margin-top:12px"></div>
@@ -395,6 +403,7 @@ header,nav{border-bottom-color:transparent;
     <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:10px 0">
       <span class="pill" id="aiStatus">?</span>
     </div>
+    <div class="need-admin">
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <select id="aiEnabled" style="width:150px"><option value="off" data-i="ai_off">desactivee</option><option value="on" data-i="ai_on">activee</option></select>
       <select id="aiProtocol" style="width:220px">
@@ -413,6 +422,7 @@ header,nav{border-bottom-color:transparent;
       <button class="ghost" id="aiTest" data-i="ai_test">Tester la connexion</button>
     </div>
     <div id="aiTestOut" class="subtle" style="color:var(--muted);font-size:11.5px;margin-top:8px;white-space:pre-wrap"></div>
+    </div>
     <div class="subtle" style="color:var(--faint);font-size:10.5px;margin-top:10px" data-i="ai_note"></div>
   </div>
 </section>
@@ -430,7 +440,7 @@ header,nav{border-bottom-color:transparent;
       <input type="text" id="tmHandleEl" maxlength="16" style="width:170px" placeholder="pseudo">
       <button class="ghost" id="tmSaveHandle" data-i="tm_save_h">Choisir</button>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+    <div class="need-admin" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
       <select id="tmOn" style="width:180px">
         <option value="off">OFF</option>
         <option value="on">ON</option>
@@ -440,30 +450,30 @@ header,nav{border-bottom-color:transparent;
       <button class="ghost" id="tmRegen" data-i="tm_regen">Regenerer la cle</button>
       <button class="go" id="tmLive">OUVRIR AU RESEAU</button>
     </div>
-    <div style="font-size:12px;margin-bottom:6px">
+    <div class="need-admin" style="font-size:12px;margin-bottom:6px">
       <span style="color:var(--muted)" data-i="tm_room">Salle</span> : <b id="tmRoom" style="color:var(--text)">-</b>
       &nbsp;|&nbsp; <span style="color:var(--muted)" data-i="tm_key">Cle de salle</span> : <b id="tmKey" style="color:var(--green);word-break:break-all">-</b>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 12px">
+    <div class="need-admin" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 12px">
       <span style="color:var(--muted);font-size:11.5px" data-i="tm_invite">Lien d invitation</span>
       <code id="tmInvite" style="color:var(--green-dim);font-size:11px;word-break:break-all;flex:1;min-width:180px"></code>
       <button class="go" id="tmCopy" data-i="tm_copy" style="flex:none;padding:5px 12px;font-size:11.5px">Copier</button>
     </div>
-    <div id="tmInviteNote" hidden style="font-size:11px;color:var(--faint);margin:-4px 0 10px">l'URL seule suffit : pseudo et pin se choisissent a l'arrivee (modal de connexion)</div>
+    <div id="tmInviteNote" class="need-admin" hidden style="font-size:11px;color:var(--faint);margin:-4px 0 10px">l'URL seule suffit : pseudo et pin se choisissent a l'arrivee (modal de connexion)</div>
     <h2 style="margin:14px 0 6px" data-i="tm_members">Membres</h2>
     <div id="tmPending" style="font-size:12px;margin-bottom:10px"></div>
     <div id="tmMembers" style="font-size:12px"></div>
     <h2 style="margin:16px 0 6px" data-i="tm_chat_h2">Chat de session</h2>
     <div id="tmChatlog" style="height:34vh;overflow-y:auto;border:1px solid var(--line);border-radius:7px;padding:12px;background:var(--panel2)"></div>
-    <form id="tmMsgForm" style="display:flex;gap:8px;margin-top:8px">
+    <form id="tmMsgForm" class="need-member" style="display:flex;gap:8px;margin-top:8px">
       <input type="text" id="tmMsg" data-ip="tm_msg_ph" autocomplete="off" style="flex:1">
       <button class="go" type="submit" data-i="ch_send">Envoyer</button>
     </form>
     <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <button class="go" id="tmMic">ACTIVER LE MICRO</button>
-      <button class="go" id="tmTunnel">OUVRIR AU MONDE (tunnel)</button>
+      <button class="go need-member" id="tmMic">ACTIVER LE MICRO</button>
+      <button class="go need-admin" id="tmTunnel">OUVRIR AU MONDE (tunnel)</button>
       <small id="tmTunnelInfo" style="color:var(--muted);font-size:11.5px;flex:1;min-width:200px"></small>
-      <button class="go" id="tmTunnelCopy" data-i="tm_copy" hidden style="flex:none;padding:5px 12px;font-size:11.5px">Copier</button>
+      <button class="go need-admin" id="tmTunnelCopy" data-i="tm_copy" hidden style="flex:none;padding:5px 12px;font-size:11.5px">Copier</button>
     </div>
   </div>
 </section>
@@ -488,7 +498,7 @@ header,nav{border-bottom-color:transparent;
   <h2 data-i="h2c">Coordination - canal privé</h2>
   <div id="chatbox">
     <div id="chatlog"></div>
-    <form id="chatform"><input id="chatinput" data-ip="ch_ph" placeholder="root@c2ff:~# message vers l'agent d'analyse…" autocomplete="off"><button class="go" type="submit" data-i="ch_send">Envoyer</button></form>
+    <form id="chatform" class="need-member"><input id="chatinput" data-ip="ch_ph" placeholder="root@c2ff:~# message vers l'agent d'analyse…" autocomplete="off"><button class="go" type="submit" data-i="ch_send">Envoyer</button></form>
   </div>
 </section>
 
