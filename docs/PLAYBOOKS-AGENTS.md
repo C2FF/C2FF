@@ -41,7 +41,7 @@ Une fois connectee : bouton `IA »` sur chaque finding de l'onglet FINDINGS - l'
 Le canal `data/chat.jsonl` reste lisible a chaud :
 
 ```json
-{"t":1690000000,"from":"user","kind":"chat","text":"passe sur progammes/X, mode SQLI"}
+{"t":1690000000,"from":"operator","kind":"chat","text":"passe sur programmes/X, mode SQLI"}
 ```
 
 ```bash

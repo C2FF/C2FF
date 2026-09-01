@@ -89,8 +89,8 @@ else console.log('aucun');
 
 console.log('\n=== 6. prod (~/bugbounty/c2) vs repo ===');
 try {
-  const ps = fs.readFileSync('/home/user/bugbounty/c2/app.js', 'utf8');
-  const ph = fs.readFileSync('/home/user/bugbounty/c2/index.html', 'utf8');
+  const ps = fs.readFileSync((process.env.C2FF_PROD_DIR || '') + '/app.js', 'utf8');
+  const ph = fs.readFileSync((process.env.C2FF_PROD_DIR || '') + '/index.html', 'utf8');
   console.log('app.js    : ' + (ps === src ? 'identique' : '!! DIFFERENT'));
   console.log('index.html: ' + (ph === html ? 'identique' : '!! DIFFERENT'));
 } catch (e) { console.log('prod: ' + e.message); }

@@ -14,7 +14,7 @@ Fleet probing, findings triage, program management, agent coordination and multi
 [![Platforms](https://img.shields.io/badge/platform-linux_·_macOS_·_WSL2-2a7a3d)](#quick-start)
 [![Languages](https://img.shields.io/badge/UI-82_languages_fully_translated-2a7a3d)](#console-tour)
 
-[The stack](#the-stack-at-a-glance) · [Session levels](#three-levels-of-access) · [The engine](#the-engine) · [Quick start](#quick-start) · [Console tour](#console-tour) · [Team sessions](#team-sessions) · [Agent integration](#agent-integration) · [Architecture](#architecture) · [Security & ethics](#security--ethics) · [Roadmap](#roadmap)
+[The stack](#the-stack-at-a-glance) · [Session levels](#three-levels-of-access) · [The engine](#the-engine) · [The hunt](#the-hunt-on-one-screen) · [Arsenal](#arsenal-from-signal-to-movement) · [Quick start](#quick-start) · [Console tour](#console-tour) · [Team sessions](#team-sessions) · [Agent integration](#agent-integration) · [Architecture](#architecture) · [Security & ethics](#security--ethics) · [Roadmap](#roadmap)
 
 </div>
 
@@ -22,8 +22,10 @@ Fleet probing, findings triage, program management, agent coordination and multi
 
 C2FF is the console where an authorized hunt actually lives:
 
-- you declare a **program** (scope + researcher header), pick one of **15 modes**, and the local engine probes on a budget
-- every signal lands in a **findings base** with a persistent triage workflow
+- you declare a **program** (scope + researcher header + credentials card), and a permanent pipeline banner tracks **SCOPE > RECON > ATTACK > ARSENAL > PLAN** for the active target
+- the **HUNT tab** puts 8 actions on one screen: surface mapping, passive URL history, JS intel, targeted probes, reflected-XSS and access-control modules with captured request + response, and a persistent work plan
+- every signal lands in a **findings base** with a persistent triage workflow and a one-click markdown PoC
+- the **arsenal** matches your recon'd stack against CISA KEV / EPSS / Exploit-DB and executes moves through nuclei
 - your agents stream their output into the **fleet view**, and can be driven from a private **coordination channel**
 - when you hunt **as a team**, one click opens the same console to your crew, with roles, live audio and a session chat
 
@@ -37,7 +39,8 @@ It is deliberately **not** another headless scanner: C2FF keeps a human in comma
 | Core | `server.js` - HTTP API, auth rooms, roles, tunnel control, audio signaling | one Node process |
 | Engine | `fleet.js` - 21 deterministic probe modules, budgeted cycles | `curl`, local |
 | Hunt | `recon.js` + `attack.js` + `plan.js` - surface mapping, targeted probes, work plan | `https`, local |
-| State | `data/*.json*` - findings, programs, surface, attack, plan, chat, team, AI gateway | your disk |
+| Attack modules | `jsint.js`, `urls.js`, `modules.js`, `auth.js`, `arsenal.js` - JS intel, passive URLs, REFLECT/AUTHZ with captured proof, per-program creds, KEV/EPSS/nuclei | `https`, local |
+| State | `data/*.json*` - findings, programs, surface, attack, plan, modules, urls, jsint, arsenal, chat, team, AI gateway | your disk |
 | Watchdog | `watchdog.sh` - port check loop, auto-revive | your shell |
 
 Dependency-free JavaScript only. If you can run Node, you can run C2FF.
@@ -46,7 +49,7 @@ Dependency-free JavaScript only. If you can run Node, you can run C2FF.
 
 ## Three levels of access
 
-The SESSION tab flips the console between solo and shared, without restarting anything yourself:
+The TEAM tab flips the console between solo and shared, without restarting anything yourself:
 
 | Level | Trigger | Reach | Auth |
 |---|---|---|---|
@@ -101,17 +104,36 @@ Modules compose into **15 one-click modes** (Programs tab > `GO`): FULL SWEEP co
 
 Families that need authenticated sessions or business-logic judgment (CSRF mass, race conditions, payment flows) are deliberately not probed automatically - that is where the optional AI gateway and your own hands take over.
 
-### The hunt, in three phases
+### The hunt, on one screen
 
-The **HUNT tab** (key `4`) is where a selected target actually gets worked - pick a program, then walk its pipeline:
+A permanent pipeline banner sits above every tab: pick the active program once, and each stage lights up as it produces data - **SCOPE > RECON > ATTACK > ARSENAL > PLAN** - with a live findings counter.
 
-| Phase | What happens | Output |
+The **HUNT tab** (key `2`) is the target-centered working view: one program selected, one row of action buttons, and everything the target produced underneath (plan, findings, arsenal moves). Each action writes its own `data/*.json` and re-runs in one click:
+
+| Action | What it does | Output |
 |---|---|---|
-| **RECON** | crawls the real surface: pages, JS bundles, API endpoints, query params, tech stack, subdomains via crt.sh | `data/surface.json` - visualized as labeled chips |
-| **ATTACK** | probes that surface: unauthenticated APIs, reflected CORS, decoded JWTs (alg=none, kid traversal, no exp), exposed docs/config (`.env`, swagger, actuator, graphql, `.git`), secrets in bundles | candidates with proof, P1/P2 auto-injected into findings with a 3-step PoC |
-| **PLAN** | turns the surface into a work plan: numbered hypotheses, each with a one-line "why" and a ready `curl` (program header included) | safe ones run in one click with the captured response; auth-required ones (IDOR with your token) are copy-paste ready |
+| **RECON** | crawls the real surface: pages, JS bundles, API endpoints, query params, tech stack, subdomains via crt.sh | `surface.json` - visualized as labeled chips |
+| **URLS** | passive URL mining from Wayback Machine (CDX) + AlienVault OTX: historical endpoints, query params with frequency, sensitive extensions - zero active requests to the target | `urls.json` |
+| **JS INTEL** | fetches every JS bundle found by RECON: API endpoints (relative + absolute), secrets (AWS, Stripe, Google, GitHub, JWT, Firebase), exposed `.map` source files | `jsint.json` |
+| **ATTACK** | probes the surface: unauthenticated APIs, reflected CORS, decoded JWTs (alg=none, kid traversal, no exp), exposed docs/config (`.env`, swagger, actuator, graphql, `.git`), secrets in bundles | candidates with proof, P1/P2 auto-injected into findings with a 3-step PoC |
+| **REFLECT** | injects a canary into the top historical query params; a second probe tests encoding - raw `<svg>` reflection = XSS candidate, encoded = signal | request + response captured (`modules.json`) |
+| **AUTHZ** | needs the AUTH card: replays ID-bearing endpoints without your credentials (BOLA), then swaps the ID (+1) with your credentials (IDOR) - verdict only if both responses are captured | candidates with both responses (`modules.json`) |
+| **AUTH** | one card per program: paste cookies / Authorization / `user:pass`, saved into `programs.json` (masked by the API) and injected into every module's requests; TEST shows with/without-creds responses | verified creds + probe evidence |
+| **ARSENAL** | the program's matched KEV/EPSS moves, one-click executable through nuclei (with your researcher header) | proof output + SIG/P2 finding |
 
-Every plan line carries a status - todo / tested / signal / confirmed / nothing - persisted in `data/plan.json`, so the hunt accumulates across sessions. Budget stays strict: max 70 requests per ATTACK, GET only, 250 ms spacing.
+Below the action row: the work **PLAN** (numbered hypotheses with a one-line "why" and a ready `curl`, run in one click, statuses persist) and the program's **findings**. Budget stays strict: max 70 requests per ATTACK, GET only, 250 ms spacing.
+
+Every finding carries a **POC** button: one click copies a ready-to-submit markdown report - Summary, 3 reproduction steps max, Impact - extracted from the captured evidence.
+
+### Arsenal: from signal to movement
+
+The **ARSENAL tab** (key `4`) bridges recon and exploitation:
+
+1. **SYNC BASES** - caches three public datasets locally (`data/bases/`): CISA KEV, EPSS scores, Exploit-DB
+2. **MOUVEMENTS** - matches your recon'd tech stack against those bases (with OSV enrichment) and ranks the moves: known-exploited first, then EPSS probability, then CVSS
+3. **EXEC** - runs a move through `nuclei`, your program's researcher header injected into every request, rate-limited and capped - output becomes a finding with the captured evidence
+
+The binary is resolved from `NUCLEI_BIN` (env), standard install paths, then `PATH`.
 
 **Built-in guardrails**
 
@@ -149,20 +171,25 @@ pkill -f 'C2FF/watchdog.sh' ; pkill -f 'C2FF/server.js'
 
 ## Console tour
 
-1. **PROGRAMS** - register a program (name, required header, scope), pick a mode, press **GO** - or jump straight into its hunt
-2. **HUNT** - the three-phase pipeline (RECON, ATTACK, PLAN) on one program, with its findings underneath - the working view of a target (details above)
-3. **FLEET** - press START; probe cycles run on their own, forever. CYCLE NOW triggers an immediate round
-4. **FINDINGS** - signals arrive in real time; triage with the status selector, add manual findings, ask the AI for a second opinion with the `AI »` button
-5. **SESSION** - your handle, the room, the three access levels, members with roles, session chat and the audio mesh (detailed below)
-6. **COORDINATION** - private channel toward your wired agent
-7. **AI** - optional gateway config (OpenAI-compatible / Ollama / Anthropic), one-click connection test
-- the header language selector switches the whole UI instantly (82 languages, all fully translated, RTL for Arabic/Hebrew/Farsi/Urdu/Pashto/Sindhi); keys `1-8` jump between tabs; the UI polls every 1.5 s
+Nine tabs, keys `1-9`:
+
+1. **PROGRAMMES** - register a program (name, required header, scope), pick a mode, press **GO** - or jump straight into its hunt
+2. **HUNT** - the target-centered working view: 8 actions, plan, findings (details above)
+3. **FINDINGS** - signals arrive in real time; triage with the status selector, add manual findings, ask the AI for a second opinion with the `AI »` button, export a PoC with `POC ⧉`
+4. **ARSENAL** - KEV / EPSS / Exploit-DB moves on your recon'd stack, executable via nuclei (details above)
+5. **FLOTTE** - the engine behind the scenes: press START and probe cycles run on their own, forever; CYCLE NOW triggers an immediate round; agent transcripts stream in when `C2FF_RUNS_BASE` is set
+6. **IA** - optional gateway config (OpenAI-compatible / Ollama / Anthropic), one-click connection test
+7. **TERM** - a real working terminal inside the console (local or admin-only in a shared room)
+8. **TEAM** - your handle, the room, the three access levels, members with roles, session chat and the audio mesh (detailed below)
+9. **COORDINATION** - private channel toward your wired agent
+
+- the header language selector switches the whole UI instantly (82 languages, all fully translated, RTL for Arabic/Hebrew/Farsi/Urdu/Pashto/Sindhi); the UI polls every 1.5 s
 
 ## Team sessions
 
 Team mode turns the solo console into a shared room: a generated key gates every API route, members invite themselves with one link, and every action is attributed. Full walkthrough:
 
-1. SESSION tab - choose a handle (max 16 chars), set the room name, turn it ON, apply
+1. TEAM tab - choose a handle (max 16 chars), set the room name, turn it ON, apply
 2. **OPEN TO NETWORK** - the server re-binds to `0.0.0.0` via self-respawn (2 s, watchdog-safe) and the invite link shows your real LAN address
 3. Or **OPEN TO WORLD** - a public tunnel URL is generated, verified, then shown with its own COPY button; share it anywhere
 4. Invited members open the link, pick a handle, and join: live member list with role, presence and request count
@@ -177,7 +204,7 @@ Everything in C2FF works without an AI agent. If you want deep agentic waves on 
 
 ```
 data/chat.jsonl
-{"t":1690000000,"from":"user","kind":"queue","playbook":"SQLI-DUO","program":"target","note":"..."}
+{"t":1690000000,"from":"hunter","kind":"queue","playbook":"SQLI-DUO","program":"target","note":"..."}
 {"t":1690000000,"from":"claude","kind":"chat","text":"verdict: ..."}
 ```
 
@@ -194,17 +221,18 @@ flowchart LR
     end
     U1 -->|"1.5 s poll / POST, room key"| S["server.js<br/>HTTP API + auth"]
     U2 -->|"invite link, LAN or tunnel"| S
-    S --> H["HUNT pipeline<br/>recon.js - attack.js - plan.js"]
+    S --> H["HUNT actions<br/>recon - urls - jsint - attack<br/>reflect - authz - auth"]
+    S --> A["arsenal.js<br/>KEV - EPSS - nuclei exec"]
     S --> F["fleet.js<br/>probe engine"]
     F -->|"budgeted curl"| T["targets in scope"]
     H -->|"GET only, capped"| T
-    S --> D[("data/<br/>findings - programs - surface<br/>attack - plan - chat - team")]
+    S --> D[("data/<br/>findings - programs - surface<br/>attack - plan - modules - urls<br/>jsint - arsenal - chat - team")]
     S --> R["agent transcripts<br/>optional C2FF_RUNS_BASE"]
-    D -->|"chat log"| A["wired AI agent"]
+    D -->|"chat log"| AG["wired AI agent"]
     S -.->|"WebRTC signalling only"| U2
 ```
 
-`server.js` is the only process. `fleet.js` is the deterministic engine, `recon.js` + `attack.js` + `plan.js` are the hunt pipeline. `data/` is the entire state - copy it and you have moved your console.
+`server.js` is the only process. `fleet.js` is the deterministic engine, `recon.js` + `urls.js` + `jsint.js` + `attack.js` + `modules.js` + `plan.js` are the hunt actions, `arsenal.js` feeds the exploit moves. `data/` is the entire state - copy it and you have moved your console.
 
 ### The design, as a map
 
@@ -212,16 +240,17 @@ The same flow, from the hunter's seat - what you click, in order. And when you w
 
 ```mermaid
 flowchart TD
-    N["1. NEW PROGRAM<br/>scope + researcher header"] --> M["2. PROGRAMS<br/>pick one of 15 modes<br/>press GO"]
-    N --> X
-    subgraph X["HUNT TAB - key 4 - one target, three phases"]
-        X1["RECON<br/>surface as chips:<br/>apis - params - js - subs"] --> X2["ATTACK<br/>probe the surface<br/>P1/P2 with proof"] --> X3["PLAN<br/>hypotheses + curl<br/>statuses persist"]
+    N["1. NEW PROGRAM<br/>scope + researcher header + AUTH card"] --> H
+    subgraph H["HUNT TAB - key 2 - one target, one row of actions"]
+        X1["RECON - URLS - JS INTEL<br/>surface - history - secrets"] --> X2["ATTACK - REFLECT - AUTHZ<br/>probes with captured proof"] --> X3["PLAN<br/>hypotheses + curl<br/>statuses persist"]
     end
-    M --> FD["FINDINGS<br/>triage - AI opinion<br/>3-step PoC ready"]
+    N --> M["PROGRAMMES<br/>15 modes<br/>press GO"]
+    H --> AR["ARSENAL<br/>KEV - EPSS - nuclei EXEC"]
+    H --> FD["FINDINGS<br/>triage - AI opinion<br/>POC export"]
     X2 -->|"P1/P2 with proof"| FD
-    X3 -->|"with auth:<br/>ready-to-paste curls"| FD
+    AR -->|"proof output"| FD
     FD ==> RPT["P1/P2 only<br/>evidence attached<br/>submit"]
-    FLEET["FLEET<br/>endless cycles<br/>on every program"] --> FD
+    FLEET["FLOTTE<br/>endless cycles<br/>on every program"] --> FD
 ```
 
 ## Configuration
@@ -231,20 +260,25 @@ C2FF is env-driven and path-free:
 | Variable | Default | Purpose |
 |---|---|---|
 | `C2FF_PORT` | `4181` | HTTP port (also: first CLI argument) |
-| `C2FF_BIND` | `127.0.0.1` | Listen address - `0.0.0.0` opens LAN access (also settable from the SESSION tab) |
+| `C2FF_BIND` | `127.0.0.1` | Listen address - `0.0.0.0` opens LAN access (also settable from the TEAM tab) |
 | `C2FF_RUNS_BASE` | empty | Optional directory of agent transcripts to sweep into the fleet view |
+| `NUCLEI_BIN` | auto-detected | Path to the `nuclei` binary for ARSENAL EXEC (falls back to standard paths, then `PATH`) |
 
 State files live in `data/`:
 
 | File | Holds |
 |---|---|
-| `programs.json` | registered programs: name, scope, required header |
+| `programs.json` | registered programs: name, scope, required header, per-program AUTH credentials (masked by the API) |
 | `findings.jsonl` | every signal and manual finding, with triage status |
 | `team.json` | room config: enabled, room name, key, roles, blocked handles, live flag |
 | `chat.jsonl` | coordination channel + team session messages |
 | `surface.json` | per-program recon: pages, APIs, params, JS bundles, tech, subdomains |
+| `urls.json` | per-program passive URL history: Wayback + OTX endpoints, params with frequency, sensitive extensions |
+| `jsint.json` | per-program JS intel: bundle endpoints, secrets, exposed sourcemaps |
 | `attack.json` | per-program attack candidates with captured proof |
+| `modules.json` | per-program REFLECT / AUTHZ candidates with captured request + response |
 | `plan.json` | per-program work plan: hypotheses, statuses, captured evidence |
+| `arsenal.json` | per-program matched KEV/EPSS/Exploit-DB moves + exec output |
 | `ai.json` | optional LLM gateway config |
 | `fleet.json` | fleet engine state |
 
@@ -262,15 +296,18 @@ You are responsible for each program's rules. Test only what you are allowed to 
 ## Roadmap
 
 - [x] Deterministic local engine, 21 probe modules, 15 modes
-- [x] HUNT pipeline: RECON (surface mapping), ATTACK (targeted probes), PLAN (persistent work plan)
-- [x] Findings base with persistent triage workflow
+- [x] HUNT working view: RECON, URLS, JS INTEL, ATTACK, REFLECT, AUTHZ, AUTH, PLAN on one screen
+- [x] Attack modules with captured proof: request + response kept for every candidate
+- [x] ARSENAL: KEV / EPSS / Exploit-DB moves, one-click nuclei execution
+- [x] Passive URL mining: Wayback CDX + AlienVault OTX
+- [x] Per-program credential card, injected into every request
+- [x] Findings base with persistent triage workflow + one-click markdown PoC export
 - [x] Optional LLM gateway (OpenAI-compatible / Ollama / Anthropic)
 - [x] Team sessions: room key, LAN go-live/shore, presence, attribution
 - [x] Session chat, admin/guest roles, kick + blocklist
 - [x] WORLD tunnel (cloudflared) with auto-verified public invite
 - [x] WebRTC audio mesh + UI in 82 languages, all fully translated
 - [ ] Findings filters (severity, status) and text search
-- [ ] One-click report export (markdown, ready to submit)
 - [ ] Per-module on/off toggle + engine budget from the UI
 - [ ] Docker image
 

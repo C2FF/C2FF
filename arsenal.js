@@ -22,7 +22,12 @@ const OSV_URL = 'https://api.osv.dev/v1/vulns/';
 const DL_TIMEOUT = 30000, MAX_DL = 60 * 1024 * 1024;
 // produits connus : normalisation des tokens tech recon vers les noms KEV
 const PROD_MAP = { word_press: 'wordpress', wp: 'wordpress' };
-const NUCLEI_BIN = [process.env.NUCLEI_BIN, '/home/user/go/bin/nuclei', '/usr/local/bin/nuclei'].find(p => p && fs.existsSync(p));
+function findNuclei() {
+  if (process.env.NUCLEI_BIN && fs.existsSync(process.env.NUCLEI_BIN)) return process.env.NUCLEI_BIN;
+  for (const p of ['/usr/local/bin/nuclei', '/usr/bin/nuclei']) if (fs.existsSync(p)) return p;
+  try { return require('child_process').execSync('command -v nuclei', { encoding: 'utf8' }).trim() || null; } catch (e) { return null; }
+}
+const NUCLEI_BIN = findNuclei(); // chemin resolu : env NUCLEI_BIN, emplacements standards, puis PATH
 
 function get(url, max, depth) {
   return new Promise(res => {

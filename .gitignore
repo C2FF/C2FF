@@ -1,3 +1,9 @@
 data/
 *.log
 nohup.out
+pending-i18n/
+pending/
+merge-ar.js
+merge-i18n.js
+merge2.js
+merge3.js

@@ -458,7 +458,7 @@ function lastChat(n) {
 function send(res, code, type, body) { res.writeHead(code, { 'content-type': type, 'cache-control': 'no-store' }); res.end(body); }
 function sendJson(res, obj) { send(res, 200, 'application/json', JSON.stringify(obj)); }
 
-// finding -> rapport markdown reproductible (regles PoC de User : 3 etapes max, " - ", defensible)
+// finding -> rapport markdown reproductible (regles PoC : 3 etapes max, " - ", defensible)
 function pocMarkdown(f, prog) {
   const dash = s => String(s || '').replace(/[—–]/g, '-');
   let text = dash(f.text).trim();
@@ -741,11 +741,11 @@ const MAIN = (req, res) => {
         return sendJson(res, { ok: false, error: 'unknown op' });
       }
       if (p === '/api/chat') {
-        appendJsonl(CHAT_FILE, { t: Date.now(), from: 'user', name: cleanHandle(body.name) || 'OPERATOR', kind: body.kind === 'team' ? 'team' : 'chat', text: trunc(body.text || '', 4000) });
+        appendJsonl(CHAT_FILE, { t: Date.now(), from: 'me', name: cleanHandle(body.name) || 'OPERATOR', kind: body.kind === 'team' ? 'team' : 'chat', text: trunc(body.text || '', 4000) });
         return sendJson(res, { ok: true });
       }
       if (p === '/api/queue') {
-        appendJsonl(CHAT_FILE, { t: Date.now(), from: 'user', kind: 'queue', playbook: body.playbook || '', program: body.program || '', note: trunc(body.note || '', 1000) });
+        appendJsonl(CHAT_FILE, { t: Date.now(), from: 'me', kind: 'queue', playbook: body.playbook || '', program: body.program || '', note: trunc(body.note || '', 1000) });
         return sendJson(res, { ok: true });
       }
       if (p === '/api/findings') {
@@ -1052,7 +1052,7 @@ const MAIN = (req, res) => {
             persistFindings();
             sendJson(res, { ok: true, proof });
           };
-          // cmd peut commencer par le chemin absolu du binaire (/home/user/go/bin/nuclei)
+          // cmd peut commencer par le chemin absolu du binaire (ex: /usr/local/bin/nuclei)
           if (/(^|\/)nuclei$/.test(m.cmd.trim().split(' ')[0])) {
             // scope : header chercheur du programme OBLIGATOIRE dans chaque requete
             const bin = m.cmd.trim().split(' ')[0];
