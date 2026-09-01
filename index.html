@@ -70,7 +70,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;bac
 @keyframes metaledge{0%{--mdir:135deg}100%{--mdir:495deg}}
 
 /* ── header ── */
-.wrap{max-width:1440px;margin:0 auto;padding:0 22px 40px;overflow-x:hidden;position:relative;z-index:1}
+.wrap{max-width:none;margin:0 auto;padding:0 22px 40px;overflow-x:hidden;position:relative;z-index:1}
 header{display:flex;align-items:center;gap:13px;padding:14px 0 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .logo{display:flex;align-items:center;gap:9px;text-decoration:none}
 .logo .mark{width:26px;height:26px;border-radius:6px;border:1.5px solid var(--green);display:grid;place-items:center;
@@ -260,6 +260,8 @@ header,nav{border-bottom-color:transparent;
   <button class="ghost" id="soundBtn" style="padding:3px 10px;font-size:11px" data-i="snd_on">SON : ON</button>
   <button class="ghost" id="notifBtn" style="padding:3px 10px;font-size:11px" data-i="nt_on">NOTIFS : ON</button>
   <button class="ghost" id="ambBtn" style="padding:3px 10px;font-size:11px">AMBIANCE : ON</button>
+  <button class="ghost" id="fitBtn" style="padding:3px 10px;font-size:11px" title="ajustement automatique a la taille de l'ecran">AJUSTE : AUTO</button>
+  <button class="ghost" id="fsBtn" style="padding:3px 10px;font-size:11px" title="plein ecran">⛶</button>
   <span class="clock" id="clock"></span>
 </header>
 <img class="banner" src="/banner_app.gif" alt="C2FF command & control framework" height="150">

@@ -9274,6 +9274,43 @@ $('ambBtn').addEventListener('click', () => {
 });
 drawAmbBtn();
 
+// ---------- affichage : ajustement auto + plein ecran ----------
+// le layout est concu pour 1440 px : un zoom proportionnel a la largeur
+// reelle garde les proportions et remplit tout l'ecran (grossit en grand
+// ecran, se resserre en petit). OFF rend la main a l'echelle native.
+let FIT_ON = true;
+try { FIT_ON = localStorage.getItem('c2ff-fit') !== 'off'; } catch (e) {}
+function applyFit() {
+  const z = FIT_ON ? Math.max(0.9, Math.min(1.6, window.innerWidth / 1440)) : 1;
+  document.body.style.zoom = z === 1 ? '' : z;
+}
+function drawFitBtn() { const b = $('fitBtn'); if (b) b.textContent = FIT_ON ? 'AJUSTE : AUTO' : 'AJUSTE : OFF'; }
+$('fitBtn').addEventListener('click', () => {
+  FIT_ON = !FIT_ON;
+  try { localStorage.setItem('c2ff-fit', FIT_ON ? 'on' : 'off'); } catch (e) {}
+  applyFit(); drawFitBtn();
+  toast('AFFICHAGE', FIT_ON ? 'ajustement automatique' : 'echelle native', '');
+});
+window.addEventListener('resize', applyFit);
+applyFit(); drawFitBtn();
+// plein ecran : toggle manuel ; la preference est rejouee au 1er clic
+// (l'API exige un geste utilisateur, impossible au simple chargement)
+$('fsBtn').addEventListener('click', () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen().catch(() => {});
+});
+document.addEventListener('fullscreenchange', () => {
+  const b = $('fsBtn');
+  if (b) b.textContent = document.fullscreenElement ? '⤡' : '⛶';
+  try { localStorage.setItem('c2ff-full', document.fullscreenElement ? 'on' : 'off'); } catch (e) {}
+});
+if ((() => { try { return localStorage.getItem('c2ff-full') === 'on'; } catch (e) { return false; } })()) {
+  const reenter = () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+  };
+  document.addEventListener('pointerdown', reenter, { once: true });
+}
+
 // ---------- terminal de travail ----------
 // shell reel cote serveur (1 par identite), output en SSE, input en POST ligne par ligne.
 const TERM = { es: null, errs: 0, hi: 0, hist: [] };
