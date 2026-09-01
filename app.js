@@ -7825,7 +7825,7 @@ function toast(title, text, cls) {
 // ---------- rendu differentiel ----------
 // une vue ne se redessine que si ses donnees ont change, et jamais
 // quand l'utilisateur interagit avec un element de la vue (selects, inputs)
-const drawn = { runs: '', fnd: '', prog: '', chat: '', ai: '', team: '', pip: '', hunt: '', ars: '', jsi: '', urls: '' };
+const drawn = { runs: '', fnd: '', prog: '', chat: '', ai: '', team: '', pip: '', hunt: '', ars: '', jsi: '', urls: '', auth: '' };
 function focusInside(sel) {
   const r = $(sel);
   const a = document.activeElement;
@@ -8429,6 +8429,65 @@ function drawUrls() {
     '</div>';
 }
 
+// ---- AUTH : creds par programme, injectes dans RECON/JS INTEL/ATTACK ----
+let AUTH_OPEN = false, AUTH_INFO = null, AUTH_TEST = null, AUTH_FETCH = false;
+$('huntAuthBtn').addEventListener('click', () => {
+  AUTH_OPEN = !AUTH_OPEN;
+  drawn.auth = '';
+  drawAuth();
+});
+function drawAuth() {
+  const box = $('huntAuthOut');
+  if (!box) return;
+  if (!AUTH_OPEN) { if (drawn.auth !== 'closed') { box.innerHTML = ''; drawn.auth = 'closed'; } return; }
+  const sig = JSON.stringify([huntSel, AUTH_INFO, AUTH_TEST]);
+  if (sig === drawn.auth) return;
+  drawn.auth = sig;
+  let info = AUTH_INFO && AUTH_INFO.prog === huntSel ? AUTH_INFO : null;
+  if (!info && huntSel && AUTH_FETCH !== huntSel) {
+    AUTH_FETCH = huntSel;
+    fetch('/api/auth?name=' + encodeURIComponent(huntSel)).then(r => r.json()).then(j => {
+      if (j.ok) { AUTH_INFO = Object.assign({ prog: j.prog }, j); if (state.tab === 'hunt') { drawn.auth = ''; drawAuth(); } }
+    }).catch(() => {});
+  }
+  const test = AUTH_TEST && AUTH_TEST.prog === huntSel ? AUTH_TEST : null;
+  const VERDICT = {
+    'auth-effect': ['creds actives : la reponse change avec vs sans', 'var(--green)'],
+    'auth-200': ['creds acceptees (200) mais reponse identique - a verifier manuellement', 'var(--warn)'],
+    'no-diff': ['aucune difference avec/sans : creds probablement mortes ou non testees ici', 'var(--danger)'],
+    'no-auth': ['aucune creds definie : colle tes cookies/Authorization et sauvegarde', 'var(--dim)'],
+  };
+  box.innerHTML =
+    '<div class="card" style="margin-top:12px">' +
+    '<b style="color:var(--green);font-size:12.5px">◈ AUTH - creds du programme (une par ligne)</b>' +
+    '<small style="color:var(--dim);display:block;margin:4px 0">format : <code>Authorization: Bearer …</code> · <code>Cookie: session=…; uid=…</code> · <code>Bearer …</code> · <code>user:pass</code> - injectees dans RECON, JS INTEL, ATTACK et les modules a preuve</small>' +
+    '<textarea id="authTa" spellcheck="false" style="width:100%;min-height:90px;background:var(--bg2,#111);color:var(--text);border:1px solid var(--line,#333);border-radius:6px;padding:8px;font-family:var(--mono,monospace);font-size:11px" placeholder="Authorization: Bearer eyJ…\nCookie: session=…"></textarea>' +
+    '<div style="display:flex;gap:8px;align-items:center;margin-top:7px;flex-wrap:wrap">' +
+    '<button class="go" id="authSave">SAUVER</button>' +
+    '<button class="ghost" id="authTest">TEST AVEC/SANS</button>' +
+    (info && info.kinds && info.kinds.length ? '<span class="pill" style="color:var(--green)">' + info.kinds.map(k => esc(k)).join(' · ') + '</span>' : (info ? '<span class="pill" style="color:var(--dim)">aucune creds</span>' : '')) +
+    '</div>' +
+    (test ? '<div style="margin-top:7px;font-size:11px"><span class="pill" style="color:' + VERDICT[test.verdict][1] + '">' + VERDICT[test.verdict][0] + '</span>' +
+      '<div style="margin-top:4px;color:var(--dim)">avec creds : ' + (test.with.status || 'err') + ' (' + test.with.len + ' o) · sans : ' + (test.without.status || 'err') + ' (' + test.without.len + ' o) · <span style="word-break:break-all">' + esc(test.target) + '</span></div></div>' : '') +
+    '</div>';
+  const ta = $('authTa');
+  if (ta) ta.value = (info && info.creds) || '';
+  $('authSave').addEventListener('click', () => {
+    jpost('/api/auth', { op: 'save', name: huntSel, creds: $('authTa').value }).then(r => r.json()).then(j => {
+      if (!j.ok) { sndPlay('err'); if (!demoErr(j, 'AUTH')) toast('AUTH', j.err || 'echec', 'P2'); return; }
+      AUTH_INFO = Object.assign({ prog: huntSel }, j); sndPlay('hit'); toast('AUTH', 'creds sauvees', 'HIT'); drawn.auth = ''; drawAuth();
+    }).catch(() => sndPlay('err'));
+  });
+  $('authTest').addEventListener('click', () => {
+    const b = $('authTest'); b.disabled = true;
+    jpost('/api/auth', { op: 'test', name: huntSel, creds: $('authTa').value, target: '' }).then(r => r.json()).then(j => {
+      b.disabled = false;
+      if (!j.ok) { sndPlay('err'); toast('AUTH', j.err || 'echec', 'P2'); return; }
+      AUTH_TEST = Object.assign({ prog: huntSel }, j); sndPlay('hit'); drawn.auth = ''; drawAuth();
+    }).catch(() => { b.disabled = false; sndPlay('err'); });
+  });
+}
+
 // nouveau programme
 $('progForm').addEventListener('submit', e => {
   e.preventDefault();
@@ -9015,7 +9074,7 @@ async function refresh() {
       popNotify('SESSION · ' + (ttop.name || '?'), ttop.text || '', '');
     }
     if (ttop) NOTIF.lastTeamT = ttop.t;
-    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawUrls(); drawChat(); drawFleet(); drawAI(); drawTeam();
+    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawUrls(); drawAuth(); drawChat(); drawFleet(); drawAI(); drawTeam();
     // presence team : battement toutes les ~5 s (3 polls)
     if (state.tick % 3 === 0 && HANDLE) {
       jpost('/api/team', { op: 'beat', handle: HANDLE }).then(r => r.json()).then(j => {

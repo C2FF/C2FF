@@ -59,12 +59,7 @@ const RX_SECRETS = [
 const RX_SMAP = /sourceMappingURL=([^\s'"]+\.map)/g;
 
 function jsint(surf, prog, done) {
-  const hdrs = {};
-  if (prog && prog.header) {
-    const h = String(prog.header).trim();
-    const m = /^([A-Za-z0-9-]+)\s*:\s*(.+)$/.exec(h);
-    if (m) hdrs[m[1]] = m[2];
-  }
+  const hdrs = require('./auth.js').hdrsFor(prog);
   const host = surf.host || '';
   const pages = (surf.pages || []).slice(0, 3).map(p => /^https?:\/\//.test(p) ? p : 'https://' + host + p);
   const jsUrls = [...new Set((surf.jsfiles || []).slice(0, MAX_FILES)

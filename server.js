@@ -291,6 +291,7 @@ const PLAN = require('./plan.js');
 const ARSENAL = require('./arsenal.js');
 const JSINT = require('./jsint.js');
 const URLS = require('./urls.js');
+const AUTH = require('./auth.js');
 fleet.init({
   file: FLEET_FILE,
   onFinding: (f) => {
@@ -576,6 +577,15 @@ const MAIN = (req, res) => {
     return sendJson(res, { ok: true, prog: h.prog.id, res: all[h.prog.id] || null });
   }
 
+  // AUTH : creds par programme (stockees dans programs.json), test avec/sans preuve
+  if (req.method === 'GET' && p === '/api/auth') {
+    const name = String(url.searchParams.get('name') || '').toLowerCase();
+    const h = hypProgram(name);
+    if (!h) return sendJson(res, { ok: false, err: 'programme introuvable' });
+    const ap = AUTH.parse(h.prog.creds);
+    return sendJson(res, { ok: true, prog: h.prog.id, creds: AUTH.mask(h.prog.creds), kinds: ap.kinds });
+  }
+
   if (req.method === 'POST') {
     readBody(req, async body => {
       if (p === '/api/team') {
@@ -793,6 +803,26 @@ const MAIN = (req, res) => {
         return sendJson(res, { ok: false });
       }
 
+      // ---- AUTH : creds par programme, test avec/sans preuve ----
+      if (p === '/api/auth') {
+        const name = String(body.name || '').toLowerCase();
+        const progs = loadPrograms();
+        const idx = progs.findIndex(x => x.id === name || String(x.name || '').toLowerCase() === name);
+        if (idx < 0) return sendJson(res, { ok: false, err: 'programme introuvable' });
+        const prog = progs[idx];
+        if (isDemo(prog)) return sendJson(res, { ok: false, demo: true, err: 'programme de demonstration : cree ton programme avec ton vrai scope' });
+        if (body.op === 'save') {
+          progs[idx].creds = String(body.creds == null ? '' : body.creds).slice(0, 4000);
+          try { fs.writeFileSync(PROGRAMS_FILE, JSON.stringify(progs, null, 1)); } catch (e) { return sendJson(res, { ok: false, err: 'ecriture impossible' }); }
+          const ap = AUTH.parse(progs[idx].creds);
+          return sendJson(res, { ok: true, prog: prog.id, creds: AUTH.mask(progs[idx].creds), kinds: ap.kinds });
+        }
+        if (body.op === 'test') {
+          return AUTH.probe(prog, String(body.target || '').trim() || null, r => sendJson(res, r));
+        }
+        return sendJson(res, { ok: false });
+      }
+
       // ---- ATTACK : probes ciblees sur la surface reconnee, candidates avec preuve ----
       if (p === '/api/attack') {
         const name = String(body.name || '').toLowerCase();
@@ -802,8 +832,7 @@ const MAIN = (req, res) => {
         if (isDemo(prog)) return sendJson(res, { ok: false, demo: true, err: 'programme de demonstration : cree ton programme avec ton vrai scope' });
         let surf = {}; try { surf = JSON.parse(fs.readFileSync(path.join(DATA, 'surface.json'), 'utf8'))[prog.id] || null; } catch (e) {}
         if (!surf) return sendJson(res, { ok: false, err: 'recon requis : lance RECON avant ATTACK' });
-        let hh = {};
-        if (prog.header && prog.header.includes(':')) { const i2 = prog.header.indexOf(':'); hh[prog.header.slice(0, i2).trim()] = prog.header.slice(i2 + 1).trim(); }
+        let hh = AUTH.hdrsFor(prog);
         ATTACK.attack(surf, hh, null).then(a => {
           a.host = surf.host; a.program = prog.id;
           // injection des P1/P2 dans les findings (dossiers du programme), le texte porte la preuve
@@ -876,8 +905,7 @@ const MAIN = (req, res) => {
         if (!prog) return sendJson(res, { ok: false, err: 'programme introuvable' });
         if (isDemo(prog)) return sendJson(res, { ok: false, demo: true, err: 'programme de demonstration : cree ton programme avec ton vrai scope' });
         // header programme optionnel (X-Bug-Bounty etc), envoye a chaque requete
-        let hh = {};
-        if (prog.header && prog.header.includes(':')) { const i2 = prog.header.indexOf(':'); hh[prog.header.slice(0, i2).trim()] = prog.header.slice(i2 + 1).trim(); }
+        let hh = AUTH.hdrsFor(prog);
         const t = fleet.targetsFor([prog], [prog.id])[0];
         if (!t) return sendJson(res, { ok: false, err: 'scope vide' });
         RECON.recon(t.base, hh, null).then(surf => {
