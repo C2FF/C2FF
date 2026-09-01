@@ -8060,6 +8060,9 @@ function drawHunt() {
   // plan de travail
   drawPlanCard();
 
+  // arsenal (mouvements CVE) dans la vue de chasse
+  drawHuntArs();
+
   // findings du programme
   const mine = state.data.findings.filter(f => (f.program || '').toLowerCase() === huntSel.toLowerCase());
   $('huntFnd').innerHTML =
@@ -8275,7 +8278,8 @@ function arExec(id) {
     if (!j.ok) { if (!demoErr(j, 'ARSENAL')) toast('ARSENAL', j.err || 'echec', 'P2'); sndPlay('err'); return; }
     if (j.manual) { toast('ARSENAL', 'commande prete : lis l exploit avant de tirer', ''); }
     else { sndPlay('p2'); toast('ARSENAL', 'nuclei termine - findings mis a jour', 'HIT'); }
-    drawn.ars = ''; fetch('/api/arsenal').then(r => r.json()).then(a => { ARS = a || {}; drawArsenal(); }).catch(() => {});
+    drawn.ars = ''; drawn.huntArs = '';
+    fetch('/api/arsenal').then(r => r.json()).then(a => { ARS = a || {}; drawArsenal(); if (state.tab === 'hunt') drawHuntArs(); }).catch(() => {});
   }).catch(() => { ARS_BUSY = false; sndPlay('err'); });
 }
 $('arSync').addEventListener('click', () => {
@@ -8460,6 +8464,43 @@ function runMod(op, btnId) {
 }
 $('huntReflect').addEventListener('click', () => runMod('reflect', 'huntReflect'));
 $('huntAuthz').addEventListener('click', () => runMod('authz', 'huntAuthz'));
+// ARSENAL dans la vue de chasse : mouvements du programme cible, EXEC ici
+let HUNT_ARS_BUSY = false;
+$('huntArsBtn').addEventListener('click', () => {
+  const p = huntSel; if (!p || HUNT_ARS_BUSY) return;
+  HUNT_ARS_BUSY = true;
+  const b = $('huntArsBtn');
+  b.textContent = '⟳ CVE…';
+  jpost('/api/arsenal', { op: 'moves', name: p }).then(r => r.json()).then(j => {
+    HUNT_ARS_BUSY = false; b.textContent = 'ARSENAL';
+    if (!j.ok) { sndPlay('err'); if (!demoErr(j, 'ARSENAL')) toast('ARSENAL', j.err || 'echec', 'P2'); return; }
+    arSel = p;
+    sndPlay(j.moves && j.moves.length ? 'hit' : 'click');
+    toast('ARSENAL', (j.moves || []).length + ' mouvements', 'HIT');
+    fetch('/api/arsenal').then(r => r.json()).then(a => { ARS = a || {}; drawn.huntArs = ''; drawHuntArs(); }).catch(() => {});
+  }).catch(() => { HUNT_ARS_BUSY = false; b.textContent = 'ARSENAL'; sndPlay('err'); });
+});
+function drawHuntArs() {
+  const box = $('huntArs');
+  if (!box) return;
+  const stash = ARS && ARS.stash;
+  if (!stash || state.tab !== 'hunt') { if (drawn.huntArs !== 'off') { box.innerHTML = ''; drawn.huntArs = 'off'; } return; }
+  const sig = JSON.stringify([stash, huntSel]);
+  if (sig === drawn.huntArs) return;
+  drawn.huntArs = sig;
+  arSel = huntSel;
+  const moves = stash.moves || [];
+  const head =
+    '<div class="card" style="margin-top:12px">' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline">' +
+    '<b style="color:var(--green);font-size:12.5px">◈ ARSENAL - CVE/exploits matches sur la cible</b>' +
+    '<small style="color:var(--faint)">' + moves.length + ' mouvements</small>' +
+    (stash.program && stash.program !== huntSel ? '<span class="pill" style="color:var(--dim)">stash = ' + esc(stash.program) + ' - relance ARSENAL</span>' : '') +
+    '</div>';
+  if (!moves.length) { box.innerHTML = head + '<div style="margin-top:5px;color:var(--dim);font-size:11px">aucun mouvement : lance SYNC sur l onglet ARSENAL puis ARSENAL ici</div></div>'; return; }
+  box.innerHTML = head + moves.map(m => arCard(m)).join('') + '</div>';
+  box.querySelectorAll('.arExec').forEach(btn => btn.addEventListener('click', () => arExec(btn.dataset.id)));
+}
 function drawMods() {
   const box = $('huntModOut');
   if (!box) return;
@@ -9114,7 +9155,7 @@ $('termRestart').addEventListener('click', () => {
 document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => { setTab(b.dataset.tab); if (b.dataset.tab === 'term') termConnect(); }));
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') { if (e.key === 'Escape') e.target.blur(); return; }
-  const m = { '1': 'programs', '2': 'hunt', '3': 'arsenal', '4': 'findings', '5': 'live', '6': 'ai', '7': 'term', '8': 'team', '9': 'chat' }[e.key];
+  const m = { '1': 'programs', '2': 'hunt', '3': 'findings', '4': 'arsenal', '5': 'live', '6': 'ai', '7': 'term', '8': 'team', '9': 'chat' }[e.key];
   if (m) setTab(m);
 });
 setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);
