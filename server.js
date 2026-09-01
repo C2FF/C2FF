@@ -23,6 +23,7 @@ const AI_FILE = path.join(DATA, 'ai.json');
 const TEAM_FILE = path.join(DATA, 'team.json');
 const JSINT_FILE = path.join(DATA, 'jsint.json');
 const URLS_FILE = path.join(DATA, 'urls.json');
+const MODULES_FILE = path.join(DATA, 'modules.json');
 // golive (bouton UI) persiste "live" dans team.json : le respawn (auto ou watchdog)
 // reprend le bind reseau sans env. C2FF_BIND reste l'override manuel.
 if (!process.env['C2FF_BIND']) {
@@ -292,6 +293,7 @@ const ARSENAL = require('./arsenal.js');
 const JSINT = require('./jsint.js');
 const URLS = require('./urls.js');
 const AUTH = require('./auth.js');
+const MODULES = require('./modules.js');
 fleet.init({
   file: FLEET_FILE,
   onFinding: (f) => {
@@ -577,6 +579,16 @@ const MAIN = (req, res) => {
     return sendJson(res, { ok: true, prog: h.prog.id, res: all[h.prog.id] || null });
   }
 
+  // MODULES a preuve : REFLECT + AUTHZ, req+res captures, persistes par programme
+  if (req.method === 'GET' && p === '/api/modules') {
+    const name = String(url.searchParams.get('name') || '').toLowerCase();
+    let all = {}; try { all = JSON.parse(fs.readFileSync(MODULES_FILE, 'utf8')); } catch (e) {}
+    if (!name) return sendJson(res, { ok: true, all });
+    const h = hypProgram(name);
+    if (!h) return sendJson(res, { ok: false, err: 'programme introuvable' });
+    return sendJson(res, { ok: true, prog: h.prog.id, res: all[h.prog.id] || null });
+  }
+
   // AUTH : creds par programme (stockees dans programs.json), test avec/sans preuve
   if (req.method === 'GET' && p === '/api/auth') {
     const name = String(url.searchParams.get('name') || '').toLowerCase();
@@ -819,6 +831,61 @@ const MAIN = (req, res) => {
         }
         if (body.op === 'test') {
           return AUTH.probe(prog, String(body.target || '').trim() || null, r => sendJson(res, r));
+        }
+        return sendJson(res, { ok: false });
+      }
+
+      // ---- MODULES a preuve : REFLECT / AUTHZ, req+res captures, P2 injectees en findings ----
+      if (p === '/api/modules') {
+        if (body.op === 'reflect' || body.op === 'authz') {
+          const name = String(body.name || '').toLowerCase();
+          const progs = loadPrograms();
+          const prog = progs.find(x => x.id === name) || progs.find(x => String(x.name || '').toLowerCase() === name);
+          if (!prog) return sendJson(res, { ok: false, err: 'programme introuvable' });
+          if (isDemo(prog)) return sendJson(res, { ok: false, demo: true, err: 'programme de demonstration : cree ton programme avec ton vrai scope' });
+          let surf = {}; try { surf = JSON.parse(fs.readFileSync(path.join(DATA, 'surface.json'), 'utf8'))[prog.id] || null; } catch (e) {}
+          if (!surf || !surf.host) return sendJson(res, { ok: false, err: 'recon requis : lance RECON avant ' + body.op.toUpperCase() });
+          // extras : urls de l historique (URLS) + endpoints de surface, params des deux sources
+          let ustore = {}; try { ustore = JSON.parse(fs.readFileSync(URLS_FILE, 'utf8'))[prog.id] || {}; } catch (e) {}
+          const urls = [...new Set([...(ustore.urls || []), ...(surf.apis || [])])].slice(0, 600);
+          const pm = {};
+          for (const p2 of (surf.params || [])) pm[p2] = (pm[p2] || 0) + 1;
+          for (const pp of (ustore.params || [])) pm[pp.p] = pp.n;
+          const params = Object.entries(pm).map(([p2, n]) => ({ p: p2, n }));
+          const hhAuth = AUTH.hdrsFor(prog);
+          const hhBase = {};
+          if (prog.header && prog.header.includes(':')) { const i2 = prog.header.indexOf(':'); hhBase[prog.header.slice(0, i2).trim()] = prog.header.slice(i2 + 1).trim(); }
+          const fin = out => {
+            try {
+              const all = JSON.parse(fs.readFileSync(MODULES_FILE, 'utf8'));
+              all[prog.id] = Object.assign({}, all[prog.id] || {}, { [body.op]: out });
+              fs.writeFileSync(MODULES_FILE, JSON.stringify(all, null, 1));
+            } catch (e) {
+              try { fs.writeFileSync(MODULES_FILE, JSON.stringify({ [prog.id]: { [body.op]: out } }, null, 1)); } catch (e2) {}
+            }
+            // injection des P2 defendables en findings (la preuve req+res est dans le texte)
+            const cands = out.candidates || [];
+            for (const c of cands) {
+              for (const t of (c.tests || [{ kind: c.kind, sev: c.sev, req: c.req, res: c.res, verdict: c.kind === 'raw' ? 'reflechi brut (XSS candidat)' : 'reflechi encode' }])) {
+                if (t.sev !== 'P2') continue;
+                const key = 'mod:' + body.op + ':' + prog.id + ':' + (c.param || c.url).toLowerCase().slice(0, 100);
+                if (state.findings.some(x => x.key === key)) continue;
+                state.seq++;
+                const txt = body.op === 'reflect'
+                  ? '[REFLECT] param ' + c.param + ' : ' + t.verdict + '\nPoC (3 etapes) : 1) ' + t.req + ' 2) observe la reponse : ' + t.res.status + ', contexte : ' + t.res.excerpt + ' 3) construis un payload complet et demontre l execution JS'
+                  : '[AUTHZ] ' + c.url + ' : ' + t.verdict + '\nPoC (3 etapes) : 1) ' + t.req + ' 2) observe la reponse : ' + t.without.status + ', ' + t.without.len + ' o (reference avec creds : ' + t.with.status + ', ' + t.with.len + ' o) 3) confirme que la donnee appartient a un autre utilisateur / devrait etre protegee';
+                state.findings.unshift({
+                  key, id: 'F' + String(state.seq).padStart(4, '0'), t: Date.now(),
+                  program: prog.id, run: 'MOD-' + body.op.toUpperCase(), agent: 'C2FF', sev: 'P2', status: 'analyse',
+                  text: trunc(txt, 600),
+                });
+                persistFindings();
+              }
+            }
+            sendJson(res, { ok: true, prog: prog.id, res: out });
+          };
+          if (body.op === 'reflect') return MODULES.reflect(surf, prog, hhAuth, { urls, params }, fin);
+          return MODULES.authz(surf, prog, hhAuth, hhBase, { urls }, fin);
         }
         return sendJson(res, { ok: false });
       }

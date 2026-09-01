@@ -7825,7 +7825,7 @@ function toast(title, text, cls) {
 // ---------- rendu differentiel ----------
 // une vue ne se redessine que si ses donnees ont change, et jamais
 // quand l'utilisateur interagit avec un element de la vue (selects, inputs)
-const drawn = { runs: '', fnd: '', prog: '', chat: '', ai: '', team: '', pip: '', hunt: '', ars: '', jsi: '', urls: '', auth: '' };
+const drawn = { runs: '', fnd: '', prog: '', chat: '', ai: '', team: '', pip: '', hunt: '', ars: '', jsi: '', urls: '', auth: '', mods: '' };
 function focusInside(sel) {
   const r = $(sel);
   const a = document.activeElement;
@@ -8427,6 +8427,78 @@ function drawUrls() {
     (eps.length ? '<div style="margin-top:7px"><b style="color:var(--green)">endpoints API historiques</b><div style="margin-top:3px;line-height:1.7;font-size:10.5px;word-break:break-all">' + pillList(eps, 40) + '</div></div>' : '') +
     (urls.length ? '<details style="margin-top:7px"><summary style="cursor:pointer;color:var(--dim);font-size:11px">toutes les urls (' + urls.length + ')</summary><div style="margin-top:3px;line-height:1.6;font-size:10px;word-break:break-all;max-height:180px;overflow-y:auto">' + pillList(urls, 200) + '</div></details>' : '') +
     '</div>';
+}
+
+// ---- MODULES a preuve : REFLECT + AUTHZ ----
+let MODS = {}, MODS_READY = false, MODS_BUSY = {};
+function modsFor(id) {
+  if (!MODS_READY) {
+    MODS_READY = true;
+    fetch('/api/modules').then(r => r.json()).then(j => {
+      if (j.ok && j.all) { MODS = j.all; if (state.tab === 'hunt') { drawn.mods = ''; drawMods(); } }
+    }).catch(() => {});
+  }
+  return MODS[id];
+}
+function runMod(op, btnId) {
+  const p = huntSel; if (!p) return;
+  if (MODS_BUSY[op]) return;
+  MODS_BUSY[op] = true;
+  const b = $(btnId);
+  const orig = b.textContent;
+  b.disabled = true; b.textContent = '⟳ …';
+  jpost('/api/modules', { op, name: p }).then(r => r.json()).then(j => {
+    MODS_BUSY[op] = false; b.disabled = false; b.textContent = orig;
+    if (!j.ok) { sndPlay('err'); if (!demoErr(j, op.toUpperCase())) toast(op.toUpperCase(), j.err || 'echec', 'P2'); return; }
+    MODS[p] = Object.assign({}, MODS[p] || {}, { [op]: j.res });
+    const n = (j.res.candidates || []).filter(c => (c.sev === 'P2') || (c.tests || []).some(t => t.sev === 'P2')).length;
+    sndPlay(n ? 'p1' : 'hit');
+    toast(op.toUpperCase(), (j.res.candidates || []).length + ' candidats' + (n ? ' dont ' + n + ' P2' : ' - ' + (j.res.checked || []).length + ' testes'), n ? 'P2' : 'HIT');
+    drawn.mods = '';
+    drawMods();
+  }).catch(() => { MODS_BUSY[op] = false; b.disabled = false; b.textContent = orig; sndPlay('err'); });
+}
+$('huntReflect').addEventListener('click', () => runMod('reflect', 'huntReflect'));
+$('huntAuthz').addEventListener('click', () => runMod('authz', 'huntAuthz'));
+function drawMods() {
+  const box = $('huntModOut');
+  if (!box) return;
+  const M = modsFor(huntSel) || null;
+  const sig = JSON.stringify(M);
+  if (sig === drawn.mods) return;
+  drawn.mods = sig;
+  if (!M || (!M.reflect && !M.authz)) { box.innerHTML = ''; return; }
+  const card = (title, color, m) => {
+    const cands = m.candidates || [];
+    const chk = m.checked || [];
+    let inner =
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline">' +
+      '<b style="color:' + color + ';font-size:12.5px">' + title + '</b>' +
+      '<small style="color:var(--faint)">' + chk.length + ' testes · ' + new Date(m.ts).toLocaleTimeString('fr-FR') + '</small>' +
+      (cands.length ? '<span class="pill" style="color:var(--warn)">' + cands.length + ' candidats</span>' : '') +
+      '</div>';
+    if (cands.length) {
+      inner += cands.slice(0, 8).map(c => {
+        const tests = c.tests || [{ kind: c.kind, sev: c.sev, req: c.req, res: c.res, verdict: c.kind === 'raw' ? 'reflechi brut - XSS candidat' : 'reflechi mais encode' }];
+        return '<div style="margin-top:7px;padding:7px 8px;border:1px solid var(--line,#333);border-radius:6px;font-size:11px">' +
+          '<span class="pill" style="color:' + (tests.some(t => t.sev === 'P2') ? 'var(--danger)' : 'var(--dim)') + '">' + esc(c.param || tests[0].kind) + '</span> ' +
+          '<span style="color:var(--text)">' + tests.map(t => esc(t.verdict)).join(' · ') + '</span>' +
+          '<div style="margin-top:3px;word-break:break-all;color:var(--dim)">' + esc((c.url || '').slice(0, 130)) + '</div>' +
+          tests.map(t => {
+            const res = t.res ? (t.res.status + ' · ' + t.res.len + ' o · ctx : ' + (t.res.excerpt || '')) : (t.with ? 'avec creds : ' + t.with.status + '/' + t.with.len + ' o vs sans : ' + t.without.status + '/' + t.without.len + ' o' : '');
+            return '<div style="margin-top:3px"><code style="color:var(--text);font-size:10px;word-break:break-all">' + esc((t.req || '').slice(0, 220)) + '</code>' +
+              '<div style="color:var(--dim);font-size:10px;word-break:break-all">→ ' + esc(res.slice(0, 200)) + '</div></div>';
+          }).join('') +
+          '</div>';
+      }).join('');
+    }
+    if ((m.errs || []).length) inner += '<div style="margin-top:5px;color:var(--warn);font-size:11px">' + m.errs.map(e => esc(e)).join(' · ') + '</div>';
+    if (!cands.length && !(m.errs || []).length) inner += '<div style="margin-top:5px;color:var(--dim);font-size:11px">aucun candidat</div>';
+    return '<div class="card" style="margin-top:12px">' + inner + '</div>';
+  };
+  box.innerHTML =
+    (M.reflect ? card('◈ REFLECT - params testes avec canary, req+res captures', 'var(--green)', M.reflect) : '') +
+    (M.authz ? card('◈ AUTHZ - avec/sans creds + swap ID, BOLA/IDOR candidats', 'var(--green)', M.authz) : '');
 }
 
 // ---- AUTH : creds par programme, injectes dans RECON/JS INTEL/ATTACK ----
@@ -9074,7 +9146,7 @@ async function refresh() {
       popNotify('SESSION · ' + (ttop.name || '?'), ttop.text || '', '');
     }
     if (ttop) NOTIF.lastTeamT = ttop.t;
-    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawUrls(); drawAuth(); drawChat(); drawFleet(); drawAI(); drawTeam();
+    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawUrls(); drawMods(); drawAuth(); drawChat(); drawFleet(); drawAI(); drawTeam();
     // presence team : battement toutes les ~5 s (3 polls)
     if (state.tick % 3 === 0 && HANDLE) {
       jpost('/api/team', { op: 'beat', handle: HANDLE }).then(r => r.json()).then(j => {
