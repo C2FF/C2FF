@@ -450,6 +450,33 @@ function lastChat(n) {
 // ---------- API ----------
 function send(res, code, type, body) { res.writeHead(code, { 'content-type': type, 'cache-control': 'no-store' }); res.end(body); }
 function sendJson(res, obj) { send(res, 200, 'application/json', JSON.stringify(obj)); }
+
+// finding -> rapport markdown reproductible (regles PoC de User : 3 etapes max, " - ", defensible)
+function pocMarkdown(f, prog) {
+  const dash = s => String(s || '').replace(/[—–]/g, '-');
+  let text = dash(f.text).trim();
+  // un finding manuel est mono-ligne (le champ input) : on separe les commandes curl
+  let lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length === 1 && /curl\s/.test(lines[0])) {
+    lines = lines[0].split(/ ; | (?=curl\s)/).map(l => l.trim()).filter(Boolean);
+    text = lines.join('\n');
+  }
+  const title = (lines[0] || 'Finding').replace(/^#+\s*/, '').slice(0, 100);
+  const rest = lines.slice(1);
+  // etapes : lignes numerotees, tirets ou commandes curl ; sinon tout le corps = 1 bloc
+  const steps = rest.filter(l => /^\d+[.)]\s/.test(l) || /^-\s/.test(l) || /^curl\s/.test(l));
+  const curl = rest.filter(l => /^curl\s/.test(l));
+  let md = '# [' + (f.sev || 'SIG') + '] ' + ((prog && prog.name) || f.program || 'programme') + ' - ' + title + '\n\n';
+  const sum = rest.length ? rest.filter(l => !steps.includes(l)).join('\n') : text;
+  md += '## Summary\n\n' + (sum || title) + '\n\n';
+  md += '## Steps to reproduce\n\n';
+  if (steps.length) md += steps.slice(0, 3).map((s, i) => (i + 1) + '. ' + s.replace(/^(\d+[.)]\s|-\s)/, '')).join('\n');
+  else if (curl.length) md += '1. Executer :\n\n```\n' + curl[0] + '\n```';
+  else md += '1. ' + text;
+  md += '\n\n## Impact\n\n' + (f.sev === 'P1' ? 'acces non autorise a des donnees sensibles' : f.sev === 'P2' ? 'contourne une mesure de securite sur une surface reelle' : 'signal a confirmer avant soumission') + '\n\n';
+  md += '---\n\n' + dash('program : ' + ((prog && prog.name) || f.program || '?') + ' | id : ' + (f.id || '?') + ' | run : ' + (f.run || '?') + ' | agent : ' + (f.agent || '?') + ' | date : ' + new Date(f.t).toISOString().slice(0, 16).replace('T', ' ')) + '\n';
+  return md;
+}
 function readBody(req, cb) {
   let chunks = [], n = 0;
   req.on('data', c => { n += c.length; if (n < 2e6) chunks.push(c); });
@@ -514,6 +541,15 @@ const MAIN = (req, res) => {
       return it;
     });
     return sendJson(res, { items });
+  }
+
+  // export PoC : un finding -> rapport markdown pret a coller (3 etapes max, pas de cadratin)
+  if (req.method === 'GET' && p === '/api/poc') {
+    const id = url.searchParams.get('id') || '';
+    const f = state.findings.find(x => x.id === id || x.key === id);
+    if (!f) return send(res, 404, 'text/plain; charset=utf-8', 'finding introuvable');
+    const prog = loadPrograms().find(pp => String(pp.id || '').toLowerCase() === String(f.program || '').toLowerCase());
+    return send(res, 200, 'text/markdown; charset=utf-8', pocMarkdown(f, prog));
   }
 
   if (req.method === 'POST') {
@@ -681,7 +717,7 @@ const MAIN = (req, res) => {
           key: 'manual:' + Date.now(), id: 'F' + String(state.seq).padStart(4, '0'), t: Date.now(),
           program: body.program || (loadPrograms()[0] || {}).id || '', run: 'MANUEL', agent: cleanHandle(body.name) || 'OPERATOR',
           sev: ['P1', 'P2', 'P3', 'HIT', 'SIG'].includes(body.sev) ? body.sev : 'HIT',
-          text: trunc(body.text || '', 400), status: 'analyse',
+          text: (s => { s = String(s == null ? '' : s).trim(); return s.length > 400 ? s.slice(0, 400) + '…' : s; })(body.text), status: 'analyse',
         });
         return sendJson(res, { ok: true });
       }
@@ -838,7 +874,8 @@ const MAIN = (req, res) => {
           const proof = { t: Date.now(), host: surf.host, id: m.id, cmd: m.cmd, out: '' };
           const fin = out => {
             proof.out = out;
-            const sev = (m.kev && out && !/0 matches|no results|no findings/i.test(out)) ? 'P2' : 'SIG';
+            // un scan qui n a rien trouve n est PAS un P2 : messages no-match FR et EN filtres
+            const sev = (m.kev && out && !/0 matches|no results|no findings|aucun match|peut-etre corrigee/i.test(out)) ? 'P2' : 'SIG';
             state.seq++;
             state.findings.unshift({
               key: 'ars:' + m.id + ':' + prog.id, id: 'F' + String(state.seq).padStart(4, '0'), t: Date.now(),
@@ -848,14 +885,19 @@ const MAIN = (req, res) => {
             persistFindings();
             sendJson(res, { ok: true, proof });
           };
-          if (/^nuclei/.test(m.cmd.trim())) {
+          // cmd peut commencer par le chemin absolu du binaire (/home/user/go/bin/nuclei)
+          if (/(^|\/)nuclei$/.test(m.cmd.trim().split(' ')[0])) {
+            // scope : header chercheur du programme OBLIGATOIRE dans chaque requete
             const bin = m.cmd.trim().split(' ')[0];
             const target = m.cmd.split('-u ')[1].split(' ')[0];
-            const pr = spawn(bin, ['-u', target, '-id', m.cve, '-silent', '-timeout', '8', '-rlimit', '40'], { timeout: 120000 });
+            const args = ['-u', target, '-id', m.cve, '-silent', '-timeout', '8', '-rl', '40'];
+            const hm = /^(?:[A-Za-z0-9-]+)\s*:\s*(.+)$/.exec(String(prog.header || '').trim());
+            if (hm) args.push('-H', String(prog.header).trim());
+            const pr = require('child_process').spawn(bin, args, { timeout: 120000 });
             let out = '';
             pr.stdout.on('data', d => { out += d; if (out.length > 4000) pr.kill(); });
             pr.stderr.on('data', d => { out += d; });
-            pr.on('close', () => fin(clip(out || '(aucun match - la version reelle est peut-etre corrigee)', 1000)));
+            pr.on('close', () => fin(trunc(out || '(aucun match - la version reelle est peut-etre corrigee)', 1000)));
           } else {
             // mouvement exploit/curl : pas d'exec auto - la commande est le livrable
             return sendJson(res, { ok: true, proof: { t: Date.now(), id: m.id, cmd: m.cmd, out: '' }, manual: true });

@@ -49,8 +49,11 @@ function plan(surf, prog) {
   }
 
   // ---- 3. params : reflection (executable) ----
+  // filtre le bruit CDN/tracking : tester la reflection d un param Cloudflare
+  // ou d un cookie technique n a jamais ouvert un rapport
+  const NOISE = /^__cf|^cf[_-]|_csrf|^csrf|^xsrf|^ray$|^utm_|^fbclid|^gclid|^mc_cid|^mc_eid|^_ga|^ajs_|^amplitude|^sessionid|^sid$/;
   for (const prm of (surf.params || []).slice(0, 8)) {
-    if (/^__cf|csrf/.test(prm)) continue;
+    if (NOISE.test(prm)) continue;
     push('reflect', 'param ' + prm + ' : sa reflexion dans la reponse ouvre la porte XSS/SQLi a confirmer a la main', '/?' + prm + '=' + CANARY, []);
   }
 

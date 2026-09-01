@@ -7889,6 +7889,7 @@ function drawFindings() {
       '<small style="color:var(--dim)">' + esc(f.id) + ' · ' + esc(f.run) + ' · ' + esc(f.agent) + '</small>' +
       '<small style="color:var(--dim);margin-left:auto">' + new Date(f.t).toLocaleTimeString('fr-FR') + '</small>' +
       '<select data-k="' + esc(f.key) + '" class="fstat">' + sel + '</select>' +
+      '<button class="ghost pocgo" data-id="' + esc(f.id) + '">POC ⧉</button>' +
       '<button class="ghost ia-run" data-t="' + esc(f.text.slice(0, 400)) + '">IA »</button></div>' +
       '<div class="txt">' + hl(f.text) + '</div></div>';
   }).join('') || '<div class="fnd">' + T('f_none') + '</div>';
@@ -7905,6 +7906,21 @@ function drawFindings() {
       else toast(T('to_ai_bad'), T('ai_fail') + (j.error || T('to_ai_no_cfg')), 'P2');
     }).catch(() => { b.disabled = false; b.textContent = 'IA »'; });
   }));
+  // export PoC : le markdown du rapport est copie, pret a coller dans la plateforme
+  document.querySelectorAll('.pocgo').forEach(b => b.addEventListener('click', () => {
+    fetch('/api/poc?id=' + encodeURIComponent(b.dataset.id)).then(r => { if (!r.ok) throw 0; return r.text(); }).then(md => {
+      const done = () => toast('POC', 'markdown copie - colle le dans la plateforme', 'HIT');
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(md).then(done, () => fallbackCopy(md, done));
+      else fallbackCopy(md, done);
+    }).catch(() => toast('POC', 'export impossible', 'P2'));
+  }));
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch (e) {}
+  ta.remove();
 }
 
 // ---------- moteur fleet ----------
