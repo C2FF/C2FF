@@ -9005,13 +9005,16 @@ function drawTeam() {
   ).join('') || '<div style="color:var(--faint);font-size:11.5px">' + T('tm_nobody') + '</div>';
   const micBtn = $('tmMic');
   if (micBtn) { micBtn.textContent = microOn ? T('tm_mic_off') : T('tm_mic_on'); micBtn.classList.toggle('mic-live', microOn); micBtn.hidden = !tm.enabled; }
-  // lien d'invitation : le tunnel public gagne s'il existe (universel, hors LAN), sinon LAN/localhost
+  // lien d'invitation : le tunnel public gagne s'il existe (universel, hors LAN), sinon LAN/localhost.
+  // URL SEULE dans la zone copiable - la note pseudo/pin vit a cote, jamais collée avec
   const world = tun && tun.startsWith('https://');
   const invite = tm.enabled
     ? (world ? tun : remote ? 'http://' + (tm.lan || 'IP-LAN:PORT') : location.origin)
-      + '/?k=' + (TEAMKEY || 'LA_CLE') + '  (handle : ' + (HANDLE || 'choisir un pseudo') + ')'
+      + '/?k=' + (TEAMKEY || 'LA_CLE')
     : '';
   $('tmInvite').textContent = invite;
+  const invNote = $('tmInviteNote');
+  if (invNote) invNote.hidden = !tm.enabled;
   const tunInfo = $('tmTunnelInfo');
   if (tunInfo) tunInfo.textContent = !tm.enabled ? '' :
     tun === 'starting' ? T('tm_tun_wait') :
@@ -9203,7 +9206,7 @@ $('tmCopy').addEventListener('click', () => copyText($('tmInvite').textContent))
 $('tmTunnelCopy').addEventListener('click', () => {
   const tun = state.data.team.tunnel;
   if (!tun || !tun.startsWith('https://')) return;
-  copyText(tun + '/?k=' + (TEAMKEY || 'LA_CLE') + '  (handle : ' + (HANDLE || 'choisir un pseudo') + ')');
+  copyText(tun + '/?k=' + (TEAMKEY || 'LA_CLE'));
 });
 
 // ---------- langue / init i18n ----------
