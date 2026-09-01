@@ -8988,12 +8988,16 @@ $('tmSaveHandle').addEventListener('click', () => {
 });
 $('tmSave').addEventListener('click', () => {
   jpost('/api/team', { op: 'config', enabled: $('tmOn').value === 'on', room: $('tmRoomEl').value }).then(r => r.json()).then(j => {
+    // la cle de salle ne repart jamais via /api/state (guests) : on la
+    // capte ici, a la creation, et on la garde dans localStorage
+    if (j.ok && j.team && j.team.key) { TEAMKEY = j.team.key; try { localStorage.setItem('c2ff-key', TEAMKEY); } catch (e) {} }
     toast('TEAM', j.ok ? T('tm_cfg_ok') : T('tm_cfg_no'), j.ok ? 'HIT' : 'P2');
     setTimeout(refresh, 300);
   });
 });
 $('tmRegen').addEventListener('click', () => {
   jpost('/api/team', { op: 'regen' }).then(r => r.json()).then(j => {
+    if (j.ok && j.team && j.team.key) { TEAMKEY = j.team.key; try { localStorage.setItem('c2ff-key', TEAMKEY); } catch (e) {} }
     toast('TEAM', T('tm_regen_ok'), 'HIT');
     setTimeout(refresh, 300);
   });

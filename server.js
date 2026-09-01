@@ -663,6 +663,7 @@ const MAIN = (req, res) => {
           return sendJson(res, { ok: true, team: teamState(req) });
         }
         if (body.op === 'config') {
+          if (roleOf(req, cleanHandle(body.by || body.handle)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
           const cur = teamCfg();
           const next = {
             enabled: typeof body.enabled === 'boolean' ? body.enabled : cur.enabled,
@@ -673,6 +674,7 @@ const MAIN = (req, res) => {
           return sendJson(res, { ok: true, team: next });
         }
         if (body.op === 'regen') {
+          if (roleOf(req, cleanHandle(body.by || body.handle)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
           const cur = teamCfg();
           const next = { enabled: cur.enabled, room: cur.room, key: genKey() };
           saveTeamCfg(next);
