@@ -7825,7 +7825,7 @@ function toast(title, text, cls) {
 // ---------- rendu differentiel ----------
 // une vue ne se redessine que si ses donnees ont change, et jamais
 // quand l'utilisateur interagit avec un element de la vue (selects, inputs)
-const drawn = { runs: '', fnd: '', prog: '', chat: '', ai: '', team: '', pip: '', hunt: '', ars: '' };
+const drawn = { runs: '', fnd: '', prog: '', chat: '', ai: '', team: '', pip: '', hunt: '', ars: '', jsi: '' };
 function focusInside(sel) {
   const r = $(sel);
   const a = document.activeElement;
@@ -7997,6 +7997,15 @@ function atkFor(id) {
     fetch('/api/attack').then(r => r.json()).then(a => { ATKS = a || {}; if (state.tab === 'hunt') { drawn.hunt = ''; drawHunt(); } }).catch(() => {});
   }
   return ATKS[id];
+}
+function jsiFor(id) {
+  if (!JSI_READY) {
+    JSI_READY = true;
+    fetch('/api/jsint').then(r => r.json()).then(j => {
+      if (j.ok && j.all) { JSI = j.all; if (state.tab === 'hunt') { drawn.jsi = ''; drawJsi(); } }
+    }).catch(() => {});
+  }
+  return JSI[id];
 }
 function drawHunt() {
   const progs = state.data.programs;
@@ -8321,6 +8330,50 @@ $('huntAtk').addEventListener('click', () => {
     drawn.hunt = ''; drawHunt();
   }).catch(() => { b.disabled = false; $('huntSt').textContent = '✖'; sndPlay('err'); });
 });
+// ---- JS INTEL : endpoints + secrets + sourcemaps des bundles ----
+let JSI = {}, JSI_BUSY = false, JSI_READY = false;
+$('huntJs').addEventListener('click', () => {
+  const p = huntSel; if (!p) return;
+  if (JSI_BUSY) return;
+  JSI_BUSY = true;
+  const b = $('huntJs');
+  b.disabled = true; b.textContent = '⟳ JS…';
+  jpost('/api/jsint', { op: 'run', name: p }).then(r => r.json()).then(j => {
+    JSI_BUSY = false; b.disabled = false; b.textContent = 'JS INTEL';
+    if (!j.ok) { sndPlay('err'); if (!demoErr(j, 'JS INTEL')) toast('JS INTEL', j.err || 'echec', 'P2'); return; }
+    JSI[p] = j.res || {};
+    sndPlay('hit');
+    toast('JS INTEL', j.res.files + ' fichiers - ' + (j.res.endpoints || []).length + ' endpoints - ' + (j.res.secrets || []).length + ' secrets - ' + (j.res.maps || []).filter(m => m.fetched).length + ' sourcemaps', 'HIT');
+    drawn.jsi = '';
+    drawJsi();
+  }).catch(() => { JSI_BUSY = false; b.disabled = false; b.textContent = 'JS INTEL'; sndPlay('err'); });
+});
+function drawJsi() {
+  const box = $('huntJsi');
+  if (!box) return;
+  const JS = jsiFor(huntSel) || null;
+  const sig = JSON.stringify(JS);
+  if (sig === drawn.jsi) return;
+  drawn.jsi = sig;
+  if (!JS || !JS.host) { box.innerHTML = ''; return; }
+  const eps = JS.endpoints || [], secs = JS.secrets || [], maps = JS.maps || [];
+  const pills = (arr, max) => arr.slice(0, max).map(x => '<span class="pill" style="margin:1px 2px 1px 0">' + esc(x) + '</span>').join('') + (arr.length > max ? ' <small style="color:var(--dim)">+' + (arr.length - max) + '</small>' : '');
+  const SEC_COLOR = { 'aws-key': 'var(--danger)', 'google-key': 'var(--warn)', 'jwt': 'var(--warn)' };
+  box.innerHTML =
+    '<div class="card" style="margin-top:12px">' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline">' +
+    '<b style="color:var(--green);font-size:12.5px">◈ JS INTEL</b>' +
+    '<small style="color:var(--faint)">' + (JS.files || 0) + ' fichiers · ' + ((JS.bytes || 0) < 1024 ? (JS.bytes || 0) + ' o' : Math.round((JS.bytes || 0) / 1024) + ' Ko') + ' · ' + new Date(JS.ts).toLocaleTimeString('fr-FR') + '</small>' +
+    (secs.length ? '<span class="pill" style="color:var(--danger)">' + secs.length + ' secrets</span>' : '') +
+    (maps.filter(m => m.fetched).length ? '<span class="pill" style="color:var(--warn)">' + maps.filter(m => m.fetched).length + ' sourcemaps exposes</span>' : '') +
+    '</div>' +
+    (eps.length ? '<div style="margin-top:7px"><b style="color:var(--green)">endpoints (' + eps.length + ')</b><div style="margin-top:3px;line-height:1.7;font-size:10.5px;word-break:break-all">' + pills(eps.map(e => e.u), 40) + '</div></div>' : '') +
+    (secs.length ? '<div style="margin-top:7px"><b style="color:var(--danger)">secrets (teste avant de crier - les placeholders existent)</b>' +
+      secs.slice(0, 15).map(s => '<div style="font-size:11px;margin-top:3px;word-break:break-all"><span class="pill" style="color:' + (SEC_COLOR[s.k] || 'var(--warn)') + '">' + esc(s.k) + '</span> <code style="color:var(--text)">' + esc(s.v) + '</code> <small style="color:var(--dim)">' + esc(s.from.split('/').pop().slice(0, 40)) + '</small></div>').join('') + '</div>' : '') +
+    (maps.length ? '<div style="margin-top:7px"><b style="color:var(--warn)">sourcemaps</b>' +
+      maps.slice(0, 8).map(m => '<div style="font-size:11px;margin-top:3px;word-break:break-all">' + (m.fetched ? '<span style="color:var(--danger)">✔ 200</span>' : '<span style="color:var(--dim)">✖</span>') + ' ' + esc(m.url.slice(0, 100)) + (m.sources && m.sources.length ? ' <small style="color:var(--dim)">' + m.sources.length + ' sources</small>' : '') + '</div>').join('') + '</div>' : '') +
+    '</div>';
+}
 
 // nouveau programme
 $('progForm').addEventListener('submit', e => {
@@ -8908,7 +8961,7 @@ async function refresh() {
       popNotify('SESSION · ' + (ttop.name || '?'), ttop.text || '', '');
     }
     if (ttop) NOTIF.lastTeamT = ttop.t;
-    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawChat(); drawFleet(); drawAI(); drawTeam();
+    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawChat(); drawFleet(); drawAI(); drawTeam();
     // presence team : battement toutes les ~5 s (3 polls)
     if (state.tick % 3 === 0 && HANDLE) {
       jpost('/api/team', { op: 'beat', handle: HANDLE }).then(r => r.json()).then(j => {

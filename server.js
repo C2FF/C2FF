@@ -21,6 +21,7 @@ const FINDINGS_FILE = path.join(DATA, 'findings.jsonl');
 const FLEET_FILE = path.join(DATA, 'fleet.json');
 const AI_FILE = path.join(DATA, 'ai.json');
 const TEAM_FILE = path.join(DATA, 'team.json');
+const JSINT_FILE = path.join(DATA, 'jsint.json');
 // golive (bouton UI) persiste "live" dans team.json : le respawn (auto ou watchdog)
 // reprend le bind reseau sans env. C2FF_BIND reste l'override manuel.
 if (!process.env['C2FF_BIND']) {
@@ -287,6 +288,7 @@ const RECON = require('./recon.js');
 const ATTACK = require('./attack.js');
 const PLAN = require('./plan.js');
 const ARSENAL = require('./arsenal.js');
+const JSINT = require('./jsint.js');
 fleet.init({
   file: FLEET_FILE,
   onFinding: (f) => {
@@ -552,6 +554,16 @@ const MAIN = (req, res) => {
     return send(res, 200, 'text/markdown; charset=utf-8', pocMarkdown(f, prog));
   }
 
+  // JS INTEL : endpoints + secrets + sourcemaps extraits des bundles (passif puis testable)
+  if (req.method === 'GET' && p === '/api/jsint') {
+    const name = String(url.searchParams.get('name') || '').toLowerCase();
+    let all = {}; try { all = JSON.parse(fs.readFileSync(JSINT_FILE, 'utf8')); } catch (e) {}
+    if (!name) return sendJson(res, { ok: true, all });
+    const h = hypProgram(name);
+    if (!h) return sendJson(res, { ok: false, err: 'programme introuvable' });
+    return sendJson(res, { ok: true, prog: h.prog.id, res: all[h.prog.id] || null });
+  }
+
   if (req.method === 'POST') {
     readBody(req, async body => {
       if (p === '/api/team') {
@@ -721,6 +733,30 @@ const MAIN = (req, res) => {
         });
         return sendJson(res, { ok: true });
       }
+      // ---- JS INTEL : telecharge les bundles et extrait endpoints/secrets/sourcemaps ----
+      if (p === '/api/jsint') {
+        if (body.op === 'run') {
+          const name = String(body.name || '').toLowerCase();
+          const progs = loadPrograms();
+          const prog = progs.find(x => x.id === name) || progs.find(x => String(x.name || '').toLowerCase() === name);
+          if (!prog) return sendJson(res, { ok: false, err: 'programme introuvable' });
+          if (isDemo(prog)) return sendJson(res, { ok: false, demo: true, err: 'programme de demonstration : cree ton programme avec ton vrai scope' });
+          let surf = {}; try { surf = JSON.parse(fs.readFileSync(path.join(DATA, 'surface.json'), 'utf8'))[prog.id] || null; } catch (e) {}
+          if (!surf) return sendJson(res, { ok: false, err: 'recon requis : lance RECON avant JS INTEL' });
+          return JSINT.jsint(surf, prog, out => {
+            try {
+              const all = JSON.parse(fs.readFileSync(JSINT_FILE, 'utf8'));
+              all[prog.id] = out;
+              fs.writeFileSync(JSINT_FILE, JSON.stringify(all, null, 1));
+            } catch (e) {
+              fs.writeFileSync(JSINT_FILE, JSON.stringify({ [prog.id]: out }, null, 1));
+            }
+            sendJson(res, { ok: true, prog: prog.id, res: out });
+          });
+        }
+        return sendJson(res, { ok: false });
+      }
+
       // ---- ATTACK : probes ciblees sur la surface reconnee, candidates avec preuve ----
       if (p === '/api/attack') {
         const name = String(body.name || '').toLowerCase();
