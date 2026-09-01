@@ -8063,6 +8063,9 @@ function drawHunt() {
   // arsenal (mouvements CVE) dans la vue de chasse
   drawHuntArs();
 
+  // modes avances
+  drawAdv();
+
   // findings du programme
   const mine = state.data.findings.filter(f => (f.program || '').toLowerCase() === huntSel.toLowerCase());
   $('huntFnd').innerHTML =
@@ -8464,6 +8467,107 @@ function runMod(op, btnId) {
 }
 $('huntReflect').addEventListener('click', () => runMod('reflect', 'huntReflect'));
 $('huntAuthz').addEventListener('click', () => runMod('authz', 'huntAuthz'));
+// ---- MODES AVANCES : 12 modules budgetes P1>P2>P3, baseline cache + run ----
+let ADV_OPEN = false, ADV_DATA = null, ADV_BUSY = false, ADV_SEL = null, ADV_LAST = null, ADV_FETCH = '';
+$('huntAdvBtn').addEventListener('click', () => {
+  ADV_OPEN = !ADV_OPEN;
+  drawn.adv = '';
+  drawAdv();
+});
+function advFetch() {
+  if (!huntSel || ADV_FETCH === huntSel) return;
+  ADV_FETCH = huntSel;
+  fetch('/api/advanced?name=' + encodeURIComponent(huntSel)).then(r => r.json()).then(j => {
+    ADV_DATA = Object.assign({ prog: huntSel }, j);
+    if (state.tab === 'hunt') { drawn.adv = ''; drawAdv(); }
+  }).catch(() => {});
+}
+function drawAdv() {
+  const box = $('huntAdvOut');
+  if (!box) return;
+  if (!ADV_OPEN) { if (drawn.adv !== 'closed') { box.innerHTML = ''; drawn.adv = 'closed'; } return; }
+  if (!huntSel) { box.innerHTML = ''; return; }
+  advFetch();
+  const d = ADV_DATA && ADV_DATA.prog === huntSel ? ADV_DATA : null;
+  const sig = JSON.stringify([d ? [d.cfg, d.baseline, d.report] : null, ADV_SEL, ADV_LAST, ADV_BUSY]);
+  if (sig === drawn.adv) return;
+  drawn.adv = sig;
+  if (!d) { box.innerHTML = '<div class="card" style="margin-top:12px"><div class="subtle" style="color:var(--faint);font-size:11px">⟳ …</div></div>'; return; }
+  const modes = d.modes || [];
+  if (!ADV_SEL) ADV_SEL = {};
+  const anySelStored = Object.keys(ADV_SEL).length > 0;
+  const selOf = k => anySelStored ? !!ADV_SEL[k] : true;
+  const sevCol = { P1: 'var(--danger)', P2: 'var(--warn)', P3: 'var(--dim)' };
+  const pools = d.pools || {};
+  const rem = ADV_LAST && ADV_LAST.remaining ? ADV_LAST.remaining : pools;
+  const used = ADV_LAST ? (ADV_LAST.used || 0) : 0;
+  const bl = d.baseline || { n: 0 };
+  box.innerHTML =
+    '<div class="card" style="margin-top:12px">' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline">' +
+    '<b style="color:var(--green);font-size:12.5px">◈ ADVANCED MODULES</b>' +
+    '<small style="color:var(--faint)">budget ' + esc(d.cfg.budget) + ' req/cycle · gap ' + esc(d.cfg.base_gap_ms) + ' ms (x2 sur 429/timeout) · baseline cache : ' + esc(bl.n) + ' endpoints</small>' +
+    '<span style="flex:1"></span>' +
+    ['P1', 'P2', 'P3'].map(p => '<span class="pill" style="color:' + sevCol[p] + '">' + p + ' ' + esc(rem[p] || 0) + '/' + esc(pools[p] || 0) + ' restants</span>').join(' ') +
+    '</div>' +
+    '<div style="margin-top:7px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:4px 14px">' +
+    modes.map(m =>
+      '<label style="display:flex;gap:6px;align-items:center;font-size:10.5px;cursor:pointer">' +
+      '<input type="checkbox" class="advSel" data-k="' + esc(m.key) + '"' + (selOf(m.key) ? ' checked' : '') + '>' +
+      '<span class="sev" style="background:none;color:' + (sevCol[m.riskLevel] || 'var(--dim)') + '">' + esc(m.riskLevel) + '</span>' +
+      '<b>' + esc(m.key) + '</b>' +
+      '<small style="color:var(--dim)">CWE ' + esc(m.cwe) + ' - ' + esc(m.desc) + '</small></label>').join('') +
+    '</div>' +
+    '<div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">' +
+    '<button class="ghost" id="advBase"' + (ADV_BUSY ? ' disabled' : '') + '>BASELINE</button>' +
+    '<button class="go" id="advRun"' + (ADV_BUSY ? ' disabled' : '') + '>' + (ADV_BUSY ? '⟳ RUN…' : 'RUN') + '</button>' +
+    '<small style="color:var(--dim)">P1 : nuclei auto apres alerte · DIFF_COMPARE lit la baseline, sans nouvelle requete</small>' +
+    '</div>' +
+    ((ADV_LAST && ADV_LAST.used ? '<div style="margin-top:6px;font-size:10.5px;color:var(--dim)">dernier run : ' + esc(ADV_LAST.used) + ' req · ' + Math.round((ADV_LAST.ms || 0) / 100) / 10 + ' s · ' + (ADV_LAST.alerts || []).length + ' alertes</div>' : '')) +
+    ((d.report || []).length ?
+      '<div style="margin-top:8px;overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:10px">' +
+      '<tr style="color:var(--dim);text-align:left"><th style="padding:3px 6px">mode</th><th style="padding:3px 6px">payload</th><th style="padding:3px 6px">status</th><th style="padding:3px 6px">latence</th><th style="padding:3px 6px">evidence</th></tr>' +
+      d.report.map(a =>
+        '<tr style="border-top:1px solid var(--line,#333)">' +
+        '<td style="padding:3px 6px"><span class="pill" style="color:' + (sevCol[a.sev] || 'var(--dim)') + '">' + esc(a.sev) + '</span> ' + esc(a.mode) + '</td>' +
+        '<td style="padding:3px 6px;font-family:monospace;word-break:break-all;max-width:260px">' + esc(String(a.payload || '').slice(0, 120)) + '</td>' +
+        '<td style="padding:3px 6px">' + esc(a.status || 0) + '</td>' +
+        '<td style="padding:3px 6px' + (a.mode === 'BLIND_SQL' ? ';color:var(--warn);font-weight:bold' : '') + '">' + esc(a.ms || 0) + ' ms</td>' +
+        '<td style="padding:3px 6px;color:var(--dim);word-break:break-all;max-width:340px">' + esc(String(a.evidence || '').slice(0, 200)) + '</td>' +
+        '</tr>').join('') +
+      '</table></div>' :
+      '<div style="margin-top:6px;font-size:10.5px;color:var(--faint)">aucun rapport - RUN pour lancer les modes selectionnes</div>') +
+    '</div>';
+  box.querySelectorAll('.advSel').forEach(cb => cb.addEventListener('change', () => {
+    ADV_SEL[cb.dataset.k] = cb.checked;
+    drawn.adv = ''; drawAdv();
+  }));
+  $('advBase').addEventListener('click', () => {
+    const b = $('advBase'); b.disabled = true; b.textContent = '⟳ …';
+    jpost('/api/advanced', { op: 'baseline', name: huntSel }).then(r => r.json()).then(j => {
+      b.disabled = false; b.textContent = 'BASELINE';
+      if (!j.ok) { sndPlay('err'); if (!demoErr(j, 'ADV')) toast('ADV', j.err || 'echec', 'P2'); return; }
+      sndPlay('hit'); toast('ADV', j.captured.length + ' endpoints en baseline', 'HIT');
+      ADV_DATA = null; ADV_FETCH = ''; drawn.adv = ''; drawAdv();
+    }).catch(() => { b.disabled = false; b.textContent = 'BASELINE'; sndPlay('err'); });
+  });
+  $('advRun').addEventListener('click', () => {
+    if (ADV_BUSY) return;
+    const sel = modes.map(m => m.key).filter(k => selOf(k));
+    if (!sel.length) { toast('ADV', 'aucun mode selectionne', 'P2'); return; }
+    ADV_BUSY = true;
+    const b = $('advRun'); b.disabled = true; b.textContent = '⟳ RUN…';
+    jpost('/api/advanced', { op: 'run', name: huntSel, modes: sel }).then(r => r.json()).then(j => {
+      ADV_BUSY = false; b.disabled = false; b.textContent = 'RUN';
+      if (!j.ok) { sndPlay('err'); if (!demoErr(j, 'ADV')) toast('ADV', j.err || 'echec', 'P2'); return; }
+      ADV_LAST = j.res; ADV_DATA = Object.assign({}, d, { report: j.report || [] });
+      const p1 = (j.report || []).filter(a => a.sev === 'P1').length;
+      sndPlay(p1 ? 'p1' : (j.report || []).length ? 'p2' : 'click');
+      toast('ADV', (j.res.used || 0) + ' req - ' + (j.report || []).length + ' alertes', p1 ? 'P1' : 'HIT');
+      drawn.adv = ''; drawAdv();
+    }).catch(() => { ADV_BUSY = false; b.disabled = false; b.textContent = 'RUN'; sndPlay('err'); });
+  });
+}
 // ARSENAL dans la vue de chasse : mouvements du programme cible, EXEC ici
 let HUNT_ARS_BUSY = false;
 $('huntArsBtn').addEventListener('click', () => {
@@ -9187,7 +9291,7 @@ async function refresh() {
       popNotify('SESSION · ' + (ttop.name || '?'), ttop.text || '', '');
     }
     if (ttop) NOTIF.lastTeamT = ttop.t;
-    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawUrls(); drawMods(); drawAuth(); drawChat(); drawFleet(); drawAI(); drawTeam();
+    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawUrls(); drawMods(); drawAuth(); drawAdv(); drawChat(); drawFleet(); drawAI(); drawTeam();
     // presence team : battement toutes les ~5 s (3 polls)
     if (state.tick % 3 === 0 && HANDLE) {
       jpost('/api/team', { op: 'beat', handle: HANDLE }).then(r => r.json()).then(j => {

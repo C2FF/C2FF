@@ -294,6 +294,18 @@ const JSINT = require('./jsint.js');
 const URLS = require('./urls.js');
 const AUTH = require('./auth.js');
 const MODULES = require('./modules.js');
+const BASELINE = require('./baseline.js');
+// config.json : bloc advanced_hacks (modes avances) - recharge a chaque
+// lecture, les reglages sont editables sans restart
+const CFG_FILE = path.join(ROOT, 'config.json');
+const ADV_REPORT_FILE = path.join(DATA, 'advanced_report.json');
+function advCfg() {
+  try {
+    const c = JSON.parse(fs.readFileSync(CFG_FILE, 'utf8'));
+    if (c && c.advanced_hacks) return c.advanced_hacks;
+  } catch (e) {}
+  return { enabled: true, priority_filter: ['P1', 'P2'], budget: 60, base_gap_ms: 1000, timeouts: { BLIND_SQL: 15000, DNS_OOB: 8000, default: 10000 }, payloads_custom: {} };
+}
 fleet.init({
   file: FLEET_FILE,
   onFinding: (f) => {
@@ -526,6 +538,20 @@ const MAIN = (req, res) => {
   if (req.method === 'GET' && p === '/api/attack') {
     const f = path.join(DATA, 'attack.json');
     try { return sendJson(res, JSON.parse(fs.readFileSync(f, 'utf8'))); } catch (e) { return sendJson(res, {}); }
+  }
+
+  // ---- MODES AVANCES : config + registry + baseline + rapport ----
+  if (req.method === 'GET' && p === '/api/advanced') {
+    const cfg = advCfg();
+    const name = String(url.searchParams.get('name') || '').toLowerCase();
+    let report = []; try { report = JSON.parse(fs.readFileSync(ADV_REPORT_FILE, 'utf8'))[name] || []; } catch (e) {}
+    return sendJson(res, {
+      cfg,
+      modes: Object.entries(MODULES.ADV_MODES).map(([key, m]) => ({ key, label: key, ...m })),
+      pools: fleet.planBudget(cfg.budget),
+      baseline: BASELINE.stats(name),
+      report,
+    });
   }
 
   // ---- PLAN : hypotheses executables + statuts persistes par programme ----
@@ -920,6 +946,69 @@ const MAIN = (req, res) => {
           try { fs.writeFileSync(f2, JSON.stringify(store, null, 1)); } catch (e) {}
           sendJson(res, { ok: true, attack: a });
         }).catch(() => sendJson(res, { ok: false, err: 'attack echouee' }));
+        return;
+      }
+      // ---- MODES AVANCES : capture baseline + run budgete ----
+      if (p === '/api/advanced') {
+        const op = String(body.op || 'run');
+        const name = String(body.name || '').toLowerCase();
+        const progs = (() => { try { return JSON.parse(fs.readFileSync(PROGRAMS_FILE, 'utf8')); } catch (e) { return []; } })();
+        const prog = progs.find(x => x.id === name) || progs.find(x => String(x.name || '').toLowerCase() === name);
+        if (!prog) return sendJson(res, { ok: false, err: 'programme introuvable' });
+        if (isDemo(prog)) return sendJson(res, { ok: false, demo: true, err: 'programme de demonstration : cree ton programme avec ton vrai scope' });
+        let surf = {}; try { surf = JSON.parse(fs.readFileSync(path.join(DATA, 'surface.json'), 'utf8'))[prog.id] || null; } catch (e) {}
+        if (!surf) return sendJson(res, { ok: false, err: 'recon requis : lance RECON avant les modes avances' });
+        const hh = AUTH.hdrsFor(prog);
+        const cfgA = advCfg();
+        if (!cfgA.enabled) return sendJson(res, { ok: false, err: 'advanced_hacks desactive dans config.json' });
+        // base du programme : scheme du scope si present, sinon https
+        const sc = (prog.scope || []).find(s => /^https?:\/\//.test(s));
+        const base = sc ? sc.replace(/\/+$/, '') : (surf.base || 'https://' + String(surf.host || '').replace(/\/+$/, ''));
+
+        // op baseline : capture des reponses propres (max 8 endpoints), cache data/baseline.json
+        // cle = endpoint EXACT tel que les modes le reference (query incluse)
+        if (op === 'baseline') {
+          const eps = [...new Set(['/', ...(surf.apis || [])])].slice(0, 8);
+          const done = [];
+          for (const ep of eps) {
+            const r = await ATTACK.areq(base + ep, { hdrs: hh, timeout: cfgA.timeouts && cfgA.timeouts.default || 10000 });
+            if (r.code > 0) { BASELINE.setBaseline(prog.id, ep, r); done.push(ep); }
+          }
+          return sendJson(res, { ok: true, captured: done, baseline: BASELINE.stats(prog.id) });
+        }
+        // op run : 12 modes budgetes (P1 50% / P2 30% / P3 20% de 60 req)
+        const modes = Array.isArray(body.modes) && body.modes.length ? body.modes : Object.keys(MODULES.ADV_MODES);
+        ATTACK.advancedRun(surf, prog, hh, modes, { advanced_hacks: { ...cfgA, payloads_custom: { ...cfgA.payloads_custom } } }, m => {
+          appendJsonl(CHAT_FILE, { t: Date.now(), from: 'me', kind: 'chat', name: 'ADV', text: trunc(String(m), 300) });
+        }).then(async out => {
+          // rapport persiste : une entree par alerte {mode, payload, status, evidence}
+          let store = {}; try { store = JSON.parse(fs.readFileSync(ADV_REPORT_FILE, 'utf8')); } catch (e) {}
+          const entries = out.alerts.map(a => ARSENAL.enrichAlert(a));
+          store[prog.id] = entries;
+          try { fs.writeFileSync(ADV_REPORT_FILE, JSON.stringify(store, null, 1)); } catch (e) {}
+          // injection findings P1/P2 (3 etapes : curl / observe / confirme)
+          for (const a of entries.filter(x => x.sev === 'P1' || x.sev === 'P2')) {
+            const key = 'adv:' + a.mode + ':' + Buffer.from(a.title).toString('hex').slice(0, 20);
+            if (state.findings.some(x => x.key === key)) continue;
+            state.seq++;
+            state.findings.unshift({
+              key, id: 'F' + String(state.seq).padStart(4, '0'), t: Date.now(),
+              program: prog.id, run: 'ADV', agent: 'ADV-' + a.mode, sev: a.sev, status: 'analyse',
+              text: trunc('[' + a.mode + ' / CWE ' + a.cwe + '] ' + a.title + '\nPoC (3 etapes) : 1) ' + (a.payload || 'voir mode') + ' sur ' + a.mode + ' (curl equivalente dans le rapport) 2) statut ' + a.status + ' : ' + a.evidence + ' 3) confirme l exploitabilite manuellement', 600),
+            });
+            persistFindings();
+          }
+          // nuclei auto pour les alertes P1 (NO_SQLI, JWT_ADV, BLIND_SQL)
+          const p1modes = [...new Set(entries.filter(x => x.sev === 'P1').map(x => x.mode))].filter(m => ARSENAL.ADV_TAGS[m]);
+          for (const m of p1modes) {
+            const outN = await ARSENAL.nucleiForAlert(base, m, hh.authorization ? ['Authorization: ' + hh.authorization] : hh.cookie ? ['Cookie: ' + hh.cookie] : []);
+            if (outN) {
+              entries.push({ mode: m + ':nuclei', sev: 'SIG', payload: 'nuclei -tags ' + ARSENAL.ADV_TAGS[m], status: 0, evidence: trunc(outN, 260), ref: 'scan automatique post-alerte P1' });
+            }
+          }
+          if (p1modes.length) { store[prog.id] = entries; try { fs.writeFileSync(ADV_REPORT_FILE, JSON.stringify(store, null, 1)); } catch (e) {} }
+          sendJson(res, { ok: true, res: out, report: entries });
+        }).catch(e => sendJson(res, { ok: false, err: 'advanced echec : ' + (e && e.message || e) }));
         return;
       }
       // ---- PLAN : hypotheses du RECON, exec GET only + preuve capturee ----

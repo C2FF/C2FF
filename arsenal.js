@@ -290,4 +290,45 @@ async function osvDetails(cves, n) {
   return out;
 }
 
-module.exports = { movesFor, rank, topMoves, cmdFor, sync, basesState, syncing: () => syncing, syncLog, osvDetails, loadBases };
+// ---------- modes avances : nuclei auto + enrichissement ----------
+// Pour une alerte P1 (NO_SQLI, JWT_ADV, BLIND_SQL) : scan nuclei automatique
+// (tags dedies) sur le host du programme, header chercheur injecte.
+// Sortie = preuve appendue au rapport. Pas de match = chaine vide.
+const ADV_TAGS = { NO_SQLI: 'nosqli,sqli', JWT_ADV: 'jwt,token', BLIND_SQL: 'sqli' };
+
+function nucleiForAlert(host, mode, hdrs) {
+  return new Promise(res => {
+    const tags = ADV_TAGS[mode];
+    if (!tags || !NUCLEI_BIN || !host) return res('');
+    const target = String(host).replace(/^https?:\/\//, '');
+    const args = ['-u', 'https://' + target, '-tags', tags, '-silent', '-timeout', '8', '-rl', '40'];
+    for (const h of hdrs || []) args.push('-H', h);
+    let out = '', done = false;
+    const fin = s => { if (!done) { done = true; res(s); } };
+    const tmo = setTimeout(() => { try { ps.kill(); } catch (e) {} fin(out); }, 120000);
+    const ps = spawn(NUCLEI_BIN, args);
+    ps.on('error', () => { clearTimeout(tmo); fin(''); });
+    ps.stdout.on('data', d => { out += d.toString(); if (out.length > 100000) { try { ps.kill(); } catch (e) {} } });
+    ps.on('close', () => { clearTimeout(tmo); fin(out.slice(0, 4000)); });
+  });
+}
+
+// autres modes : enrichissement du rapport avec les references de
+// verification manuelle (methode d'exploitation + doc de payload).
+const ADV_REFS = {
+  HEADER_INJECT: 'ref: HTTP response splitting - https://owasp.org/www-community/attacks/HTTP_Response_Splitting',
+  ACTUATOR_ADV:  'ref: Spring Boot actuator endpoints - https://github.com/p1ay873a288/spring-boot-actuator-exploit',
+  AWS_META:      'ref: SSRF cloud metadata - https://cloud.hacktricks.xyz/pentesting-cloud/ssrf-server-side-request-forgery/cloud-metadata',
+  OAUTH_MIS:     'ref: OAuth misconfig - https://book.hacktricks.xyz/pentesting-web/oauth',
+  SESSION_FIX:   'ref: session fixation - https://owasp.org/www-community/attacks/Session_fixation',
+  DNS_OOB:       'ref: OOB XXE/SSRF - https://book.hacktricks.xyz/pentesting-web/xxe-injection',
+  GRAPHQL_INTRO: 'ref: GraphQL introspection - https://book.hacktricks.xyz/network-services-pentesting/pentesting-web/graphql',
+  VERSION_CRAWL: 'ref: version fingerprint -> chercher CVE sur la version exacte (arsenal MOUVEMENTS)',
+  DIFF_COMPARE:  'ref: differentiel reponses -> BOLA/IDOR a confirmer avec creds (module AUTHZ)',
+};
+function enrichAlert(alert) {
+  const ref = ADV_REFS[alert.mode];
+  return ref ? { ...alert, ref } : alert;
+}
+
+module.exports = { movesFor, rank, topMoves, cmdFor, sync, basesState, syncing: () => syncing, syncLog, osvDetails, loadBases, nucleiForAlert, enrichAlert, ADV_TAGS };

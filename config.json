@@ -1,0 +1,19 @@
+{
+  "advanced_hacks": {
+    "enabled": true,
+    "priority_filter": ["P1", "P2"],
+    "budget": 60,
+    "base_gap_ms": 1000,
+    "timeouts": {
+      "BLIND_SQL": 15000,
+      "DNS_OOB": 8000,
+      "default": 10000
+    },
+    "payloads_custom": {
+      "no_sqli": [],
+      "blind_sql": [],
+      "oob_domain": "",
+      "oob_check_url": ""
+    }
+  }
+}

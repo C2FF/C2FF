@@ -196,4 +196,26 @@ function authz(surf, prog, hhAuth, hhBase, extras, done) {
   next();
 }
 
-module.exports = { reflect, authz, paramTargets, CANARY, PAYLOAD };
+// ============================================================
+// MODES AVANCES - 12 identifiants. riskLevel = priorite du
+// planificateur (P1 50% / P2 30% / P3 20% du budget du cycle,
+// voir fleet.planBudget). cwe = famille CWE dominante.
+// L'execution dediee de chaque mode vit dans attack.js (switch EXEC),
+// la config dans config.json (bloc advanced_hacks).
+// ============================================================
+const ADV_MODES = {
+  NO_SQLI:       { riskLevel: 'P1', cwe: '943', desc: 'operateurs $ne / $regex injectes dans les params JSON/URL' },
+  JWT_ADV:       { riskLevel: 'P1', cwe: '347', desc: 'JWT forge alg=none + kid traversal sur endpoint protege' },
+  BLIND_SQL:     { riskLevel: 'P1', cwe: '89',  desc: 'SQLi aveugle temporisee : SLEEP (MySQL) / WAITFOR (MSSQL), latence mesuree' },
+  HEADER_INJECT: { riskLevel: 'P2', cwe: '113', desc: 'CRLF (%0d%0a) dans Host / X-Forwarded-For / User-Agent' },
+  ACTUATOR_ADV:  { riskLevel: 'P2', cwe: '200', desc: 'actuator Spring exposes : env, heapdump, threaddump' },
+  AWS_META:      { riskLevel: 'P2', cwe: '918', desc: 'SSRF vers metadata cloud (AWS / GCP / Azure) via params' },
+  OAUTH_MIS:     { riskLevel: 'P2', cwe: '287', desc: 'openid-configuration + implicit flow : access_token dans URL' },
+  SESSION_FIX:   { riskLevel: 'P2', cwe: '384', desc: 'fixation de session : cookie sessionid impose' },
+  DNS_OOB:       { riskLevel: 'P2', cwe: '918', desc: 'XXE/SSRF out-of-band vers ton domaine OOB (serveur externe requis)' },
+  GRAPHQL_INTRO: { riskLevel: 'P3', cwe: '200', desc: 'introspection GraphQL ouverte ({__schema{types{name}}})' },
+  VERSION_CRAWL: { riskLevel: 'P3', cwe: '200', desc: 'fichiers de version exposes : /version, /info, /.git/HEAD, /composer.json' },
+  DIFF_COMPARE:  { riskLevel: 'P3', cwe: '639', desc: 'differentiel ?id=1 vs ?id=2 contre la baseline cachee (>20% = alerte)' },
+};
+
+module.exports = { reflect, authz, paramTargets, CANARY, PAYLOAD, ADV_MODES };

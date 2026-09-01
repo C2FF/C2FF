@@ -417,6 +417,23 @@ const MODES = {
   EXPOSED:  { label: 'EXPOSED',     cwes: '284',        desc: 'consoles et interfaces d\'admin non protegees', modules: ['EXPOSED'] },
 };
 
+// ---------- planificateur de priorites (modes avances) ----------
+// Repartit le budget du cycle par priorite : P1 50% / P2 30% / P3 20%.
+// 60 requetes -> { P1: 30, P2: 18, P3: 12 }. Les modes avances
+// (modules.ADV_MODES, execution dans attack.js) consomment le pool de
+// LEUR riskLevel : P1 ne peut pas etre affame par P2/P3.
+function planBudget(total) {
+  const T = total || fleet.requestBudgetPerCycle || 60;
+  const p1 = Math.round(T * 0.5);
+  const p2 = Math.round(T * 0.3);
+  return { P1: p1, P2: p2, P3: Math.max(0, T - p1 - p2) };
+}
+// ordre de passage : P1 > P2 > P3, stable a l'interieur d'une priorite
+function planOrder(keys, ADV_MODES) {
+  const rank = { P1: 0, P2: 1, P3: 2 };
+  return (keys || []).slice().sort((a, b) => (rank[(ADV_MODES[a] || {}).riskLevel] ?? 9) - (rank[(ADV_MODES[b] || {}).riskLevel] ?? 9));
+}
+
 // ---------- cycle ----------
 async function cycle(opts) {
   if (!fleet.enabled || fleet.paused || fleet.busy) return 0;
@@ -454,7 +471,7 @@ function startLoop() {
 }
 
 module.exports = {
-  init, load, save, state, targetsFor, cycle, startLoop, catalog,
+  init, load, save, state, targetsFor, cycle, startLoop, catalog, planBudget, planOrder,
   setSource: fn => { fleet._source = fn; },
   apply: patch => {
     for (const k of ['enabled', 'paused', 'program', 'intervalMin', 'requestBudgetPerCycle', 'gapMs', 'mode', 'modules', 'activePrograms'])
