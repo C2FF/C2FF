@@ -283,6 +283,17 @@ function persistFindings() {
     try { fs.writeFileSync(FINDINGS_FILE, state.findings.map(f => JSON.stringify(f)).join('\n') + '\n'); } catch (e) {}
   }, 400);
 }
+// vide toutes les donnees recon d'un programme (stores keyed par prog.id)
+const PURGE_FILES = ['surface.json', 'attack.json', 'plan.json', 'urls.json', 'jsint.json', 'modules.json', 'baseline.json', 'advanced_report.json', 'arsenal.json'];
+function purgeProgData(id) {
+  for (const f of PURGE_FILES) {
+    const fp = path.join(DATA, f);
+    let store; try { store = JSON.parse(fs.readFileSync(fp, 'utf8')); } catch (e) { continue; }
+    if (!store || typeof store !== 'object' || !(id in store)) continue;
+    delete store[id];
+    try { fs.writeFileSync(fp, JSON.stringify(store, null, 1)); } catch (e) {}
+  }
+}
 
 // ---------- moteur local FLEET-MODE (100% local, sans tokens) ----------
 const fleet = require('./fleet.js');
@@ -777,6 +788,13 @@ const MAIN = (req, res) => {
         return sendJson(res, { ok: true });
       }
       if (p === '/api/findings') {
+        if (body.op === 'delete' && body.key) {
+          if (roleOf(req, cleanHandle(body.name || body.by)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
+          const i = state.findings.findIndex(x => x.key === body.key);
+          if (i >= 0) state.findings.splice(i, 1);
+          persistFindings();
+          return sendJson(res, { ok: true });
+        }
         if (body.op === 'patch' && body.key) {
           const f = state.findings.find(x => x.key === body.key);
           if (f && typeof body.status === 'string') {
@@ -1049,11 +1067,55 @@ const MAIN = (req, res) => {
         return sendJson(res, { ok: true });
       }
       if (p === '/api/programs') {
+        // purge : vide les donnees recon d'un programme, garde le programme + findings
+        if (body.op === 'purge' && body.name) {
+          if (roleOf(req, cleanHandle(body.by || body.name)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
+          purgeProgData(String(body.name));
+          return sendJson(res, { ok: true });
+        }
+        // suppression : programme + findings + toutes ses donnees recon
+        if (body.op === 'delete' && body.name) {
+          if (roleOf(req, cleanHandle(body.by || body.name)) !== 'admin') return sendJson(res, { ok: false, error: 'admin only' });
+          const id = String(body.name);
+          const progs = loadPrograms().filter(x => x.id !== id);
+          try { fs.writeFileSync(PROGRAMS_FILE, JSON.stringify(progs, null, 1)); } catch (e) { return sendJson(res, { ok: false }); }
+          purgeProgData(id);
+          const before = state.findings.length;
+          state.findings = state.findings.filter(f => f.program !== id);
+          persistFindings();
+          return sendJson(res, { ok: true, removed: before - state.findings.length });
+        }
+        // creation rapide (depuis FAST) : nom + scope minimal
+        if (body.op === 'create' && body.name) {
+          const id = String(body.name).toLowerCase().replace(/[^a-z0-9_\-]/g, '').slice(0, 24) || ('prog' + Date.now());
+          const progs = loadPrograms();
+          const ex = progs.find(x => x.id === id);
+          if (ex) return sendJson(res, { ok: true, id, existed: true });
+          const scope = String(body.scope || '').split(/[,\s]+/).map(s => s.trim()).filter(Boolean).slice(0, 20);
+          progs.push({ id, name: String(body.name).slice(0, 60), scope, header: String(body.header || '') });
+          try { fs.writeFileSync(PROGRAMS_FILE, JSON.stringify(progs, null, 1)); } catch (e) { return sendJson(res, { ok: false }); }
+          return sendJson(res, { ok: true, id });
+        }
         if (Array.isArray(body.programs)) {
           try { fs.writeFileSync(PROGRAMS_FILE, JSON.stringify(body.programs, null, 1)); return sendJson(res, { ok: true }); }
           catch (e) { return sendJson(res, { ok: false }); }
         }
         return sendJson(res, { ok: false });
+      }
+      // ---- FAST TARGETING : recon-lite sans programme, resultats ephemeres ----
+      if (p === '/api/fast') {
+        if (roleOf(req, cleanHandle(body.by)) !== 'admin') return sendJson(res, { ok: false, err: 'admin only' });
+        let raw = String(body.target || '').trim();
+        if (!raw) return sendJson(res, { ok: false, err: 'cible manquante' });
+        if (!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
+        let u; try { u = new URL(raw); } catch (e) { return sendJson(res, { ok: false, err: 'URL invalide' }); }
+        if (!/^https?:$/.test(u.protocol) || !u.hostname || !u.hostname.includes('.')) return sendJson(res, { ok: false, err: 'cible invalide' });
+        const base = u.origin;
+        RECON.recon(base, {}, null).then(surf => {
+          surf.host = u.hostname; surf.program = null;
+          sendJson(res, { ok: true, surface: surf });
+        }).catch(() => sendJson(res, { ok: false, err: 'scan echoue' }));
+        return;
       }
       // ---- RECON : discovery de surface avant le hunt ----
       if (p === '/api/recon') {
@@ -1238,7 +1300,7 @@ const MAIN = (req, res) => {
             info: surf0 ? { pages: (surf0.pages || []).length, apis: (surf0.apis || []).length, params: (surf0.params || []).length, tech: (surf0.tech || []).length, ts: surf0.ts } : null },
           { k: 'attack', n: 3, done: has(atk0), tab: 'hunt',
             info: atk0 ? { findings: (atk0.findings || []).length } : null },
-          { k: 'arsenal', n: 4, done: has(ars0.program === prog.id && (ars0.moves || []).length), tab: 'arsenal',
+          { k: 'arsenal', n: 4, done: has(ars0.program === prog.id && (ars0.moves || []).length), tab: 'hunt',
             info: ars0.program === prog.id ? { moves: (ars0.moves || []).length } : null },
           { k: 'plan', n: 5, done: has(plan0 && Object.keys(plan0).length), tab: 'hunt',
             info: plan0 ? { items: Object.keys(plan0).length } : null },

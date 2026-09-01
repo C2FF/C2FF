@@ -127,7 +127,7 @@ Every finding carries a **POC** button: one click copies a ready-to-submit markd
 
 ### Arsenal: from signal to movement
 
-The **ARSENAL tab** (key `4`) bridges recon and exploitation:
+The **ARSENAL block** (bottom of the HUNT tab) bridges recon and exploitation:
 
 1. **SYNC BASES** - caches three public datasets locally (`data/bases/`): CISA KEV, EPSS scores, Exploit-DB
 2. **MOUVEMENTS** - matches your recon'd tech stack against those bases (with OSV enrichment) and ranks the moves: known-exploited first, then EPSS probability, then CVSS
@@ -171,17 +171,16 @@ pkill -f 'C2FF/watchdog.sh' ; pkill -f 'C2FF/server.js'
 
 ## Console tour
 
-Nine tabs, keys `1-9`:
+Eight tabs, keys `1-8`:
 
-1. **PROGRAMMES** - register a program (name, required header, scope), pick a mode, press **GO** - or jump straight into its hunt
-2. **HUNT** - the target-centered working view: 8 actions, plan, findings (details above)
-3. **FINDINGS** - signals arrive in real time; triage with the status selector, add manual findings, ask the AI for a second opinion with the `AI »` button, export a PoC with `POC ⧉`
-4. **ARSENAL** - KEV / EPSS / Exploit-DB moves on your recon'd stack, executable via nuclei (details above)
-5. **FLOTTE** - the engine behind the scenes: press START and probe cycles run on their own, forever; CYCLE NOW triggers an immediate round; agent transcripts stream in when `C2FF_RUNS_BASE` is set
-6. **IA** - optional gateway config (OpenAI-compatible / Ollama / Anthropic), one-click connection test
-7. **TERM** - a real working terminal inside the console (local or admin-only in a shared room)
-8. **TEAM** - your handle, the room, the three access levels, members with roles, session chat and the audio mesh (detailed below)
-9. **COORDINATION** - private channel toward your wired agent
+1. **PROGRAMMES** - register a program (name, required header, scope), pick a mode, press **GO** - or jump straight into its hunt; delete a program with `✕` (its findings and recon data go with it)
+2. **HUNT** - the target-centered working view: 8 actions, plan, findings, ARSENAL moves and the FLOTTE engine, all on one screen (details above); `PURGE RECON` wipes a program's surface/attack/urls/js/modules/plan/baseline data in one click
+3. **FINDINGS** - signals arrive in real time; triage with the status selector, delete one with `✕`, add manual findings, ask the AI for a second opinion with the `AI »` button, export a PoC with `POC ⧉`
+4. **FAST** - recon-lite on any target without creating a program: paste a URL, press SCAN, get pages / APIs / params / tech inline; results are ephemeral (nothing persisted), admin-only, and the one-click `programme ›` button turns the scan into a real program
+5. **IA** - optional gateway config (OpenAI-compatible / Ollama / Anthropic), one-click connection test
+6. **TERM** - a real working terminal inside the console (local or admin-only in a shared room)
+7. **TEAM** - your handle, the room, the three access levels, members with roles, session chat and the audio mesh (detailed below)
+8. **COORDINATION** - private channel toward your wired agent
 
 - the header language selector switches the whole UI instantly (82 languages, all fully translated, RTL for Arabic/Hebrew/Farsi/Urdu/Pashto/Sindhi); the UI polls every 1.5 s
 

@@ -7799,14 +7799,12 @@ function jpost(url, body) { return fetch(url, { method: 'POST', headers: { 'cont
 const expanded = new Set();
 let forceDraw = true; // premier paint integral, puis re-rendu differentiel
 
-const TABS = { live: 'FLOTTE', findings: 'FINDINGS', programs: 'PROGRAMMES', ai: 'IA', team: 'TEAM', chat: 'COORDINATION' };
 function setTab(t) {
   if (t !== state.tab) sndPlay('tab');
   state.tab = t;
   document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'v-' + t));
   if (t === 'chat') { state.unread = 0; }
-  if (t === 'arsenal' && typeof drawArsenal === 'function') { drawn.ars = ''; drawArsenal(); }
   if (t === 'term' && typeof termConnect === 'function') termConnect();
 }
 
@@ -7825,7 +7823,7 @@ function toast(title, text, cls) {
 // ---------- rendu differentiel ----------
 // une vue ne se redessine que si ses donnees ont change, et jamais
 // quand l'utilisateur interagit avec un element de la vue (selects, inputs)
-const drawn = { runs: '', fnd: '', prog: '', chat: '', ai: '', team: '', pip: '', hunt: '', ars: '', jsi: '', urls: '', auth: '', mods: '' };
+const drawn = { runs: '', fnd: '', prog: '', chat: '', ai: '', team: '', pip: '', hunt: '', ars: '', jsi: '', urls: '', auth: '', mods: '', fast: '' };
 function focusInside(sel) {
   const r = $(sel);
   const a = document.activeElement;
@@ -7890,11 +7888,18 @@ function drawFindings() {
       '<small style="color:var(--dim);margin-left:auto">' + new Date(f.t).toLocaleTimeString('fr-FR') + '</small>' +
       '<select data-k="' + esc(f.key) + '" class="fstat">' + sel + '</select>' +
       '<button class="ghost pocgo" data-id="' + esc(f.id) + '">POC ⧉</button>' +
-      '<button class="ghost ia-run" data-t="' + esc(f.text.slice(0, 400)) + '">IA »</button></div>' +
+      '<button class="ghost ia-run" data-t="' + esc(f.text.slice(0, 400)) + '">IA »</button>' +
+      '<button class="ghost fdel" data-k="' + esc(f.key) + '" style="color:var(--red)">✕</button></div>' +
       '<div class="txt">' + hl(f.text) + '</div></div>';
   }).join('') || '<div class="fnd">' + T('f_none') + '</div>';
   document.querySelectorAll('.fnd select').forEach(s => s.addEventListener('change', () => {
     jpost('/api/findings', { op: 'patch', key: s.dataset.k, status: s.value, name: HANDLE });
+  }));
+  document.querySelectorAll('.fdel').forEach(b => b.addEventListener('click', () => {
+    jpost('/api/findings', { op: 'delete', key: b.dataset.k, name: HANDLE }).then(r => r.json()).then(j => {
+      if (!j.ok) { toast('FINDINGS', j.error || 'echec', 'P2'); sndPlay('err'); return; }
+      drawn.fnd = ''; refresh();
+    }).catch(() => sndPlay('err'));
   }));
   document.querySelectorAll('.ia-run').forEach(b => b.addEventListener('click', () => {
     b.disabled = true; b.textContent = 'IA…';
@@ -7954,7 +7959,8 @@ function drawPrograms() {
     '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">' +
     '<select class="mode" data-p="' + esc(p.id) + '">' + modes.map(m => '<option value="' + esc(m.key) + '">' + esc(m.label) + ' · CWE ' + esc(m.cwes) + '</option>').join('') + '</select>' +
     '<button class="go launch" data-p="' + esc(p.id) + '">GO ›</button>' +
-    '<button class="ghost huntgo" data-p="' + esc(p.id) + '" style="padding:6px 14px;font-size:11px">' + T('navh') + ' ›</button></div>' +
+    '<button class="ghost huntgo" data-p="' + esc(p.id) + '" style="padding:6px 14px;font-size:11px">' + T('navh') + ' ›</button>' +
+    (p.demo ? '' : '<button class="ghost progd" data-p="' + esc(p.id) + '" style="padding:6px 12px;font-size:11px;color:var(--red)">✕</button>') + '</div>' +
     '<div class="subtle" style="color:var(--dim);font-size:10.5px" id="mdesc-' + esc(p.id) + '"></div>' +
     '</div>'
   ).join('');
@@ -7976,6 +7982,20 @@ function drawPrograms() {
     setProg(b.dataset.p);
     setTab('hunt'); drawHunt();
   }));
+  // suppression : programme + findings + toutes ses donnees recon
+  document.querySelectorAll('.progd').forEach(b => b.addEventListener('click', () => {
+    const p = b.dataset.p;
+    if (!confirm('Supprimer ' + p + ' ? findings + donnees recon inclus')) return;
+    jpost('/api/programs', { op: 'delete', name: p, by: HANDLE }).then(r => r.json()).then(j => {
+      if (!j.ok) { toast('PROGRAMMES', j.error || 'echec', 'P2'); sndPlay('err'); return; }
+      toast('PROGRAMMES', p + ' supprime', 'HIT'); sndPlay('click');
+      if (activeProg === p) { activeProg = ''; try { localStorage.removeItem('c2ff_prog'); } catch (e) {} }
+      huntSel = arSel = '';
+      SURF = {}; ATKS = {}; JSI = {};
+      drawn.prog = drawn.hunt = drawn.ars = drawn.pip = ''; PIP_PROGS_SIG = '';
+      refresh();
+    }).catch(() => sndPlay('err'));
+  }));
 }
 
 // ---------- HUNT tab : surface reelle + preuves du programme ----------
@@ -7987,7 +8007,7 @@ function surfFor(id) {
     SURF_READY = true;
     fetch('/api/surface').then(r => r.json()).then(s => { SURF = s || {}; if (state.tab === 'hunt') { drawn.hunt = ''; drawHunt(); } }).catch(() => {});
     fetchPipeline();
-    fetch('/api/arsenal').then(r => r.json()).then(a => { ARS = a || {}; if (state.tab === 'arsenal') { drawn.ars = ''; drawArsenal(); } }).catch(() => {});
+    fetch('/api/arsenal').then(r => r.json()).then(a => { ARS = a || {}; drawn.ars = ''; drawArsenal(); }).catch(() => {});
   }
   return SURF[id];
 }
@@ -8149,7 +8169,6 @@ function setProg(id) {
   try { localStorage.setItem('c2ff_prog', id); } catch (e) {}
   huntSel = arSel = id;
   drawn.pip = drawn.hunt = drawn.ars = drawn.prog = '';
-  if (state.tab === 'arsenal') drawArsenal();
   drawPipeline();
 }
 // message demo : ne scanne pas le programme de demonstration, propose la creation
@@ -8165,7 +8184,7 @@ const PIP_STEP = {
   scope:   () => ({ tab: 'programs', lab: T('pip_scope') }),
   recon:   () => ({ tab: 'hunt', lab: T('pip_recon') }),
   attack:  () => ({ tab: 'hunt', lab: T('pip_attack') }),
-  arsenal: () => ({ tab: 'arsenal', lab: T('navar') }),
+  arsenal: () => ({ tab: 'hunt', lab: T('navar') }),
   plan:    () => ({ tab: 'hunt', lab: T('pip_plan') }),
 };
 function drawPipeline() {
@@ -8239,9 +8258,12 @@ function drawArsenal() {
   $('arBase').innerHTML = TF('ar_base', { k: (b.kev && b.kev.n) || '?', e: (b.epss && b.epss.n) || '?', x: (b.sdb && b.sdb.n) || '?' })
     + (ARS && ARS.log && ARS.log.length ? ' - ' + esc(ARS.log.join(' | ')) : '')
     + (ARS && ARS.syncing ? ' [sync...]' : '');
-  if (state.tab !== 'arsenal' || ARS_BUSY) return;
+  if (ARS_BUSY) return;
   const out = $('arOut');
   const stash = ARS && ARS.stash;
+  const sig = JSON.stringify([stash || null, arSel]);
+  if (sig === drawn.ars && !forceDraw) return;
+  drawn.ars = sig;
   if (!stash) { out.innerHTML = '<div class="card">' + esc(T('ar_none')) + '</div>'; return; }
   const moves = stash.moves || [];
   // hint si le stash est d'un autre programme
@@ -8291,7 +8313,7 @@ $('arSync').addEventListener('click', () => {
   b.disabled = true;
   jpost('/api/arsenal', { op: 'sync' }).then(r => r.json()).then(j => {
     b.disabled = false;
-    if (j.ok) { toast('ARSENAL', 'sync KEV/EPSS/XDB lance', 'HIT'); setTimeout(() => { drawn.ars = ''; fetch('/api/arsenal').then(r => r.json()).then(a => { ARS = a || {}; if (state.tab === 'arsenal') drawArsenal(); $('arSt').textContent = T('h_ready'); }).catch(() => {}); }, 4000); }
+    if (j.ok) { toast('ARSENAL', 'sync KEV/EPSS/XDB lance', 'HIT'); setTimeout(() => { drawn.ars = ''; fetch('/api/arsenal').then(r => r.json()).then(a => { ARS = a || {}; drawArsenal(); $('arSt').textContent = T('h_ready'); }).catch(() => {}); }, 4000); }
     else { $('arSt').textContent = j.err || 'x'; sndPlay('err'); }
   }).catch(() => { b.disabled = false; sndPlay('err'); });
 });
@@ -8310,6 +8332,71 @@ $('arMoves').addEventListener('click', () => {
   }).catch(() => { b.disabled = false; $('arSt').textContent = '✖'; sndPlay('err'); });
 });
 
+// ---- FAST TARGETING : recon-lite ephemere, sans programme ----
+let FAST_DATA = null, FAST_BUSY = false;
+function drawFast() {
+  const box = $('fastOut');
+  if (!box) return;
+  if (!FAST_DATA) { box.innerHTML = ''; return; }
+  const sig = JSON.stringify(FAST_DATA);
+  if (sig === drawn.fast && !forceDraw) return;
+  drawn.fast = sig;
+  const s = FAST_DATA;
+  const rows = (t, arr, cut) => arr && arr.length ?
+    '<div style="margin-top:7px"><b style="color:var(--green)">' + t + ' (' + arr.length + ')</b><div style="margin-top:3px;line-height:1.7;font-size:10.5px;color:var(--dim);word-break:break-all">' +
+    arr.slice(0, cut || 999).map(x => '<span class="pill" style="margin:1px 2px 1px 0">' + esc(x) + '</span>').join('') + (arr.length > (cut || 999) ? '…' : '') + '</div></div>' : '';
+  box.innerHTML =
+    '<div class="card" style="margin-top:12px">' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline">' +
+    '<b style="color:var(--green);font-size:13px">' + esc(s.host || '?') + '</b>' +
+    '<small style="color:var(--faint)">' + esc(s.reqs || 0) + ' req · ' + Math.round((s.ms || 0) / 100) / 10 + ' s</small>' +
+    (s.tech && s.tech.length ? '<span class="pill">⚙ ' + esc(s.tech.join(' / ').slice(0, 80)) + '</span>' : '') +
+    '<button class="ghost fastToProg" style="padding:4px 10px;font-size:11px;margin-left:auto">programme ›</button></div>' +
+    rows('API', s.apis, 30) + rows('PARAMS', s.params, 30) +
+    rows('PAGES', (s.pages || []).map(x => x.replace(/^https?:\/\//, '')), 20) +
+    rows('JS', (s.jsfiles || []).map(x => x.replace(/^https?:\/\//, '')), 15) +
+    rows('SUBS', s.subs, 25) + '</div>';
+  const tp = box.querySelector('.fastToProg');
+  if (tp) tp.addEventListener('click', () => {
+    const f = $('npName');
+    jpost('/api/programs', { op: 'create', name: s.host, scope: s.host }).then(r => r.json()).then(j => {
+      if (!j.ok) { toast('FAST', j.error || 'echec', 'P2'); return; }
+      if (j.id) setProg(j.id);
+      setTab('programs');
+      drawn.prog = ''; PIP_PROGS_SIG = '';
+      refresh();
+      if (f) f.focus();
+    }).catch(() => {});
+  });
+}
+$('fastGo').addEventListener('click', () => {
+  const t = ($('fastTarget').value || '').trim();
+  if (!t || FAST_BUSY) return;
+  FAST_BUSY = true;
+  const b = $('fastGo');
+  b.disabled = true; $('fastSt').textContent = '⟳';
+  jpost('/api/fast', { target: t, by: HANDLE }).then(r => r.json()).then(j => {
+    FAST_BUSY = false; b.disabled = false;
+    if (!j.ok || !j.surface) { $('fastSt').textContent = '✖'; sndPlay('err'); toast('FAST', j.err || 'scan echoue', 'P2'); return; }
+    $('fastSt').textContent = T('h_ready');
+    FAST_DATA = j.surface; drawn.fast = '';
+    sndPlay('hit'); drawFast();
+  }).catch(() => { FAST_BUSY = false; b.disabled = false; $('fastSt').textContent = '✖'; sndPlay('err'); });
+});
+$('fastTarget').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('fastGo').click(); } });
+
+// purge recon : vide surface/attack/urls/js/modules/plan/baseline/advanced du programme
+$('huntPurge').addEventListener('click', () => {
+  const p = huntSel; if (!p) return;
+  if (!confirm('Purger le recon de ' + p + ' ? (surface, attack, urls, js, modules, plan, baseline)')) return;
+  jpost('/api/programs', { op: 'purge', name: p, by: HANDLE }).then(r => r.json()).then(j => {
+    if (!j.ok) { toast('PURGE', j.error || 'echec', 'P2'); sndPlay('err'); return; }
+    SURF = {}; ATKS = {}; JSI = {};
+    drawn.hunt = drawn.ars = '';
+    toast('PURGE', 'recon purge pour ' + p, 'HIT'); sndPlay('click');
+    refresh();
+  }).catch(() => sndPlay('err'));
+});
 $('huntRecon').addEventListener('click', () => {
   const p = huntSel; if (!p) return;
   const b = $('huntRecon');
@@ -9264,7 +9351,7 @@ $('termRestart').addEventListener('click', () => {
 document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => { setTab(b.dataset.tab); if (b.dataset.tab === 'term') termConnect(); }));
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') { if (e.key === 'Escape') e.target.blur(); return; }
-  const m = { '1': 'programs', '2': 'hunt', '3': 'findings', '4': 'arsenal', '5': 'live', '6': 'ai', '7': 'term', '8': 'team', '9': 'chat' }[e.key];
+  const m = { '1': 'programs', '2': 'hunt', '3': 'findings', '4': 'fast', '5': 'ai', '6': 'term', '7': 'team', '8': 'chat' }[e.key];
   if (m) setTab(m);
 });
 setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);
@@ -9296,7 +9383,7 @@ async function refresh() {
       popNotify('SESSION · ' + (ttop.name || '?'), ttop.text || '', '');
     }
     if (ttop) NOTIF.lastTeamT = ttop.t;
-    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawUrls(); drawMods(); drawAuth(); drawAdv(); drawChat(); drawFleet(); drawAI(); drawTeam();
+    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawUrls(); drawMods(); drawAuth(); drawAdv(); drawChat(); drawFleet(); drawAI(); drawTeam(); drawArsenal(); drawFast();
     // programmes crees/supprimes : le bandeau pipeline suit (sinon message
     // demo "cree ton programme" colle jusqu'au rechargement de la page)
     const _progsSig = d.programs.map(p => p.id).join(',');
@@ -9317,7 +9404,7 @@ setInterval(refresh, 1500);
 refresh();
 // deep-link : #hunt (ou tout tab) ouvre l onglet correspondant, et chaque changement met a jour le hash
 const _hashTab = (location.hash || '').replace('#', '');
-const _hashOk = { live: 1, findings: 1, programs: 1, hunt: 1, ai: 1, team: 1, term: 1, chat: 1 };
+const _hashOk = { findings: 1, programs: 1, hunt: 1, fast: 1, ai: 1, team: 1, term: 1, chat: 1 };
 if (_hashOk[_hashTab]) setTimeout(() => setTab(_hashTab), 0);
 else setTab(state.tab);
 document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => {

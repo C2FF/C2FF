@@ -265,10 +265,9 @@ header,nav{border-bottom-color:transparent;
 <img class="banner" src="/banner_app.gif" alt="C2FF command & control framework" height="150">
 <nav>
   <button class="navbtn" data-tab="programs"><span data-i="navp">Programmes</span> <small id="nProg"></small></button>
-  <button class="navbtn" data-tab="hunt"><span data-i="navh">HUNT</span></button>
+  <button class="navbtn" data-tab="hunt"><span data-i="navh">HUNT</span> <small id="nRun"></small></button>
   <button class="navbtn" data-tab="findings"><span data-i="navfd">Findings</span> <small id="nFnd"></small></button>
-  <button class="navbtn" data-tab="arsenal"><span data-i="navar">Arsenal</span></button>
-  <button class="navbtn" data-tab="live"><span data-i="navf">Flotte</span> <small id="nRun"></small></button>
+  <button class="navbtn" data-tab="fast"><span>FAST</span></button>
   <button class="navbtn" data-tab="ai"><span data-i="navai">IA</span></button>
   <button class="navbtn" data-tab="term"><span data-i="navtrm">TERM</span></button>
   <button class="navbtn" data-tab="team"><span data-i="navt">Team</span></button>
@@ -282,19 +281,6 @@ header,nav{border-bottom-color:transparent;
 
 <div id="pip" class="card" style="margin:0 0 12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap"></div>
 
-<section class="view" id="v-live">
-  <h2 data-i="h2eng">Moteur flotte - cycles locaux sans tokens</h2>
-  <div class="card" id="fleetBar" style="display:flex;gap:9px;flex-wrap:wrap;align-items:center">
-    <span class="pill" id="fleetSt">Fleet : ?</span>
-    <button class="go" id="fleetStart" data-i="fl_start">Démarrer</button>
-    <button class="ghost" id="fleetPause" data-i="fl_pause">Pause</button>
-    <button class="ghost" id="fleetCycle" data-i="fl_cycle">Cycle maintenant</button>
-    <small style="color:var(--faint)" id="fleetInfo"></small>
-  </div>
-  <h2 data-i="h2f">Flotte - tous programmes, agents en course d'abord</h2>
-  <div id="runList"></div>
-</section>
-
 <section class="view" id="v-findings">
   <h2 data-i="h2fd">Base de findings - marquage triage persistant</h2>
   <form class="newf" id="newFinding">
@@ -304,6 +290,19 @@ header,nav{border-bottom-color:transparent;
     <button class="go" type="submit" data-i="f_add">Ajouter</button>
   </form>
   <div id="fndList"></div>
+</section>
+
+<section class="view" id="v-fast">
+  <h2>FAST TARGETING - scan d'une cible sans creer de programme</h2>
+  <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <input type="text" id="fastTarget" placeholder="https://cible.com" style="flex:1;min-width:260px">
+    <button class="go" id="fastGo">SCAN ›</button>
+    <span class="pill" id="fastSt" data-i="h_ready">pret</span>
+  </div>
+  <div class="card" style="margin-top:10px;color:var(--dim);font-size:11px">
+    recon-lite ephemere : pas de header chercheur, pas de persistence - verifie ton scope avant de scanner
+  </div>
+  <div id="fastOut"></div>
 </section>
 
 <section class="view active" id="v-programs">
@@ -332,6 +331,7 @@ header,nav{border-bottom-color:transparent;
     <button class="go" id="huntArsBtn">ARSENAL</button>
     <button class="go" id="huntAdvBtn">ADV</button>
     <button class="ghost" id="huntAuthBtn">AUTH</button>
+    <button class="ghost" id="huntPurge" style="color:var(--red)">PURGE RECON</button>
     <span class="pill" id="huntSt" data-i="h_ready">pret</span>
   </div>
   <div class="card" id="huntSurf" style="margin-top:12px"></div>
@@ -344,9 +344,7 @@ header,nav{border-bottom-color:transparent;
   <div id="huntPlan"></div>
   <div id="huntArs"></div>
   <div id="huntFnd"></div>
-</section>
 
-<section class="view" id="v-arsenal">
   <h2 data-i="ar_h2">ARSENAL - CVE, EPSS et exploits sur la surface detectee</h2>
   <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
     <button class="go" id="arSync" data-i="ar_sync">SYNC BASES</button>
@@ -355,6 +353,17 @@ header,nav{border-bottom-color:transparent;
   </div>
   <div class="card" id="arBase" style="margin-top:10px;color:var(--dim);font-size:12px"></div>
   <div id="arOut"></div>
+
+  <h2 data-i="h2eng">Moteur flotte - cycles locaux sans tokens</h2>
+  <div class="card" id="fleetBar" style="display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+    <span class="pill" id="fleetSt">Fleet : ?</span>
+    <button class="go" id="fleetStart" data-i="fl_start">Démarrer</button>
+    <button class="ghost" id="fleetPause" data-i="fl_pause">Pause</button>
+    <button class="ghost" id="fleetCycle" data-i="fl_cycle">Cycle maintenant</button>
+    <small style="color:var(--faint)" id="fleetInfo"></small>
+  </div>
+  <h2 data-i="h2f">Flotte - tous programmes, agents en course d'abord</h2>
+  <div id="runList"></div>
 </section>
 
 <section class="view" id="v-ai">
