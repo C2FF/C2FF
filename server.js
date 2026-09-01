@@ -215,11 +215,16 @@ setInterval(() => {
 
 // ---------- programmes ----------
 const DEFAULT_PROGRAMS = [
-  { id: 'exemple', name: 'Exemple Program', platform: 'Bugcrowd', header: 'X-Bug-Bounty: <ton-handle>', scope: ['*.exemple.com'], creds: '', runs: [] },
+  { id: 'exemple', name: 'Exemple Program', platform: 'Bugcrowd', header: 'X-Bug-Bounty: <ton-handle>', scope: ['*.exemple.com'], creds: '', runs: [], demo: true },
 ];
+const isDemo = p => !!(p && (p.demo || (p.scope || []).join(' ').includes('exemple.com')));
 function loadPrograms() {
   const list = readJson(PROGRAMS_FILE, null);
-  if (Array.isArray(list) && list.length) return list;
+  if (Array.isArray(list) && list.length) {
+    // heuristique : un programme dont le scope vise exemple.com est un seed demo
+    for (const p of list) if (isDemo(p)) p.demo = true;
+    return list;
+  }
   try { fs.writeFileSync(PROGRAMS_FILE, JSON.stringify(DEFAULT_PROGRAMS, null, 1)); } catch (e) {}
   return DEFAULT_PROGRAMS;
 }
@@ -493,7 +498,7 @@ const MAIN = (req, res) => {
   function hypProgram(name) {
     const progs = (() => { try { return JSON.parse(fs.readFileSync(PROGRAMS_FILE, 'utf8')); } catch (e) { return []; } })();
     const prog = progs.find(x => x.id === String(name || '').toLowerCase());
-    if (!prog) return null;
+    if (!prog || isDemo(prog)) return null;
     let surf = {}; try { surf = JSON.parse(fs.readFileSync(path.join(DATA, 'surface.json'), 'utf8'))[prog.id] || {}; } catch (e) {}
     if (!surf.host) return { prog, surf: null };
     return { prog, surf };
@@ -686,6 +691,7 @@ const MAIN = (req, res) => {
         const progs = (() => { try { return JSON.parse(fs.readFileSync(PROGRAMS_FILE, 'utf8')); } catch (e) { return []; } })();
         const prog = progs.find(x => x.id === name) || progs.find(x => String(x.name || '').toLowerCase() === name);
         if (!prog) return sendJson(res, { ok: false, err: 'programme introuvable' });
+        if (isDemo(prog)) return sendJson(res, { ok: false, demo: true, err: 'programme de demonstration : cree ton programme avec ton vrai scope' });
         let surf = {}; try { surf = JSON.parse(fs.readFileSync(path.join(DATA, 'surface.json'), 'utf8'))[prog.id] || null; } catch (e) {}
         if (!surf) return sendJson(res, { ok: false, err: 'recon requis : lance RECON avant ATTACK' });
         let hh = {};
@@ -760,6 +766,7 @@ const MAIN = (req, res) => {
         const progs = (() => { try { return JSON.parse(fs.readFileSync(PROGRAMS_FILE, 'utf8')); } catch (e) { return []; } })();
         const prog = progs.find(x => x.id === name) || progs.find(x => String(x.name || '').toLowerCase() === name);
         if (!prog) return sendJson(res, { ok: false, err: 'programme introuvable' });
+        if (isDemo(prog)) return sendJson(res, { ok: false, demo: true, err: 'programme de demonstration : cree ton programme avec ton vrai scope' });
         // header programme optionnel (X-Bug-Bounty etc), envoye a chaque requete
         let hh = {};
         if (prog.header && prog.header.includes(':')) { const i2 = prog.header.indexOf(':'); hh[prog.header.slice(0, i2).trim()] = prog.header.slice(i2 + 1).trim(); }
@@ -805,6 +812,7 @@ const MAIN = (req, res) => {
           const progs = (() => { try { return JSON.parse(fs.readFileSync(PROGRAMS_FILE, 'utf8')); } catch (e) { return []; } })();
           const prog = progs.find(x => x.id === name) || progs.find(x => String(x.name || '').toLowerCase() === name);
           if (!prog) return sendJson(res, { ok: false, err: 'programme introuvable' });
+          if (isDemo(prog)) return sendJson(res, { ok: false, demo: true, err: 'programme de demonstration : cree ton programme avec ton vrai scope' });
           let surf = {}; try { surf = JSON.parse(fs.readFileSync(path.join(DATA, 'surface.json'), 'utf8'))[prog.id] || null; } catch (e) {}
           if (!surf) return sendJson(res, { ok: false, err: 'recon requis : lance RECON avant ARSENAL' });
           // cve deja vues dans les findings du programme (rattache les exploits)
@@ -905,6 +913,44 @@ const MAIN = (req, res) => {
   }
 
   if (p === '/api/state') return apiState(res, req);
+  if (p === '/api/pipeline' && req.method === 'GET') {
+    // etat des 5 etapes pour un programme (ou le programme actif par defaut),
+    // calcule uniquement depuis les donnees existantes
+    const progs = loadPrograms();
+    const name = String(url.searchParams.get('name') || '').toLowerCase();
+    const progsReal = progs.filter(x => !isDemo(x));
+    const prog = progsReal.find(x => x.id === name) || progsReal[0] || null;
+    const rd = f => { try { return JSON.parse(fs.readFileSync(path.join(DATA, f), 'utf8')); } catch (e) { return {}; } };
+    let out;
+    if (!prog) {
+      out = { program: null, demo: progs.length ? { id: progs[0].id, name: progs[0].name } : null, steps: null };
+    } else {
+      const surf0 = rd('surface.json')[prog.id] || null;
+      const atk0 = rd('attack.json')[prog.id] || null;
+      let ars0 = {}; try { ars0 = JSON.parse(fs.readFileSync(path.join(DATA, 'arsenal.json'), 'utf8')); } catch (e) {}
+      const plan0 = rd('plan.json')[prog.id] || null;
+      const has = Boolean;
+      out = {
+        program: { id: prog.id, name: prog.name, platform: prog.platform },
+        steps: [
+          { k: 'scope', n: 1, done: has((prog.scope || []).length), tab: 'programs' },
+          { k: 'recon', n: 2, done: has(surf0), tab: 'hunt',
+            info: surf0 ? { pages: (surf0.pages || []).length, apis: (surf0.apis || []).length, params: (surf0.params || []).length, tech: (surf0.tech || []).length, ts: surf0.ts } : null },
+          { k: 'attack', n: 3, done: has(atk0), tab: 'hunt',
+            info: atk0 ? { findings: (atk0.findings || []).length } : null },
+          { k: 'arsenal', n: 4, done: has(ars0.program === prog.id && (ars0.moves || []).length), tab: 'arsenal',
+            info: ars0.program === prog.id ? { moves: (ars0.moves || []).length } : null },
+          { k: 'plan', n: 5, done: has(plan0 && Object.keys(plan0).length), tab: 'hunt',
+            info: plan0 ? { items: Object.keys(plan0).length } : null },
+        ],
+      };
+      const next = out.steps.find(s => !s.done);
+      out.next = next ? next.k : null;
+      // findings du programme pour l'etape rapport
+      out.findings = state.findings.filter(f => f.program === prog.id).length;
+    }
+    return sendJson(res, out);
+  }
   if (p === '/api/arsenal' && req.method === 'GET') {
     let stash = null; try { stash = JSON.parse(fs.readFileSync(path.join(DATA, 'arsenal.json'), 'utf8')); } catch (e) {}
     return sendJson(res, { bases: ARSENAL.basesState(), syncing: ARSENAL.syncing(), log: ARSENAL.syncLog.slice(-8), stash });

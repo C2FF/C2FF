@@ -176,6 +176,17 @@ button.ghost{background:transparent;border:1px solid var(--line);color:var(--mut
   border-radius:5px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12px;letter-spacing:.4px;transition:color .15s,border-color .15s,background .15s}
 button.ghost:hover{color:var(--green);border-color:var(--line-hi);background:var(--green-soft)}
 
+/* ── pipeline bandeau ── */
+#pip{border-left:3px solid var(--green);padding:10px 14px;row-gap:8px}
+#pipProg{padding:4px 8px;font-size:12px}
+.pipStep{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:var(--panel3);color:var(--muted);
+  border:1px solid var(--line);border-radius:14px;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;
+  letter-spacing:.5px;text-transform:uppercase;transition:color .15s,border-color .15s,background .15s}
+.pipStep:hover{color:var(--text);border-color:var(--line-hi);background:hsl(var(--hue) 62% 54% / .08)}
+.pipStep.pipNext{color:var(--warn);border-color:var(--warn);background:hsl(38 90% 55% / .07);
+  animation:billive 2.6s ease-in-out infinite}
+.pipStep.pipNext:hover{background:hsl(38 90% 55% / .14)}
+
 /* programs grid */
 .prog{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
 .prog .card h3{margin:0 0 5px;font-size:14px;font-weight:700;color:var(--text);letter-spacing:.5px}
@@ -253,14 +264,14 @@ header,nav{border-bottom-color:transparent;
 </header>
 <img class="banner" src="/banner_app.gif" alt="C2FF command & control framework" height="150">
 <nav>
-  <button class="navbtn active" data-tab="live"><span data-i="navf">Flotte</span> <small id="nRun"></small></button>
-  <button class="navbtn" data-tab="findings"><span data-i="navfd">Findings</span> <small id="nFnd"></small></button>
   <button class="navbtn" data-tab="programs"><span data-i="navp">Programmes</span> <small id="nProg"></small></button>
   <button class="navbtn" data-tab="hunt"><span data-i="navh">HUNT</span></button>
-  <button class="navbtn" data-tab="ai"><span data-i="navai">IA</span></button>
   <button class="navbtn" data-tab="arsenal"><span data-i="navar">Arsenal</span></button>
-  <button class="navbtn" data-tab="team"><span data-i="navt">Team</span></button>
+  <button class="navbtn" data-tab="findings"><span data-i="navfd">Findings</span> <small id="nFnd"></small></button>
+  <button class="navbtn" data-tab="live"><span data-i="navf">Flotte</span> <small id="nRun"></small></button>
+  <button class="navbtn" data-tab="ai"><span data-i="navai">IA</span></button>
   <button class="navbtn" data-tab="term"><span data-i="navtrm">TERM</span></button>
+  <button class="navbtn" data-tab="team"><span data-i="navt">Team</span></button>
   <button class="navbtn" data-tab="chat"><span data-i="navc">Coordination</span> <small id="nChat"></small></button>
 </nav>
 <div class="stats">
@@ -269,7 +280,17 @@ header,nav{border-bottom-color:transparent;
   <div class="stat"><div class="k" data-i="st_sig">Signaux</div><div class="v" id="sSig">0</div></div>
 </div>
 
-<section class="view active" id="v-live">
+<div id="pip" class="card" style="margin:0 0 12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap"></div>
+
+<section class="view" id="v-live">
+  <h2 data-i="h2eng">Moteur flotte - cycles locaux sans tokens</h2>
+  <div class="card" id="fleetBar" style="display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+    <span class="pill" id="fleetSt">Fleet : ?</span>
+    <button class="go" id="fleetStart" data-i="fl_start">Démarrer</button>
+    <button class="ghost" id="fleetPause" data-i="fl_pause">Pause</button>
+    <button class="ghost" id="fleetCycle" data-i="fl_cycle">Cycle maintenant</button>
+    <small style="color:var(--faint)" id="fleetInfo"></small>
+  </div>
   <h2 data-i="h2f">Flotte - tous programmes, agents en course d'abord</h2>
   <div id="runList"></div>
 </section>
@@ -285,15 +306,7 @@ header,nav{border-bottom-color:transparent;
   <div id="fndList"></div>
 </section>
 
-<section class="view" id="v-programs">
-  <h2 data-i="h2eng">Moteur flotte - cycles locaux sans tokens</h2>
-  <div class="card" id="fleetBar" style="display:flex;gap:9px;flex-wrap:wrap;align-items:center">
-    <span class="pill" id="fleetSt">Fleet : ?</span>
-    <button class="go" id="fleetStart" data-i="fl_start">Démarrer</button>
-    <button class="ghost" id="fleetPause" data-i="fl_pause">Pause</button>
-    <button class="ghost" id="fleetCycle" data-i="fl_cycle">Cycle maintenant</button>
-    <small style="color:var(--faint)" id="fleetInfo"></small>
-  </div>
+<section class="view active" id="v-programs">
   <h2 data-i="h2prog">Programmes - scope, header requis, lancement</h2>
   <div class="prog" id="progList"></div>
   <div class="card" style="margin-top:12px">
@@ -310,7 +323,6 @@ header,nav{border-bottom-color:transparent;
 <section class="view" id="v-hunt">
   <h2 data-i="h2hunt">HUNT - surface reelle d'une cible et preuves</h2>
   <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-    <select id="huntProg" style="width:250px;flex:1;max-width:320px"></select>
     <button class="go" id="huntRecon" data-i="rc_btn">RECON</button>
     <button class="go" id="huntAtk" data-i="atk_btn">ATTACK</button>
     <span class="pill" id="huntSt" data-i="h_ready">pret</span>
@@ -324,7 +336,6 @@ header,nav{border-bottom-color:transparent;
 <section class="view" id="v-arsenal">
   <h2 data-i="ar_h2">ARSENAL - CVE, EPSS et exploits sur la surface detectee</h2>
   <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-    <select id="arProg" style="width:250px;flex:1;max-width:320px"></select>
     <button class="go" id="arSync" data-i="ar_sync">SYNC BASES</button>
     <button class="go" id="arMoves" data-i="ar_btn">MOUVEMENTS</button>
     <span class="pill" id="arSt" data-i="h_ready">pret</span>

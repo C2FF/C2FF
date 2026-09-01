@@ -132,6 +132,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS et exploits sur la surface detectee', ar_sync: 'SYNC BASES',
     ar_btn: 'MOUVEMENTS', ar_exec: 'EXEC',
     ar_none: 'aucun mouvement : lance RECON d abord, puis SYNC pour charger KEV/EPSS', ar_loading: 'recap des bases en charge...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'programme de demonstration - pas de scan : cree ton programme', pip_noprog: 'aucun programme : cree le tien dans Programmes',
+    pip_next: 'etape suivante :', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   en: {
@@ -222,6 +226,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS and exploits on the detected surface', ar_sync: 'SYNC BASES',
     ar_btn: 'MOVES', ar_exec: 'EXEC',
     ar_none: 'no moves: run RECON first, then SYNC to load KEV/EPSS', ar_loading: 'recap of bases loading...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo program - no scans: create yours', pip_noprog: 'no program: create yours in Programs',
+    pip_next: 'next step:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   es: {
@@ -312,6 +320,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS y exploits sobre la superficie detectada', ar_sync: 'SYNC DE BASES',
     ar_btn: 'MOVIMIENTOS', ar_exec: 'EXEC',
     ar_none: 'sin movimientos: lanza RECON primero, luego SYNC para cargar KEV/EPSS', ar_loading: 'resumen de bases cargando...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'programa de demostracion - no escanea: crea tu programa', pip_noprog: 'ningun programa: crea el tuyo en Programas',
+    pip_next: 'etapa siguiente:', fnd_n: 'hallazgos: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   de: {
@@ -402,6 +414,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS und Exploits auf der erkannten Oberflaeche', ar_sync: 'SYNC DATENBANKEN',
     ar_btn: 'BEWEGUNGEN', ar_exec: 'EXEC',
     ar_none: 'keine Bewegungen: erst RECON ausfuehren, dann SYNC zum Laden von KEV/EPSS', ar_loading: 'Zusammenfassung der Datenbanken laedt...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo-programm - kein scan: erstelle dein eigenes programm', pip_noprog: 'kein programm: erstelle dein eigenes unter programme',
+    pip_next: 'nachste etappe:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   pt: {
@@ -492,6 +508,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS e exploits na superficie detectada', ar_sync: 'SYNC BASES',
     ar_btn: 'MOVIMENTOS', ar_exec: 'EXEC',
     ar_none: 'sem movimentos: execute RECON primeiro, depois SYNC para carregar KEV/EPSS', ar_loading: 'resumo das bases carregando...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'programa de demonstracao - sem scan: crie seu programa', pip_noprog: 'nenhum programa: crie o seu na aba Programas',
+    pip_next: 'proxima etapa:', fnd_n: 'descobertas: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   it: {
@@ -582,6 +602,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS ed exploit sulla superficie rilevata', ar_sync: 'SYNC BASI',
     ar_btn: 'MOVIMENTI', ar_exec: 'EXEC',
     ar_none: 'nessun movimento: esegui prima RECON, poi SYNC per caricare KEV/EPSS', ar_loading: 'riepilogo delle basi in caricamento...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'programma demo - nessuna scansione: crea il tuo programma', pip_noprog: 'nessun programma: crea il tuo in Programmi',
+    pip_next: 'prossima fase:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ar: {
@@ -672,6 +696,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE وEPSS والاستغلالات على السطح المكتشف', ar_sync: 'SYNC القواعد',
     ar_btn: 'الحركات', ar_exec: 'EXEC',
     ar_none: 'لا حركات: شغّل RECON أولا ثم SYNC لتحميل KEV/EPSS', ar_loading: 'ملخص القواعد قيد التحميل...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'برنامج تجريبي - لا فحص: أنشئ برنامجك', pip_noprog: 'لا يوجد برنامج: أنشئ برنامجك في تبويب البرامج',
+    pip_next: 'المرحلة التالية:', fnd_n: 'الاكتشافات: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   zh: {
@@ -762,6 +790,10 @@ const I18N = {
     ar_h2: 'ARSENAL - 已检测面上的 CVE、EPSS 和 EXPLOITS', ar_sync: 'SYNC 数据库',
     ar_btn: '动作', ar_exec: 'EXEC',
     ar_none: '暂无动作：先运行 RECON，再用 SYNC 加载 KEV/EPSS', ar_loading: '数据库摘要加载中...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: '演示程序 - 无法扫描: 请创建你自己的程序', pip_noprog: '暂无程序: 请在程序选项卡中创建你的程序',
+    pip_next: '下一步:', fnd_n: '发现: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ru: {
@@ -852,6 +884,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS и эксплойты на обнаруженной поверхности', ar_sync: 'SYNC БАЗ',
     ar_btn: 'ДВИЖЕНИЯ', ar_exec: 'EXEC',
     ar_none: 'нет движений: сначала запустите RECON, затем SYNC для загрузки KEV/EPSS', ar_loading: 'сводка баз загружается...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'демо-программа - сканирование недоступно: создай свою программу', pip_noprog: 'нет программ: создай свою во вкладке Программы',
+    pip_next: 'следующий этап:', fnd_n: 'находки: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ja: {
@@ -942,6 +978,10 @@ const I18N = {
     ar_h2: 'ARSENAL - 検出面の CVE、EPSS とエクスプロイト', ar_sync: 'SYNC データベース',
     ar_btn: 'ムーブ', ar_exec: 'EXEC',
     ar_none: 'ムーブなし: まず RECON を実行し、次に SYNC で KEV/EPSS をロード', ar_loading: 'データベースの概要を読み込み中...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'デモプログラム - スキャン不可: 自分のプログラムを作成してください', pip_noprog: 'プログラムなし: プログラムタブで自分のプログラムを作成してください',
+    pip_next: '次のステップ:', fnd_n: '検出: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ko: {
@@ -1032,6 +1072,10 @@ const I18N = {
     ar_h2: 'ARSENAL - 감지된 표면의 CVE, EPSS 및 익스플로잇', ar_sync: 'SYNC 데이터베이스',
     ar_btn: '무브', ar_exec: 'EXEC',
     ar_none: '무브 없음: 먼저 RECON 실행, 그 다음 SYNC로 KEV/EPSS 로드', ar_loading: '데이터베이스 요약 로드 중...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: '데모 프로그램 - 스캔 불가: 직접 프로그램을 만드세요', pip_noprog: '프로그램 없음: 프로그램 탭에서 직접 만드세요',
+    pip_next: '다음 단계:', fnd_n: '발견: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   hi: {
@@ -1122,6 +1166,10 @@ const I18N = {
     ar_h2: 'ARSENAL - पहचानी गई सतह पर CVE, EPSS और एक्सप्लॉयट', ar_sync: 'SYNC डेटाबेस',
     ar_btn: 'चालें', ar_exec: 'EXEC',
     ar_none: 'कोई चाल नहीं: पहले RECON चलाएँ, फिर KEV/EPSS लोड करने के लिए SYNC', ar_loading: 'डेटाबेस का सारांश लोड हो रहा है...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'डेमो प्रोग्राम - स्कैन नहीं: अपना प्रोग्राम बनाएं', pip_noprog: 'कोई प्रोग्राम नहीं: प्रोग्राम टैब में अपना प्रोग्राम बनाएं',
+    pip_next: 'अगला चरण:', fnd_n: 'फाइंडिंग्स: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   nl: {
@@ -1212,6 +1260,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS en exploits op het gedetecteerde oppervlak', ar_sync: 'SYNC DATABANKEN',
     ar_btn: 'BEWEGINGEN', ar_exec: 'EXEC',
     ar_none: 'geen bewegingen: voer eerst RECON uit, daarna SYNC om KEV/EPSS te laden', ar_loading: 'overzicht van databanken laden...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demoprogramma - geen scan: maak je eigen programma', pip_noprog: 'geen programma: maak je eigen programma onder programma\'s',
+    pip_next: 'volgende stap:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   tr: {
@@ -1302,6 +1354,10 @@ const I18N = {
     ar_h2: 'ARSENAL - algilanan yuzeyde CVE, EPSS ve exploitler', ar_sync: 'SYNC VERITABANLARI',
     ar_btn: 'HAREKETLER', ar_exec: 'EXEC',
     ar_none: 'hareket yok: once RECON calistir, sonra KEV/EPSS yuklemek icin SYNC', ar_loading: 'veritabani ozeti yukleniyor...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo program - tarama yok: kendi programini olustur', pip_noprog: 'program yok: Programlar sekmesinde kendinkini olustur',
+    pip_next: 'sonraki adim:', fnd_n: 'bulgular: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   no: {
@@ -1392,6 +1448,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS og exploits pa den oppdagede overflaten', ar_sync: 'SYNC BASER',
     ar_btn: 'TREKK', ar_exec: 'EXEC',
     ar_none: 'ingen trekk: kjor RECON forst, deretter SYNC for a laste KEV/EPSS', ar_loading: 'oppsummering av baser laster...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demoprogram - ingen skanning: opprett ditt eget program', pip_noprog: 'ingen programmer: opprett ditt eget under Programmer',
+    pip_next: 'neste trinn:', fnd_n: 'funn: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   da: {
@@ -1482,6 +1542,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS og exploits pa den detekterede overflade', ar_sync: 'SYNC BASER',
     ar_btn: 'TRAEK', ar_exec: 'EXEC',
     ar_none: 'ingen traek: kor RECON forst, derefter SYNC for at indlaese KEV/EPSS', ar_loading: 'oversigt over baser indlaeser...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demoprogram - ingen scanning: opret dit eget program', pip_noprog: 'ingen programmer: opret dit eget under Programmer',
+    pip_next: 'naeste trin:', fnd_n: 'fund: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   fa: {
@@ -1572,6 +1636,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE، EPSS واکسپلویت‌ها روی سطح شناسایی‌شده', ar_sync: 'SYNC پایگاه‌ها',
     ar_btn: 'حرکت‌ها', ar_exec: 'EXEC',
     ar_none: 'حرکتی نیست: اول RECON را اجرا کن، بعد SYNC برای بارگذاری KEV/EPSS', ar_loading: 'خلاصه پایگاه‌ها در حال بارگذاری...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'برنامه نمایشی - اسکن ممکن نیست: برنامه خودت را بساز', pip_noprog: 'هیچ برنامه‌ای وجود ندارد: برنامه خودت را در تب برنامه‌ها بساز',
+    pip_next: 'مرحله بعدی:', fnd_n: 'یافته‌ها: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ur: {
@@ -1662,6 +1730,10 @@ const I18N = {
     ar_h2: 'ARSENAL - شناختی گئی سطح پر CVE، EPSS اور ایکسپلوئٹس', ar_sync: 'SYNC ڈیٹا بیس',
     ar_btn: 'چالیں', ar_exec: 'EXEC',
     ar_none: 'کوئی چال نہیں: پہلے RECON چلائیں، پھر KEV/EPSS لوڈ کرنے کے لیے SYNC', ar_loading: 'ڈیٹا بیس کا خلاصہ لوڈ ہو رہا ہے...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'ڈیمو پروگرام - سکین نہیں ہو سکتا: اپنا پروگرام بنائیں', pip_noprog: 'کوئی پروگرام نہیں: پروگرامز ٹیب میں اپنا پروگرام بنائیں',
+    pip_next: 'اگلا مرحلہ:', fnd_n: 'فائنڈنگز: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ro: {
@@ -1752,6 +1824,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS si exploituri pe suprafata detectata', ar_sync: 'SYNC BAZE DE DATE',
     ar_btn: 'MISCARI', ar_exec: 'EXEC',
     ar_none: 'nicio miscare: ruleaza mai intai RECON, apoi SYNC pentru a incarca KEV/EPSS', ar_loading: 'rezumatul bazelor se incarca...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'program demonstrativ - fara scanare: creeaza-ti programul', pip_noprog: 'niciun program: creeaza-ti programul la Programe',
+    pip_next: 'pasul urmator:', fnd_n: 'descoperiri: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   bg: {
@@ -1842,6 +1918,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS и експлойти на откритата повърхност', ar_sync: 'SYNC БАЗИ ДАННИ',
     ar_btn: 'ХОДОВЕ', ar_exec: 'EXEC',
     ar_none: 'няма ходове: пусни първо RECON, след това SYNC за зареждане на KEV/EPSS', ar_loading: 'обобщение на базите се зарежда...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'демо програма - без сканиране: създай своя програма', pip_noprog: 'няма програми: създай своя в раздел Програми',
+    pip_next: 'следваща стъпка:', fnd_n: 'находки: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   sl: {
@@ -1932,6 +2012,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS in exploit na odkriti površini', ar_sync: 'SYNC BAZ',
     ar_btn: 'POTEZE', ar_exec: 'EXEC',
     ar_none: 'ni potez: najprej poženi RECON, nato SYNC za nalaganje KEV/EPSS', ar_loading: 'povzetek baz se nalaga...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo program - brez skeniranja: ustvari svoj program', pip_noprog: 'ni programov: ustvari svojega pod Programi',
+    pip_next: 'naslednji korak:', fnd_n: 'najdbe: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   lt: {
@@ -2022,6 +2106,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS ir exploitai aptiktame paviršiuje', ar_sync: 'SYNC BAZĖS',
     ar_btn: 'ĖJIMAI', ar_exec: 'EXEC',
     ar_none: 'jokių ėjimų: pirmiausia paleisk RECON, tada SYNC, kad įkeliamas KEV/EPSS', ar_loading: 'bazių santrauka kraunasi...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo programa - neskenuoja: sukurk savo programa', pip_noprog: 'programu nera: sukurk savo skirtuke Programos',
+    pip_next: 'kitas etapas:', fnd_n: 'radiniai: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   vi: {
@@ -2112,6 +2200,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS và exploit trên bề mặt đã phát hiện', ar_sync: 'SYNC CƠ SỞ DỮ LIỆU',
     ar_btn: 'NƯỚC ĐI', ar_exec: 'EXEC',
     ar_none: 'chưa có nước đi: chạy RECON trước, rồi SYNC để tải KEV/EPSS', ar_loading: 'tóm tắt cơ sở dữ liệu đang tải...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'chương trình demo - không quét được: hãy tạo chương trình của bạn', pip_noprog: 'chưa có chương trình: hãy tạo chương trình của bạn trong tab Programs',
+    pip_next: 'bước tiếp theo:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   pl: {
@@ -2202,6 +2294,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS i exploity na wykrytej powierzchni', ar_sync: 'SYNC BAZ',
     ar_btn: 'RUCHY', ar_exec: 'EXEC',
     ar_none: 'brak ruchów: najpierw uruchom RECON, potem SYNC, aby załadować KEV/EPSS', ar_loading: 'podsumowanie baz się ładuje...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'program demo - brak skanowania: utwórz własny program', pip_noprog: 'brak programów: utwórz swój w zakładce Programy',
+    pip_next: 'następny etap:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   id: {
@@ -2292,6 +2388,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS dan exploit pada permukaan yang terdeteksi', ar_sync: 'SYNC BASIS DATA',
     ar_btn: 'LANGKAH', ar_exec: 'EXEC',
     ar_none: 'belum ada langkah: jalankan RECON dulu, lalu SYNC untuk memuat KEV/EPSS', ar_loading: 'ringkasan basis data sedang dimuat...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'program demo - tidak bisa scan: buat programmu sendiri', pip_noprog: 'belum ada program: buat milikmu di tab Program',
+    pip_next: 'tahap berikutnya:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   sv: {
@@ -2382,6 +2482,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS och exploits på den upptäckta ytan', ar_sync: 'SYNC BASER',
     ar_btn: 'DRAG', ar_exec: 'EXEC',
     ar_none: 'inga drag: kör RECON först, sedan SYNC för att ladda KEV/EPSS', ar_loading: 'sammanfattning av baser laddas...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demoprogram - ingen skanning: skapa ditt eget program', pip_noprog: 'inget program ännu: skapa ditt eget under Program',
+    pip_next: 'nästa steg:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   el: {
@@ -2472,6 +2576,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS και exploits στην ανιχνευμένη επιφάνεια', ar_sync: 'SYNC ΒΑΣΕΩΝ',
     ar_btn: 'ΚΙΝΗΣΕΙΣ', ar_exec: 'EXEC',
     ar_none: 'καμία κίνηση: εκτέλεσε πρώτα RECON, μετά SYNC για φόρτωση KEV/EPSS', ar_loading: 'φόρτωση σύνοψης βάσεων...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'πρόγραμμα demo - χωρίς σάρωση: δημιούργησε το πρόγραμμά σου', pip_noprog: 'κανένα πρόγραμμα: δημιούργησε το δικό σου στα Προγράμματα',
+    pip_next: 'επόμενο βήμα:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   he: {
@@ -2562,6 +2670,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS ו-exploits על משטח שזוהה', ar_sync: 'SYNC בסיסים',
     ar_btn: 'מהלכים', ar_exec: 'EXEC',
     ar_none: 'אין מהלכים: הרץ RECON קודם, ואז SYNC לטעינת KEV/EPSS', ar_loading: 'סיכום הבסיסים בטעינה...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'תוכנית דמו - אין סריקה: צור תוכנית משלך', pip_noprog: 'אין תוכנית: צור את שלך בלשונית תוכניות',
+    pip_next: 'השלב הבא:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   hu: {
@@ -2652,6 +2764,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS és exploitok az észlelt felületen', ar_sync: 'SYNC ADATBÁZISOK',
     ar_btn: 'LÉPÉSEK', ar_exec: 'EXEC',
     ar_none: 'nincs lépés: futtasd előbb a RECON-t, majd SYNC a KEV/EPSS betöltéséhez', ar_loading: 'adatbázis-összefoglaló betöltése...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demóprogram - nincs szkennelés: hozd létre a saját programod', pip_noprog: 'nincs még program: hozd létre a sajátodat a Programok fülön',
+    pip_next: 'következő lépés:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   cs: {
@@ -2742,6 +2858,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS a exploity na zjištěné ploše', ar_sync: 'SYNC DATABÁZ',
     ar_btn: 'TAHY', ar_exec: 'EXEC',
     ar_none: 'žádné tahy: nejprve spusť RECON, pak SYNC pro načtení KEV/EPSS', ar_loading: 'přehled databází se načítá...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo program - bez skenování: vytvoř si vlastní program', pip_noprog: 'žádný program: vytvoř si vlastní v záložce Programy',
+    pip_next: 'další krok:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   sk: {
@@ -2832,6 +2952,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS a exploity na zistenej ploche', ar_sync: 'SYNC DATABÁZ',
     ar_btn: 'TAHY', ar_exec: 'EXEC',
     ar_none: 'žiadne tahy: najprv spusti RECON, potom SYNC na načítanie KEV/EPSS', ar_loading: 'prehľad databáz sa načítava...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo program - bez skenovania: vytvor si vlastný program', pip_noprog: 'žiadny program: vytvor si vlastný na karte Programy',
+    pip_next: 'ďalší krok:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   uk: {
@@ -2922,6 +3046,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS та експлойти на виявленій поверхні', ar_sync: 'SYNC БАЗ',
     ar_btn: 'ХОДИ', ar_exec: 'EXEC',
     ar_none: 'немає ходів: спочатку запусти RECON, потім SYNC для завантаження KEV/EPSS', ar_loading: 'зведення баз завантажується...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'демо програма - без сканування: створи свою програму', pip_noprog: 'жодної програми: створи свою у вкладці Програми',
+    pip_next: 'наступний крок:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   hr: {
@@ -3012,6 +3140,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS i eksploiti na otkrivenoj površini', ar_sync: 'SYNC BAZA',
     ar_btn: 'POTEZI', ar_exec: 'EXEC',
     ar_none: 'nema poteza: prvo pokreni RECON, zatim SYNC za učitavanje KEV/EPSS', ar_loading: 'pregled baza se učitava...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo program - bez skeniranja: stvori svoj program', pip_noprog: 'nema programa: stvori svoj u kartici Programi',
+    pip_next: 'sljedeći korak:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   sr: {
@@ -3102,6 +3234,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS i eksploiti na otkrivenoj površini', ar_sync: 'SYNC BAZA',
     ar_btn: 'POTEZI', ar_exec: 'EXEC',
     ar_none: 'nema poteza: prvo pokreni RECON, zatim SYNC za učitavanje KEV/EPSS', ar_loading: 'pregled baza se učitava...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo program - bez skeniranja: napravi svoj program', pip_noprog: 'nema programa: napravi svoj u kartici Programi',
+    pip_next: 'sledeći korak:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   lv: {
@@ -3192,6 +3328,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS un eksploiti konstatētajā virsmā', ar_sync: 'SYNC BĀZES',
     ar_btn: 'GĀJIENI', ar_exec: 'EXEC',
     ar_none: 'nav gājienu: vispirms palaid RECON, tad SYNC, lai ielādētu KEV/EPSS', ar_loading: 'bāzu kopsavilkums tiek ielādēts...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo programma - bez skenēšanas: izveido savu programmu', pip_noprog: 'nav programmu: izveido savu sadaļā Programmas',
+    pip_next: 'nākamais solis:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   et: {
@@ -3282,6 +3422,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS ja exploitid tuvastatud pinnal', ar_sync: 'SYNC ANDMEBAASID',
     ar_btn: 'KÄIGUD', ar_exec: 'EXEC',
     ar_none: 'käike pole: käivita esmalt RECON, seejärel SYNC KEV/EPSS laadimiseks', ar_loading: 'andmebaaside kokkuvõte laaditakse...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demoprogram - skannimine puudub: loo oma programm', pip_noprog: 'programmi pole: loo oma Programmide vahekaardil',
+    pip_next: 'järgmine etapp:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   th: {
@@ -3372,6 +3516,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS และ exploit บนพื้นผิวที่ตรวจพบ', ar_sync: 'SYNC ฐานข้อมูล',
     ar_btn: 'การเดิน', ar_exec: 'EXEC',
     ar_none: 'ยังไม่มีการเดิน: รัน RECON ก่อน แล้ว SYNC เพื่อโหลด KEV/EPSS', ar_loading: 'กำลังโหลดสรุปฐานข้อมูล...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'โปรแกรมสาธิต - สแกนไม่ได้: สร้างโปรแกรมของคุณ', pip_noprog: 'ยังไม่มีโปรแกรม: สร้างของคุณในแท็บ Programs',
+    pip_next: 'ขั้นตอนถัดไป:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ms: {
@@ -3462,6 +3610,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS dan exploit pada permukaan yang dikesan', ar_sync: 'SYNC PANGKALAN DATA',
     ar_btn: 'LANGKAH', ar_exec: 'EXEC',
     ar_none: 'tiada langkah: jalankan RECON dahulu, kemudian SYNC untuk memuatkan KEV/EPSS', ar_loading: 'ringkasan pangkalan data sedang dimuatkan...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'program demo - tiada imbasan: buat program anda sendiri', pip_noprog: 'tiada program lagi: buat milik anda dalam tab Program',
+    pip_next: 'langkah seterusnya:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   tl: {
@@ -3552,6 +3704,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS at exploits sa nadiskubreng surface', ar_sync: 'SYNC MGA BASE',
     ar_btn: 'MGA GALAW', ar_exec: 'EXEC',
     ar_none: 'walang galaw: patakbuhin muna ang RECON, tapos SYNC para i-load ang KEV/EPSS', ar_loading: 'buod ng mga base ay naglo-load...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo program - walang scan: gumawa ng sarili mong program', pip_noprog: 'walang program pa: gumawa ng sa iyo sa tab na Programs',
+    pip_next: 'susunod na hakbang:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   bn: {
@@ -3642,6 +3798,10 @@ const I18N = {
     ar_h2: 'ARSENAL - সনাক্ত পৃষ্ঠে CVE, EPSS এবং exploit', ar_sync: 'SYNC বেস',
     ar_btn: 'চাল', ar_exec: 'EXEC',
     ar_none: 'কোনো চাল নেই: প্রথমে RECON চালান, তারপর KEV/EPSS লোড করতে SYNC', ar_loading: 'বেসগুলোর সারসংক্ষেপ লোড হচ্ছে...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'ডেমো প্রোগ্রাম - স্ক্যান নেই: নিজের প্রোগ্রাম তৈরি করো', pip_noprog: 'কোনো প্রোগ্রাম নেই: Programs ট্যাবে নিজের প্রোগ্রাম তৈরি করো',
+    pip_next: 'পরবর্তী ধাপ:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ta: {
@@ -3732,6 +3892,10 @@ const I18N = {
     ar_h2: 'ARSENAL - கண்டறிந்த மேற்பரப்பில் CVE, EPSS மற்றும் exploits', ar_sync: 'SYNC தளங்கள்',
     ar_btn: 'அசைவுகள்', ar_exec: 'EXEC',
     ar_none: 'அசைவுகள் இல்லை: முதலில் RECON இயக்கவும், பின் KEV/EPSS ஏற்ற SYNC இயக்கவும்', ar_loading: 'தளங்களின் சுருக்கம் ஏற்றப்படுகிறது...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'டெமோ நிரல் - ஸ்கேன் இல்லை: உங்கள் நிரலை உருவாக்குக', pip_noprog: 'எந்த நிரலும் இல்லை: Programs டேபில் உங்கள் நிரலை உருவாக்குக',
+    pip_next: 'அடுத்த கட்டம்:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   te: {
@@ -3822,6 +3986,10 @@ const I18N = {
     ar_h2: 'ARSENAL - గుర్తించిన ఉపరితలంపై CVE, EPSS మరియు exploits', ar_sync: 'SYNC బేసులు',
     ar_btn: 'కదలికలు', ar_exec: 'EXEC',
     ar_none: 'కదలికలు లేవు: ముందుగా RECON నడపండి, తర్వాత KEV/EPSS లోడ్ చేయడానికి SYNC నడపండి', ar_loading: 'బేసుల సారాంశం లోడ్ అవుతోంది...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'డెమో ప్రోగ్రామ్ - స్కాన్ లేదు: మీ స్వంత ప్రోగ్రామ్ సృష్టించండి', pip_noprog: 'ప్రోగ్రామ్ లేదు: Programs ట్యాబ్ లో మీ ప్రోగ్రామ్ సృష్టించండి',
+    pip_next: 'తదుపరి దశ:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ml: {
@@ -3912,6 +4080,10 @@ const I18N = {
     ar_h2: 'ARSENAL - കണ്ടെത്തിയ ഉപരിതലത്തിൽ CVE, EPSS, exploits', ar_sync: 'SYNC ബേസുകൾ',
     ar_btn: 'നീക്കങ്ങൾ', ar_exec: 'EXEC',
     ar_none: 'നീക്കങ്ങളില്ല: ആദ്യം RECON പ്രവർത്തിപ്പിക്കുക, പിന്നെ KEV/EPSS ലോഡ് ചെയ്യാൻ SYNC', ar_loading: 'ബേസുകളുടെ സംഗ്രഹം ലോഡ് ചെയ്യുന്നു...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'ഡെമോ പ്രോഗ്രാം - സ്കാൻ ഇല്ല : സ്വന്തമൊരു പ്രോഗ്രാം ഉണ്ടാക്കുക', pip_noprog: 'പ്രോഗ്രാം ഇല്ല : പ്രോഗ്രാമുകൾ ടാബിൽ സ്വന്തമൊരു പ്രോഗ്രാം ഉണ്ടാക്കുക',
+    pip_next: 'അടുത്ത ഘട്ടം :', fnd_n: 'ഫൈൻഡിങ്സ്: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   mr: {
@@ -4002,6 +4174,10 @@ const I18N = {
     ar_h2: 'ARSENAL - आढावलेल्या पृष्ठभागावर CVE, EPSS आणि exploits', ar_sync: 'SYNC बेस',
     ar_btn: 'चाली', ar_exec: 'EXEC',
     ar_none: 'चाली नाहीत: आधी RECON चालवा, नंतर KEV/EPSS लोड करण्यासाठी SYNC चालवा', ar_loading: 'बेसचा सारांश लोड होत आहे...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'डेमो प्रोग्राम - स्कॅन नाही : तुझा प्रोग्राम बनव', pip_noprog: 'अजून प्रोग्राम नाही : प्रोग्राम्स टॅबमध्ये तुझा बनव',
+    pip_next: 'पुढील टप्पा :', fnd_n: 'फाइंडिंग्ज: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   gu: {
@@ -4092,6 +4268,10 @@ const I18N = {
     ar_h2: 'ARSENAL - શોધાયેલ સપાટી પર CVE, EPSS અને exploits', ar_sync: 'SYNC બેઝ',
     ar_btn: 'ચાલો', ar_exec: 'EXEC',
     ar_none: 'કોઈ ચાલ નથી: પહેલા RECON ચલાવો, પછી KEV/EPSS લોડ કરવા SYNC ચલાવો', ar_loading: 'બેઝનો સારાંશ લોડ થાય છે...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'ડેમો પ્રોગ્રામ - સ્કેન નહીં : તારો પ્રોગ્રામ બનાવ', pip_noprog: 'કોઈ પ્રોગ્રામ નથી : પ્રોગ્રામ્સ ટેબમાં તારો બનાવ',
+    pip_next: 'આગળનું પગલું :', fnd_n: 'ફાઇન્ડિંગ્સ: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   kn: {
@@ -4182,6 +4362,10 @@ const I18N = {
     ar_h2: 'ARSENAL - ಪತ್ತೆಹಚ್ಚಿದ ಮೇಲ್ಮೈಯಲ್ಲಿ CVE, EPSS ಮತ್ತು exploits', ar_sync: 'SYNC ಬೇಸ್‌ಗಳು',
     ar_btn: 'ಚಲನೆಗಳು', ar_exec: 'EXEC',
     ar_none: 'ಚಲನೆಗಳಿಲ್ಲ: ಮೊದಲು RECON ಚಲಾಯಿಸಿ, ನಂತರ KEV/EPSS ಲೋಡ್ ಮಾಡಲು SYNC', ar_loading: 'ಬೇಸ್‌ಗಳ ಸಾರಾಂಶ ಲೋಡ್ ಆಗುತ್ತಿದೆ...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'ಡೆಮೊ ಪ್ರೊಗ್ರಾಂ - ಸ್ಕ್ಯಾನ್ ಇಲ್ಲ : ನಿಮ್ಮದೇ ಪ್ರೊಗ್ರಾಂ ಮಾಡಿ', pip_noprog: 'ಯಾವುದೇ ಪ್ರೊಗ್ರಾಂ ಇಲ್ಲ : ಪ್ರೊಗ್ರಾಂಗಳ ಟ್ಯಾಬಿನಲ್ಲಿ ನಿಮ್ಮದೇ ಮಾಡಿ',
+    pip_next: 'ಮುಂದಿನ ಹಂತ :', fnd_n: 'ಫೈಂಡಿಂಗ್ಸ್: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   pa: {
@@ -4272,6 +4456,10 @@ const I18N = {
     ar_h2: 'ARSENAL - ਖੋਜੀ ਗਈ ਸਤ੍ਹਾ ਤੇ CVE, EPSS ਅਤੇ exploits', ar_sync: 'SYNC ਬੇਸ',
     ar_btn: 'ਚਾਲਾਂ', ar_exec: 'EXEC',
     ar_none: 'ਕੋਈ ਚਾਲ ਨਹੀਂ: ਪਹਿਲਾਂ RECON ਚਲਾਓ, ਫਿਰ KEV/EPSS ਲੋਡ ਕਰਨ ਲਈ SYNC', ar_loading: 'ਬੇਸਾਂ ਦਾ ਸਾਰ ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'ਡੈਮੋ ਪ੍ਰੋਗਰਾਮ - ਸਕੈਨ ਨਹੀਂ : ਆਪਣਾ ਪ੍ਰੋਗਰਾਮ ਬਣਾਓ', pip_noprog: 'ਕੋਈ ਪ੍ਰੋਗਰਾਮ ਨਹੀਂ : ਪ੍ਰੋਗਰਾਮ ਟੈਬ ਵਿੱਚ ਆਪਣਾ ਬਣਾਓ',
+    pip_next: 'ਅਗਲਾ ਪੜਾਅ :', fnd_n: 'ਫਾਈਂਡਿੰਗਜ਼: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   sw: {
@@ -4362,6 +4550,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS na exploits kwenye uso uliogunduliwa', ar_sync: 'SYNC HIFADHI',
     ar_btn: 'HATUA', ar_exec: 'EXEC',
     ar_none: 'hakuna hatua: endesha RECON kwanza, kisha SYNC kupakia KEV/EPSS', ar_loading: 'muhtasari wa hifadhi inapakiwa...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'programu ya mfano - hakuna uchanganuzi : tengeneza programu yako', pip_noprog: 'hakuna programu : tengeneza yako kwenye Programu',
+    pip_next: 'hatua inayofuata :', fnd_n: 'matokeo: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   am: {
@@ -4452,6 +4644,10 @@ const I18N = {
     ar_h2: 'ARSENAL - በተገኘው ገጽ ላይ CVE፣ EPSS እና exploits', ar_sync: 'SYNC ቤዞች',
     ar_btn: 'እንቅስቃሴዎች', ar_exec: 'EXEC',
     ar_none: 'እንቅስቃሴ የለም: መጀመሪያ RECON ያሂዱ፣ ከዚያ KEV/EPSS ለመጫን SYNC ያሂዱ', ar_loading: 'የቤዞች ማጠቃለያ በመጫን ላይ...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'የማሳያ ፕሮግራም - ስካን የለም : የራስህን ፕሮግራም ፍጠር', pip_noprog: 'ፕሮግራም የለም : በፕሮግራሞች ትር ውስጥ የራስህን ፍጠር',
+    pip_next: 'ቀጣዩ ደረጃ :', fnd_n: 'ውጤቶች: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ha: {
@@ -4542,6 +4738,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS da exploits a kan farfajiyar da aka gano', ar_sync: 'SYNC TUSHE',
     ar_btn: 'MOTSUKA', ar_exec: 'EXEC',
     ar_none: 'babu motsuka: fara RECON da farko, sannan SYNC don loda KEV/EPSS', ar_loading: 'taƙaitaccen bayanan tushe ana loda su...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'shirin misali - babu dubawa : ka kirkiri naka', pip_noprog: 'babu shiri : ka kirkiri naka a shafin Programmes',
+    pip_next: 'mataki na gaba :', fnd_n: 'sakamako: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   yo: {
@@ -4632,6 +4832,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS ati exploits lori aye ti a ri', ar_sync: 'SYNC IPILE',
     ar_btn: 'IGBESE', ar_exec: 'EXEC',
     ar_none: 'ko si igbese: se RECON ni akoko, lehin naa SYNC lati gbe KEV/EPSS wa', ar_loading: 'akotan awon ipile n gbe wa...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'eto apere - ko si ayewo : da eto tire sile', pip_noprog: 'ko si eto : da eto tire ninu Eto',
+    pip_next: 'igbese ikehin :', fnd_n: 'awari: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   zu: {
@@ -4722,6 +4926,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS nezokuhlasela endaweni etholakele', ar_sync: 'SYNC IZINQOLOBANE',
     ar_btn: 'IZINYATHELO', ar_exec: 'EXEC',
     ar_none: 'azikho izinyathelo: sebenzisa RECON kuqala, bese usebenzisa SYNC ukulayisha KEV/EPSS', ar_loading: 'isishwanshelelo sezinqolobane siyalayisha...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'uhlelo lokubonisa - ayikho ukuskena : yakha uhlelo lwakho', pip_noprog: 'ayikho uhlelo : yakha owakho kuzinhlelo',
+    pip_next: 'inyathelo elilandelayo :', fnd_n: 'okutholiwe: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   af: {
@@ -4812,6 +5020,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS en exploits op die opgespoorde oppervlak', ar_sync: 'SYNC BASISSE',
     ar_btn: 'SKUIWE', ar_exec: 'EXEC',
     ar_none: 'geen skuiwe: laat RECON eers loop, dan SYNC om KEV/EPSS te laai', ar_loading: 'opsomming van die basisse laai tans...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo program - geen skandering : skep jou eie program', pip_noprog: 'geen program nie : skep joune by Programme',
+    pip_next: 'volgende stap :', fnd_n: 'bevindings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   so: {
@@ -4902,6 +5114,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS iyo exploits dusha la helay', ar_sync: 'SYNC SALDHIGYO',
     ar_btn: 'DHAQAAQYO', ar_exec: 'EXEC',
     ar_none: 'dhaqaaqyo ma jiraan: horay u orod RECON, kadib SYNC si loo shubo KEV/EPSS', ar_loading: 'dulmar saldhigyada ayaa soo shubmaya...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'barnaamij tusaale - ma jiro soo saarid : samee barnaamijkaaga', pip_noprog: 'ma jiro barnaamij : samee kii gaarka ah ee Barnaamijyada',
+    pip_next: 'tallaabada xigta :', fnd_n: 'natiijooyin: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ti: {
@@ -4992,6 +5208,10 @@ const I18N = {
     ar_h2: 'ARSENAL - ኣብታ ተረኺቡ ገጽ ዘሎ CVE, EPSS እና exploits', ar_sync: 'SYNC መሰረታት',
     ar_btn: 'ምንቅስቓሳት', ar_exec: 'EXEC',
     ar_none: 'ምንቅስቓስ የለን: ቅድሚ RECON ኣሂቡ፣ ቀጺሉ SYNC ን KEV/EPSS ምጽንባት', ar_loading: 'መግለጺ መሰረታት ይጽናዕ ኣሎ...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'ናሙና ፕሮግራም - ስካን የለን : ናይ ገዛኻ ፕሮግራም ስርሓሎ', pip_noprog: 'ፕሮግራም የለን : ኣብ ፕሮግራማት ታብ ናይ ገዛኻ ስርሓሎ',
+    pip_next: 'ዝመጽእ ደረጃ :', fnd_n: 'ውጽኢታት: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ca: {
@@ -5082,6 +5302,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS i exploits a la superficie detectada', ar_sync: 'SYNC BASES',
     ar_btn: 'MOVIMENTS', ar_exec: 'EXEC',
     ar_none: 'cap moviment: executa primer RECON, despres SYNC per carregar KEV/EPSS', ar_loading: 'carregant el resum de les bases...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'programa de demostracio - no escaneja : crea el teu programa', pip_noprog: 'cap programa : crea el teu a Programes',
+    pip_next: 'pas seguent :', fnd_n: 'resultats: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   eu: {
@@ -5172,6 +5396,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS eta exploitak antzemitako azalean', ar_sync: 'SYNC OINARRIAK',
     ar_btn: 'MUGIMENDUAK', ar_exec: 'EXEC',
     ar_none: 'mugimendurik ez: exekutatu RECON lehenik, gero SYNC KEV/EPSS kargatzeko', ar_loading: 'oinarrien laburpena kargatzen...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo programa - ez dago eskaneatzerik : sortu zure programa', pip_noprog: 'programarik ez : sortu zurea Programak atalean',
+    pip_next: 'hurrengo urratsa :', fnd_n: 'aurkitutakoak: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   gl: {
@@ -5262,6 +5490,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS e exploits na superficie detectada', ar_sync: 'SYNC BASES',
     ar_btn: 'MOVEMENTOS', ar_exec: 'EXEC',
     ar_none: 'sen movementos: executa primeiro RECON, despois SYNC para cargar KEV/EPSS', ar_loading: 'cargando o resumo das bases...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'programa de demostracion - non escanea : crea o teu programa', pip_noprog: 'ningun programa : crea o teu en Programas',
+    pip_next: 'seguinte paso :', fnd_n: 'resultados: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   cy: {
@@ -5352,6 +5584,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS a manteisadau ar yr wyneb a ddarganfuwyd', ar_sync: 'SYNC CRONFEYDD',
     ar_btn: 'CAMRAU', ar_exec: 'EXEC',
     ar_none: 'dim camrau: rhedwch RECON yn gyntaf, wedyn SYNC i lwytho KEV/EPSS', ar_loading: 'crynodeb y cronfeydd yn llwytho...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'rhaglen demo - dim sganio : creu dy raglen dy hun', pip_noprog: 'dim rhaglen : creu dy un di yn y Rhaglenni',
+    pip_next: 'cam nesaf :', fnd_n: 'darganfyddiadau: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ga: {
@@ -5442,6 +5678,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS agus ionsaithe ar an dromchla a aimsiodh', ar_sync: 'SYNC BUNACHAIR',
     ar_btn: 'GLUAISEACHTAI', ar_exec: 'EXEC',
     ar_none: 'gan ghluaiseacht: seol RECON ar dtus, ansin SYNC chun KEV/EPSS a lodail', ar_loading: 'achoimre ar na bunachair a lodail...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'clar taispeana - gan scanadh : scriobh do chlar fein', pip_noprog: 'nil aon clar ann : scriobh do cheann fein i gClaranna',
+    pip_next: 'an chead cheim eile :', fnd_n: 'aimsithe: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   is: {
@@ -5532,6 +5772,10 @@ const I18N = {
     ar_h2: 'VOPNABÚR - CVE, EPSS og exploits á yfirborði sem greindist', ar_sync: 'SYNC GRUNNAR',
     ar_btn: 'SKREF', ar_exec: 'EXEC',
     ar_none: 'engin skref: keyrðu RECON fyrst, svo SYNC til að hlaða KEV/EPSS', ar_loading: 'yfirlit grunna í hleðslu...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'prufuforrit - enginn skann : bu til ditt eigið forrit', pip_noprog: 'ekkert forrit til : bu til ditt i Forrit',
+    pip_next: 'naesta skref :', fnd_n: 'niourstodur: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   bs: {
@@ -5622,6 +5866,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS i exploit na otkrivenoj površini', ar_sync: 'SYNC BAZE',
     ar_btn: 'POTEZI', ar_exec: 'EXEC',
     ar_none: 'nema poteza: prvo pokreni RECON, pa SYNC da učitaš KEV/EPSS', ar_loading: 'pregled baza se učitava...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo program - skeniranje nije moguce : napravi svoj program', pip_noprog: 'nema programa : napravi svoj u Programi',
+    pip_next: 'sljedeci korak :', fnd_n: 'nalazi: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   mk: {
@@ -5712,6 +5960,10 @@ const I18N = {
     ar_h2: 'АРСЕНАЛ - CVE, EPSS и експлоити на откриената површина', ar_sync: 'SYNC БАЗИ',
     ar_btn: 'ПОТЕЗИ', ar_exec: 'EXEC',
     ar_none: 'нема потези: прво пушти RECON, па SYNC за да вчита KEV/EPSS', ar_loading: 'преглед на базите се вчитува...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'демо програм - без скенирање: креирај свој програм', pip_noprog: 'нема програми: креирај свој во табот Програми',
+    pip_next: 'следна фаза:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ka: {
@@ -5802,6 +6054,10 @@ const I18N = {
     ar_h2: 'არსენალი - CVE, EPSS და ექსპლოიტები აღმოჩენილ ზედაპირზე', ar_sync: 'SYNC ბაზები',
     ar_btn: 'სვლები', ar_exec: 'EXEC',
     ar_none: 'სვლები არაა: ჯერ გაუშვი RECON, შემდეგ SYNC KEV/EPSS-ის ჩასატვირთად', ar_loading: 'ბაზების მიმოხილვა იტვირთება...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'დემო პროგრამა - სკანირება არ ხდება: შექმენი შენი პროგრამა', pip_noprog: 'პროგრამა არ არსებობს: შექმენი შენი პროგრამების ჩანართში',
+    pip_next: 'შემდეგი ეტაპი:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   hy: {
@@ -5892,6 +6148,10 @@ const I18N = {
     ar_h2: 'ԱՐՍԵՆԱԼ - CVE, EPSS և էքսպլոիտներ հայտնաբերված մակերեսին', ar_sync: 'SYNC ԲԱԶԱՆԵՐ',
     ar_btn: 'ՔԱՅԼԵՐ', ar_exec: 'EXEC',
     ar_none: 'քայլեր չկան. նախ գործարկիր RECON, հետո SYNC՝ KEV/EPSS բեռնելու համար', ar_loading: 'բազաների ամփոփումը բեռնվում է...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'դեմո ծրագիր - սկանավորում չկա: ստեղծիր քո ծրագիրը', pip_noprog: 'ծրագիր չկա: ստեղծիր քոնը Ծրագրեր ներդիպում',
+    pip_next: 'հաջորդ քայլը:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   az: {
@@ -5982,6 +6242,10 @@ const I18N = {
     ar_h2: 'ARSENAL - aşkarlanan səthdə CVE, EPSS və eksploitlər', ar_sync: 'SYNC BAZALAR',
     ar_btn: 'ADDIMLAR', ar_exec: 'EXEC',
     ar_none: 'addım yoxdur: əvvəlcə RECON işlət, sonra KEV/EPSS yükləmək üçün SYNC et', ar_loading: 'bazaların xülasəsi yüklənir...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo proqram - skan yoxdur: öz proqramını yarat', pip_noprog: 'proqram yoxdur: Proqramlar bölməsində öz proqramını yarat',
+    pip_next: 'növbəti mərhələ:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   kk: {
@@ -6072,6 +6336,10 @@ const I18N = {
     ar_h2: 'АРСЕНАЛ - анықталған беттегі CVE, EPSS және эксплойттар', ar_sync: 'SYNC БАЗАЛАР',
     ar_btn: 'ЖҮРІСТЕР', ar_exec: 'EXEC',
     ar_none: 'жүріс жоқ: алдымен RECON қос, сосын KEV/EPSS жүктеу үшін SYNC жаса', ar_loading: 'базалардың түйіні жүктелуде...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'демо бағдарлама - сканерлеу жоқ: өз бағдарламаңды жаса', pip_noprog: 'бағдарлама жоқ: Бағдарламалар қойындысында өзіңдікін жаса',
+    pip_next: 'келесі қадам:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   uz: {
@@ -6162,6 +6430,10 @@ const I18N = {
     ar_h2: 'ARSENAL - aniqlangan sirtlarda CVE, EPSS va eksploytlar', ar_sync: 'SYNC BAZALAR',
     ar_btn: 'QADAMLAR', ar_exec: 'EXEC',
     ar_none: 'qadam yo\'q: avval RECON ishga tushir, so\'ng KEV/EPSS yuklash uchun SYNC qil', ar_loading: 'bazalar xulosasi yuklanmoqda...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo dastur - skan yo\'q: o\'z dasturingni yarat', pip_noprog: 'dastur yo\'q: Dasturlar bo\'limida o\'z dasturingni yarat',
+    pip_next: 'keyingi qadam:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   mn: {
@@ -6252,6 +6524,10 @@ const I18N = {
     ar_h2: 'АРСЕНАЛ - илэрсэн гадаргуугийн CVE, EPSS, эксплойтууд', ar_sync: 'SYNC БАЗА',
     ar_btn: 'ХОДУУД', ar_exec: 'EXEC',
     ar_none: 'ход байхгүй: эхлээд RECON ажиллуул, дараа нь KEV/EPSS ачаалахын тулд SYNC ажиллуул', ar_loading: 'базуудын хураангуй ачигдаж байна...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'демо хөтөлбөр - скан хийхгүй: өөрийн хөтөлбөрөө үүсгэ', pip_noprog: 'хөтөлбөр байхгүй: Программууд таб дээр шинэ хөтөлбөр үүсгэ',
+    pip_next: 'дараагийн шат:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ne: {
@@ -6342,6 +6618,10 @@ const I18N = {
     ar_h2: 'आर्सेनल - पत्ता लागेको सतहमा CVE, EPSS र एक्सप्लोइट', ar_sync: 'SYNC डाटाबेस',
     ar_btn: 'चाल', ar_exec: 'EXEC',
     ar_none: 'कुनै चाल छैन: पहिले RECON चलाउनुहोस्, त्यसपछि KEV/EPSS लोड गर्न SYNC चलाउनुहोस्', ar_loading: 'डाटाबेसको सारांश लोड हुँदै...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'डेमो कार्यक्रम - स्क्यान छैन: आफ्नै कार्यक्रम बनाउनुहोस्', pip_noprog: 'कुनै कार्यक्रम छैन: कार्यक्रमहरू ट्याबमा आफ्नै बनाउनुहोस्',
+    pip_next: 'अर्को चरण:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   si: {
@@ -6432,6 +6712,10 @@ const I18N = {
     ar_h2: 'අවි ගබඩාව - හඳුනාගත් මතුපිට මත CVE, EPSS සහ එක්ස්ප්ලෝයිට්', ar_sync: 'SYNC දත්ත ගබඩාව',
     ar_btn: 'පිමුම්', ar_exec: 'EXEC',
     ar_none: 'පිමුම් නැත: පළමුව RECON ධාවනය කරන්න, පසුව KEV/EPSS පූරණයට SYNC ධාවනය කරන්න', ar_loading: 'දත්ත ගබඩා සාරාංශය පූරණය වෙමින්...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'නිදර්ශන වැඩසටහන - ස්කෑන් කිරීමක් නැත: ඔබේ වැඩසටහන සාදන්න', pip_noprog: 'වැඩසටහන් නැත: වැඩසටහන් ටැබ් තුළ ඔබේ සාදන්න',
+    pip_next: 'ඊළඟ පියවර:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   km: {
@@ -6522,6 +6806,10 @@ const I18N = {
     ar_h2: 'ឃ្លាំងអាវុធ - CVE, EPSS និង exploit លើផ្ទៃដែលរកឃើញ', ar_sync: 'SYNC មូលដ្ឋានទិន្នន័យ',
     ar_btn: 'ជំហាន', ar_exec: 'EXEC',
     ar_none: 'គ្មានជំហាន: ដំណើរការ RECON ជាមុនសិន បន្ទាប់មក SYNC ដើម្បីផ្ទុក KEV/EPSS', ar_loading: 'កំពុងផ្ទុកការសង្ខេបមូលដ្ឋានទិន្នន័យ...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'កម្មវិធីសាកល្បង - គ្មានការស្កេន: បង្កើតកម្មវិធីរបស់អ្នក', pip_noprog: 'មិនមានកម្មវិធីទេ: បង្កើតរបស់អ្នកក្នុងផ្ទាំង កម្មវិធី',
+    pip_next: 'ជំហានបន្ទាប់:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   lo: {
@@ -6612,6 +6900,10 @@ const I18N = {
     ar_h2: 'ຄັງອາວຸດ - CVE, EPSS ແລະ exploit ຢູ່ພື້ນຜິວທີ່ກວດພົບ', ar_sync: 'SYNC ຖານຂໍ້ມູນ',
     ar_btn: 'ຈັງຫວະ', ar_exec: 'EXEC',
     ar_none: 'ບໍ່ມີຈັງຫວະ: ເຮັດ RECON ກ່ອນ, ຫຼັງຈາກນັ້ນ SYNC ເພື່ອໂຫຼດ KEV/EPSS', ar_loading: 'ກຳລັງໂຫຼດສະຫຼຸບຖານຂໍ້ມູນ...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'ໂຄງການຕົວຢ່າງ - ບໍ່ມີການສະແກນ: ສ້າງໂຄງການຂອງເຈົ້າ', pip_noprog: 'ບໍ່ມີໂຄງການ: ສ້າງຂອງເຈົ້າໃນແທັບ ໂຄງການ',
+    pip_next: 'ຂັ້ນຕອນຕໍ່ໄປ:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   my: {
@@ -6702,6 +6994,10 @@ const I18N = {
     ar_h2: 'လက်နက်တိုက် - တွေ့ရှိထားသော မျက်နှာပြင်ပေါ်ရှိ CVE, EPSS နှင့် exploit များ', ar_sync: 'SYNC ဒေတာဘေ့စ်',
     ar_btn: 'ခြေလှမ်းများ', ar_exec: 'EXEC',
     ar_none: 'ခြေလှမ်း မရှိပါ - RECON ကို အရင်လည်ပတ်ပါ၊ ပြီးလျှင် KEV/EPSS တင်ရန် SYNC ကို လည်ပတ်ပါ', ar_loading: 'ဒေတာဘေ့စ် အနှစ်ချုပ် တင်နေသည်...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'ဒီမို အစီအစဉ် - စကင်န် မရှိ: ကိုယ်ပိုင် အစီအစဉ် ဖန်တီးပါ', pip_noprog: 'အစီအစဉ် မရှိသေးပါ: အစီအစဉ်များ တက်ဘ်တွင် ကိုယ်ပိုင် ဖန်တီးပါ',
+    pip_next: 'နောက်အဆင့်:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ps: {
@@ -6792,6 +7088,10 @@ const I18N = {
     ar_h2: 'آرسنال - د پېژندل شوې سطح CVE، EPSS او ایکسپلويټونه', ar_sync: 'SYNC ډېټابیسونه',
     ar_btn: 'ګامه', ar_exec: 'EXEC',
     ar_none: 'ګام نشته: لومړی RECON چلوه، بیا د KEV/EPSS بارولو لپاره SYNC چلوه', ar_loading: 'د ډېټابیسونو لنډیز بارېږي...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'ډیمو پروګرام - سکن نشته: خپل پروګرام جوړ کړه', pip_noprog: 'پروګرام نشته: په پروګرامونو ټب کې خپل پروګرام جوړ کړه',
+    pip_next: 'بل پړاو:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   ku: {
@@ -6882,6 +7182,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS û exploitên li ser rûyê hatî dîtin', ar_sync: 'SYNC BAZA DANEYAN',
     ar_btn: 'TEVGER', ar_exec: 'EXEC',
     ar_none: 'tevger tune ye: pêşî RECON bimeşîne, paşê ji bo barkirina KEV/EPSS SYNC bimeşîne', ar_loading: 'kurtpeya bazan tê barkirin...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'bernameya demo - skan tune ye: bernameya xwe biafirîne', pip_noprog: 'tu bername tune ye: di taba Bernameyan de ya xwe biafirîne',
+    pip_next: 'gava pêş:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   sd: {
@@ -6972,6 +7276,10 @@ const I18N = {
     ar_h2: 'آرسينال - سڃاتل سطح تي CVE، EPSS ۽ اڪسپلائٽس', ar_sync: 'SYNC ڊيٽابيس',
     ar_btn: 'قدم', ar_exec: 'EXEC',
     ar_none: 'ڪوبه قدم ناهي: پهريان RECON هلايو، پوءِ KEV/EPSS لوڊ ڪرڻ لاءِ SYNC هلايو', ar_loading: 'ڊيٽابيس جو خلاصو لوڊ ٿي رهيو آهي...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'ڊيمو پروگرام - اسڪين ناهي: پنهون پروگرام ٺاهيو', pip_noprog: 'ڪوبه پروگرام ناهي: پروگرام ٽيب ۾ پنهون پروگرام ٺاهيو',
+    pip_next: 'ايندڙ مرحلو:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   as: {
@@ -7062,6 +7370,10 @@ const I18N = {
     ar_h2: 'আৰ্চেনাল - চিনাক্ত কৰা পৃষ্ঠতলত CVE, EPSS আৰু এক্সপ্লইট', ar_sync: 'SYNC ডাটাবেছ',
     ar_btn: 'পদক্ষেপ', ar_exec: 'EXEC',
     ar_none: 'কোনো পদক্ষেপ নাই: প্ৰথমে RECON চলাওক, তাৰ পিছত KEV/EPSS লোড কৰিবলৈ SYNC চলাওক', ar_loading: 'ডাটাবেছৰ সাৰাংশ লোড হৈ আছে...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'ডেমো প্ৰগ্ৰাম - স্কেন নহয়: নিজৰ প্ৰগ্ৰাম বনাওক', pip_noprog: 'এতিয়াও কোনো প্ৰগ্ৰাম নাই: প্ৰগ্ৰামসমূহ টেবত নিজৰটো বনাওক',
+    pip_next: 'পৰৱৰ্তী পদক্ষেপ:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   or: {
@@ -7152,6 +7464,10 @@ const I18N = {
     ar_h2: 'ଅର୍ସେନାଲ - ଚିହ୍ନଟ ହୋଇଥିବା ପୃଷ୍ଠରେ CVE, EPSS ଏବଂ ଏକ୍ସପ୍ଲଏଟ୍', ar_sync: 'SYNC ଡାଟାବେସ୍',
     ar_btn: 'ଗତି', ar_exec: 'EXEC',
     ar_none: 'କୌଣସି ଗତି ନାହିଁ: ପ୍ରଥମେ RECON ଚଲାନ୍ତୁ, ତାପରେ KEV/EPSS ଲୋଡ୍ କରିବାକୁ SYNC ଚଲାନ୍ତୁ', ar_loading: 'ଡାଟାବେସ୍ ସାରାଂଶ ଲୋଡ୍ ହେଉଛି...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'ଡେମୋ ପ୍ରୋଗ୍ରାମ - ସ୍କାନ ନାହିଁ: ନିଜ ପ୍ରୋଗ୍ରାମ ତିଆରି କର', pip_noprog: 'ଏବେ ଯାଏଁ କୌଣସି ପ୍ରୋଗ୍ରାମ ନାହିଁ: ପ୍ରୋଗ୍ରାମ ଟ୍ୟାବରେ ନିଜର ତିଆରି କର',
+    pip_next: 'ପରବର୍ତ୍ତୀ ପଦକ୍ଷେପ:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   be: {
@@ -7242,6 +7558,10 @@ const I18N = {
     ar_h2: 'АРСЕНАЛ - CVE, EPSS і эксплойты на выяўленай паверхні', ar_sync: 'SYNC БАЗЫ',
     ar_btn: 'ХОДЫ', ar_exec: 'EXEC',
     ar_none: 'хадоў няма: спачатку запусці RECON, потым SYNC, каб загрузіць KEV/EPSS', ar_loading: 'зводка баз загрузаецца...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'дэма-праграма - без сканавання: стварай сваю праграму', pip_noprog: 'праграм няма: стварай сваю ва ўкладцы Праграмы',
+    pip_next: 'наступны крок:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   sq: {
@@ -7332,6 +7652,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS dhe exploit në sipërfaqen e zbuluar', ar_sync: 'SYNC BAZAT',
     ar_btn: 'LËVIZJE', ar_exec: 'EXEC',
     ar_none: 'asnjë lëvizje: ekzekuto fillimisht RECON, pastaj SYNC për të ngarkuar KEV/EPSS', ar_loading: 'përmbledhja e bazave po ngarkohet...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'program demo - pa skanim: krijo programin tënd', pip_noprog: 'asnjë program: krijo tëndin në skedën Programet',
+    pip_next: 'hapi tjetër:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
   fi: {
@@ -7422,6 +7746,10 @@ const I18N = {
     ar_h2: 'ARSENAL - CVE, EPSS ja exploitit havaitulla pinnalla', ar_sync: 'SYNKRONOI KANNAT',
     ar_btn: 'LIIKKEET', ar_exec: 'EXEC',
     ar_none: 'ei liikkeitä: aja RECON ensin, sitten SYNC ladataksesi KEV/EPSS', ar_loading: 'kannat latautuvat, yhteenveto...',
+    pip_scope: 'SCOPE', pip_recon: 'RECON',
+    pip_attack: 'ATTACK', pip_plan: 'PLAN',
+    pip_demo: 'demo-ohjelma - ei skannausta: luo oma ohjelmasi', pip_noprog: 'ei ohjelmia: luo omasi Ohjelmat-välilehdellä',
+    pip_next: 'seuraava vaihe:', fnd_n: 'findings: {n}',
     ar_base: 'KEV: {k} - EPSS: {e} - XDB: {x}'
   },
 };
@@ -7454,7 +7782,7 @@ function applyI18n() {
   $('langSel').value = LANG;
 }
 
-const state = { tab: 'live', chatSeen: 0, fndSeen: 0, firstLoad: true, unread: 0, tick: 0, data: { runs: [], findings: [], programs: [], chat: [], modes: [], team: {} } };
+const state = { tab: 'programs', chatSeen: 0, fndSeen: 0, firstLoad: true, unread: 0, tick: 0, data: { runs: [], findings: [], programs: [], chat: [], modes: [], team: {} } };
 // mode team : cle de salle capturee dans l'URL d'invitation (?k=...) puis
 // envoyee sur chaque appel API ; locale on n'en a pas besoin
 let TEAMKEY = '';
@@ -7497,7 +7825,7 @@ function toast(title, text, cls) {
 // ---------- rendu differentiel ----------
 // une vue ne se redessine que si ses donnees ont change, et jamais
 // quand l'utilisateur interagit avec un element de la vue (selects, inputs)
-const drawn = { runs: '', fnd: '', prog: '', chat: '', ai: '', team: '' };
+const drawn = { runs: '', fnd: '', prog: '', chat: '', ai: '', team: '', pip: '', hunt: '', ars: '' };
 function focusInside(sel) {
   const r = $(sel);
   const a = document.activeElement;
@@ -7550,6 +7878,7 @@ function drawFindings() {
   const progs = state.data.programs.map(p => p.id);
   if ($('nfProg').options.length !== progs.length) {
     $('nfProg').innerHTML = progs.map(p => '<option>' + p + '</option>').join('');
+    if (activeProg && progs.includes(activeProg)) $('nfProg').value = activeProg;
   }
   $('fndList').innerHTML = state.data.findings.slice(0, 120).map(f => {
     const STK = { signal: 'st_sig_off', analyse: 'st_sig_an', soumis: 'st_sig_sub', dup: 'st_sig_dup', refuse: 'st_sig_ref', ferme: 'st_sig_cl' };
@@ -7599,8 +7928,9 @@ function drawPrograms() {
   drawn.prog = sig;
   $('nProg').textContent = String(state.data.programs.length);
   const modes = state.data.modes || [];
-  $('progList').innerHTML = state.data.programs.map(p =>
-    '<div class="card"><h3>' + esc(p.name) + (p.veille ? ' <small style="color:var(--amber)">(veille)</small>' : '') + '</h3>' +
+  const list = [...state.data.programs].sort((a, b) => (a.demo ? 1 : 0) - (b.demo ? 1 : 0));
+  $('progList').innerHTML = list.map(p =>
+    '<div class="card"><h3>' + esc(p.name) + (p.demo ? ' <small style="color:var(--warn)">[DEMO]</small>' : '') + (p.veille ? ' <small style="color:var(--amber)">(veille)</small>' : '') + '</h3>' +
     '<div class="subtle" style="color:var(--dim);font-size:10.5px">' + esc(p.platform || '') + '</div>' +
     '<div class="scope">' + esc((p.scope || []).join(' · ')) + '</div>' +
     (p.header ? '<div class="hdr">⧉ ' + esc(p.header) + '</div>' : '') +
@@ -7618,6 +7948,7 @@ function drawPrograms() {
   });
   document.querySelectorAll('.launch').forEach(b => b.addEventListener('click', () => {
     const p = b.dataset.p;
+    if (state.data.programs.find(x => x.id === p && x.demo)) { demoErr({ demo: 1 }, 'FLEET'); return; }
     const sel = document.querySelector('.mode[data-p="' + p + '"]');
     const m = modes.find(x => x.key === sel.value);
     jpost('/api/fleet', { op: 'run', program: p, mode: sel.value });
@@ -7626,17 +7957,20 @@ function drawPrograms() {
   }));
   // raccourci : ouvre l'onglet HUNT sur ce programme
   document.querySelectorAll('.huntgo').forEach(b => b.addEventListener('click', () => {
-    huntSel = b.dataset.p;
+    setProg(b.dataset.p);
     setTab('hunt'); drawHunt();
   }));
 }
 
 // ---------- HUNT tab : surface reelle + preuves du programme ----------
 let huntSel = '', SURF = {}, SURF_READY = false, ATKS = {}, ATKS_READY = false;
+// programme actif partage (localStorage) : le HUNT suit le choix global
+try { if (typeof activeProg !== 'undefined' && activeProg) huntSel = activeProg; } catch (e) {}
 function surfFor(id) {
   if (!SURF_READY && !SURF[id]) {
     SURF_READY = true;
     fetch('/api/surface').then(r => r.json()).then(s => { SURF = s || {}; if (state.tab === 'hunt') { drawn.hunt = ''; drawHunt(); } }).catch(() => {});
+    fetchPipeline();
     fetch('/api/arsenal').then(r => r.json()).then(a => { ARS = a || {}; if (state.tab === 'arsenal') { drawn.ars = ''; drawArsenal(); } }).catch(() => {});
   }
   return SURF[id];
@@ -7650,13 +7984,13 @@ function atkFor(id) {
 }
 function drawHunt() {
   const progs = state.data.programs;
-  if (!huntSel || !progs.some(p => p.id === huntSel)) huntSel = progs.length ? progs[0].id : '';
+  if (!huntSel || !progs.some(p => p.id === huntSel)) {
+    const real = progs.find(p => !p.demo);
+    huntSel = real ? real.id : (progs.length ? progs[0].id : '');
+  }
   const sig = JSON.stringify([progs.map(p => p.id), huntSel, SURF_READY ? '1' : '0', ATKS_READY ? '1' : '0', state.data.findings.length]);
   if (sig === drawn.hunt && !forceDraw) return;
-  if (focusInside('huntProg')) return;
   drawn.hunt = sig;
-  const sel = $('huntProg');
-  sel.innerHTML = progs.map(p => '<option value="' + esc(p.id) + '"' + (p.id === huntSel ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('') || '<option value="">-</option>';
   $('huntRecon').disabled = !huntSel;
   // surface
   const s = surfFor(huntSel);
@@ -7774,18 +8108,101 @@ function drawPlanCard() {
   if (!$('huntPlan') || (PLAN_ITEMS !== null && PLAN_SEL !== huntSel)) return;
   renderPlan();
 }
+// ---------- PIPELINE : fil conducteur, programme actif partage ----------
+// un seul programme actif pour tous les onglets ; bandeau d'etapes 1-5
+let PIP = {}, activeProg = '';
+try { activeProg = localStorage.getItem('c2ff_prog') || ''; } catch (e) {}
+function setProg(id) {
+  if (!id) return;
+  activeProg = id;
+  try { localStorage.setItem('c2ff_prog', id); } catch (e) {}
+  huntSel = arSel = id;
+  drawn.pip = drawn.hunt = drawn.ars = drawn.prog = '';
+  if (state.tab === 'arsenal') drawArsenal();
+  drawPipeline();
+}
+// message demo : ne scanne pas le programme de demonstration, propose la creation
+function demoErr(j, label) {
+  if (!j || !j.demo) return false;
+  sndPlay('err');
+  toast(label, T('pip_demo') + ' - ' + T('h2new'), 'P2');
+  setTab('programs');
+  const f = $('npName'); if (f) f.focus();
+  return true;
+}
+const PIP_STEP = {
+  scope:   () => ({ tab: 'programs', lab: T('pip_scope') }),
+  recon:   () => ({ tab: 'hunt', lab: T('pip_recon') }),
+  attack:  () => ({ tab: 'hunt', lab: T('pip_attack') }),
+  arsenal: () => ({ tab: 'arsenal', lab: T('navar') }),
+  plan:    () => ({ tab: 'hunt', lab: T('pip_plan') }),
+};
+function drawPipeline() {
+  const el = $('pip');
+  if (!el) return;
+  // selecteur = LE bandeau : un seul endroit ou choisir le programme actif
+  const progs = state.data.programs || [];
+  const cur = (PIP && PIP.program || {}).id || '';
+  const list = [...progs].sort((a, b) => (a.demo ? 1 : 0) - (b.demo ? 1 : 0));
+  const opts = list.map(p => '<option value="' + esc(p.id) + '"' + (p.id === cur ? ' selected' : '') + '>' + esc((p.demo ? '[DEMO] ' : '') + p.name) + '</option>').join('');
+  if (!PIP || !PIP.program) {
+    const demo = PIP.demo;
+    el.innerHTML = demo
+      ? '<select id="pipProg" style="width:220px;max-width:280px"><option value="">-</option>' + opts + '</select>'
+        + '<span class="pill" style="color:var(--warn)">DEMO</span> ' + esc(T('pip_demo'))
+        + ' <button class="go" id="pipNew" style="padding:4px 10px">' + esc(T('h2new')) + '</button>'
+      : esc(T('pip_noprog'));
+    const nb = $('pipNew');
+    if (nb) nb.addEventListener('click', () => { setTab('programs'); const f = $('npName'); if (f) f.focus(); });
+    hookPipSel();
+    return;
+  }
+  const mark = s => s.done ? '<span style="color:var(--green)">✓</span>'
+    : (PIP.next === s.k ? '<span style="color:var(--warn)">●</span>' : '<span style="color:var(--dim)">○</span>');
+  const info = s => {
+    if (!s.info) return '';
+    if (s.k === 'recon') return ' <span style="color:var(--dim)">' + s.info.pages + 'p·' + s.info.apis + 'api·' + s.info.params + 'prm·' + s.info.tech + 'tech</span>';
+    if (s.k === 'attack') return ' <span style="color:var(--dim)">' + s.info.findings + '</span>';
+    return ' <span style="color:var(--dim)">' + esc(String(s.info.moves || s.info.items || '')) + '</span>';
+  };
+  el.innerHTML = '<select id="pipProg" style="width:190px;max-width:260px;font-weight:700">' + opts + '</select>'
+    + PIP.steps.map((s, i) => '<button class="pipStep go' + (PIP.next === s.k ? ' pipNext' : '') + '" data-k="' + esc(s.k) + '" data-tab="' + esc(s.tab) + '">'
+      + s.n + '. ' + esc(PIP_STEP[s.k]().lab) + ' ' + mark(s) + info(s) + '</button>').join('')
+    + '<span class="pill" style="color:var(--dim)">' + esc(TF('fnd_n', { n: String(PIP.findings || 0) })) + '</span>'
+    + (PIP.next ? '<span style="font-size:12.5px">' + esc(T('pip_next')) + ' <b style="color:var(--warn)">' + esc(PIP_STEP[PIP.next]().lab) + '</b></span>' : '');
+  el.querySelectorAll('.pipStep').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+  hookPipSel();
+}
+// le select est dedans : ne pas redessiner pendant qu'il est utilise
+function hookPipSel() {
+  const s = $('pipProg');
+  if (!s) return;
+  s.addEventListener('change', () => setProg(s.value));
+  const p = state.data.programs.find(x => x.id === (PIP.program || {}).id);
+  if (p && p.demo) s.title = T('pip_demo');
+}
+fetchPipeline();
+function fetchPipeline() {
+  fetch('/api/pipeline' + (activeProg ? '?name=' + encodeURIComponent(activeProg) : '')).then(r => r.json()).then(j => {
+    if (j && j.program && !activeProg) { activeProg = j.program.id; }
+    PIP = j || {};
+    if (activeProg && PIP.program && PIP.program.id !== activeProg) {
+      // programme demande absent (supprime/demo) : on suit le choix serveur
+      activeProg = PIP.program.id;
+      try { localStorage.setItem('c2ff_prog', activeProg); } catch (e) {}
+      huntSel = arSel = activeProg;
+      drawn.hunt = drawn.ars = '';
+    }
+    drawn.pip = '';
+    drawPipeline();
+  }).catch(() => {});
+}
+
 // ---------- ARSENAL tab : bases CVE -> mouvements suggérés executables ----------
 let ARS = {}, ARS_INIT = false, arSel = '', ARS_BUSY = false, drawn_ars_badge = '';
+try { if (typeof activeProg !== 'undefined' && activeProg) arSel = activeProg; } catch (e) {}
 function drawArsenal() {
-  // select programmes (persiste d'une visite a l'autre)
-  const sel = $('arProg');
-  const ids = state.data.programs.map(p => p.id);
-  if (sel.dataset.ids !== ids.join(',')) {
-    sel.dataset.ids = ids.join(',');
-    sel.innerHTML = ids.map(p => '<option value="' + esc(p) + '"' + (p === arSel ? ' selected' : '') + '>' + esc(p) + '</option>').join('');
-    if (arSel && ids.includes(arSel)) sel.value = arSel;
-  }
-  arSel = sel.value;
+  // programme = activeProg (bandeau pipeline), plus de select local
   // etat des bases + dernier calcul
   const b = ARS && ARS.bases || {};
   $('arBase').innerHTML = TF('ar_base', { k: (b.kev && b.kev.n) || '?', e: (b.epss && b.epss.n) || '?', x: (b.sdb && b.sdb.n) || '?' })
@@ -7795,7 +8212,7 @@ function drawArsenal() {
   const out = $('arOut');
   const stash = ARS && ARS.stash;
   if (!stash) { out.innerHTML = '<div class="card">' + esc(T('ar_none')) + '</div>'; return; }
-  const moves = (stash.moves || []).filter(m => arSel ? true : true);
+  const moves = stash.moves || [];
   // hint si le stash est d'un autre programme
   const head = (stash.program && stash.program !== arSel)
     ? '<div class="card" style="color:var(--dim)">stash = ' + esc(stash.program) + ' - relance MOUVEMENTS pour ' + esc(arSel || '?') + '</div>' : '';
@@ -7830,13 +8247,12 @@ function arExec(id) {
   ARS_BUSY = true;
   jpost('/api/arsenal', { op: 'exec', name: arSel || (state.data.programs[0] || {}).id, id }).then(r => r.json()).then(j => {
     ARS_BUSY = false;
-    if (!j.ok) { toast('ARSENAL', j.err || 'echec', 'P2'); sndPlay('err'); return; }
+    if (!j.ok) { if (!demoErr(j, 'ARSENAL')) toast('ARSENAL', j.err || 'echec', 'P2'); sndPlay('err'); return; }
     if (j.manual) { toast('ARSENAL', 'commande prete : lis l exploit avant de tirer', ''); }
-    else { sndPlay('p2'); toast('ARSENAL', T('atk_done').replace('{n}', '?') === '{n}' ? 'nuclei termine' : 'nuclei termine - findings mis a jour', 'HIT'); }
+    else { sndPlay('p2'); toast('ARSENAL', 'nuclei termine - findings mis a jour', 'HIT'); }
     drawn.ars = ''; fetch('/api/arsenal').then(r => r.json()).then(a => { ARS = a || {}; drawArsenal(); }).catch(() => {});
   }).catch(() => { ARS_BUSY = false; sndPlay('err'); });
 }
-$('arProg').addEventListener('change', () => { arSel = $('arProg').value; drawn.ars = ''; drawArsenal(); });
 $('arSync').addEventListener('click', () => {
   const b = $('arSync');
   $('arSt').textContent = '[sync]';
@@ -7854,7 +8270,7 @@ $('arMoves').addEventListener('click', () => {
   $('arSt').textContent = '⌛'; b.disabled = true;
   jpost('/api/arsenal', { op: 'moves', name: p }).then(r => r.json()).then(j => {
     b.disabled = false; $('arSt').textContent = T('h_ready');
-    if (!j.ok) { toast('ARSENAL', j.err || 'echec', 'P2'); sndPlay('err'); return; }
+    if (!j.ok) { $('arSt').textContent = '✖'; sndPlay('err'); if (!demoErr(j, 'ARSENAL')) toast('ARSENAL', j.err || 'echec', 'P2'); return; }
     arSel = p;
     sndPlay(j.moves && j.moves.length ? 'hit' : 'click');
     toast('ARSENAL', (j.moves || []).length + ' mouvements', 'HIT');
@@ -7862,7 +8278,6 @@ $('arMoves').addEventListener('click', () => {
   }).catch(() => { b.disabled = false; $('arSt').textContent = '✖'; sndPlay('err'); });
 });
 
-$('huntProg').addEventListener('change', () => { huntSel = $('huntProg').value; drawn.hunt = ''; drawHunt(); });
 $('huntRecon').addEventListener('click', () => {
   const p = huntSel; if (!p) return;
   const b = $('huntRecon');
@@ -7870,7 +8285,7 @@ $('huntRecon').addEventListener('click', () => {
   b.disabled = true;
   jpost('/api/recon', { name: p }).then(r => r.json()).then(j => {
     b.disabled = false;
-    if (!j.ok || !j.surface) { $('huntSt').textContent = '✖'; sndPlay('err'); toast('RECON', T('rc_fail'), 'P2'); return; }
+    if (!j.ok || !j.surface) { $('huntSt').textContent = '✖'; sndPlay('err'); if (!demoErr(j, 'RECON')) toast('RECON', T('rc_fail'), 'P2'); return; }
     SURF[p] = j.surface;
     sndPlay('hit'); toast('RECON', T('rc_done'), 'HIT');
     drawn.hunt = ''; drawHunt();
@@ -7883,7 +8298,7 @@ $('huntAtk').addEventListener('click', () => {
   b.disabled = true;
   jpost('/api/attack', { name: p }).then(r => r.json()).then(j => {
     b.disabled = false;
-    if (!j.ok || !j.attack) { $('huntSt').textContent = '✖'; sndPlay('err'); toast('ATTACK', T('atk_fail'), 'P2'); return; }
+    if (!j.ok || !j.attack) { $('huntSt').textContent = '✖'; sndPlay('err'); if (!demoErr(j, 'ATTACK')) toast('ATTACK', T('atk_fail'), 'P2'); return; }
     ATKS[p] = j.attack;
     const n = (j.attack.findings || []).filter(f => f.sev === 'P1' || f.sev === 'P2').length;
     sndPlay(n ? 'p1' : 'hit'); toast('ATTACK', n ? TF('atk_done', { n : String(n) }) : T('rc_done'), n ? 'P2' : 'HIT');
@@ -8445,7 +8860,7 @@ $('termRestart').addEventListener('click', () => {
 document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => { setTab(b.dataset.tab); if (b.dataset.tab === 'term') termConnect(); }));
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') { if (e.key === 'Escape') e.target.blur(); return; }
-  const m = { '1': 'live', '2': 'findings', '3': 'programs', '4': 'hunt', '5': 'ai', '6': 'team', '7': 'term', '8': 'chat', '9': 'arsenal' }[e.key];
+  const m = { '1': 'programs', '2': 'hunt', '3': 'arsenal', '4': 'findings', '5': 'live', '6': 'ai', '7': 'term', '8': 'team', '9': 'chat' }[e.key];
   if (m) setTab(m);
 });
 setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);
@@ -8496,6 +8911,7 @@ refresh();
 const _hashTab = (location.hash || '').replace('#', '');
 const _hashOk = { live: 1, findings: 1, programs: 1, hunt: 1, ai: 1, team: 1, term: 1, chat: 1 };
 if (_hashOk[_hashTab]) setTimeout(() => setTab(_hashTab), 0);
+else setTab(state.tab);
 document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => {
   try { history.replaceState(null, '', '#' + b.dataset.tab); } catch (e) {}
 }));

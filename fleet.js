@@ -86,7 +86,7 @@ function progHeader(p) {
 // un service precis - le scheme est respecte, sinon https par defaut.
 function targetsFor(programs, forceActive) {
   const active = forceActive && forceActive.length ? forceActive : fleet.activePrograms;
-  const list = (programs || []).filter(p => !active.length || active.includes(p.id));
+  const list = (programs || []).filter(p => !p.demo && (!active.length || active.includes(p.id)));
   const targets = [], seen = new Set();
   for (const p of list) {
     const hh = progHeader(p);
