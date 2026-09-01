@@ -153,7 +153,7 @@ function teamState(req, h) {
     const mm = t.members[mh];
     members.push({ h: mh, last: m.last, ms, active: ms < 25000, reqs: m.reqs, role: m.role, st: mm ? mm.status : '' });
   }
-  members.sort((a, b) => a.last - b.last);
+  members.sort((a, b) => a.h.localeCompare(b.h)); // ordre stable : les lignes ne sautent pas a chaque beat
   // file d'attente d'entree : visible des ranks >= co-admin seulement
   const requests = rk >= 3
     ? Object.entries(t.members).filter(([, m]) => m && m.status === 'pending').map(([mh, m]) => ({ h: mh, t: m.t }))
@@ -728,8 +728,10 @@ const MAIN = (req, res) => {
             saveTeamCfg({ ...cur, members, blocked: cur.blocked.filter(x => x !== h).concat([h]).slice(-50) });
             PRESENCE.delete(h);
           } else {
-            saveTeamCfg({ ...cur, members: { ...cur.members, [h]: { ...m, status: 'approved' } } });
-            if (PRESENCE.has(h)) PRESENCE.get(h).role = m.role || 'member';
+            // le grade peut etre choisi dans la ligne de demande au moment d'accepter
+            const r = ['admin', 'coadmin', 'hunter', 'member', 'viewer'].includes(body.r) ? body.r : (m.role || 'member');
+            saveTeamCfg({ ...cur, members: { ...cur.members, [h]: { ...m, role: r, status: 'approved' } } });
+            if (PRESENCE.has(h)) PRESENCE.get(h).role = r;
           }
           return sendJson(res, { ok: true, team: teamState(req, by) });
         }

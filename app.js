@@ -9001,12 +9001,16 @@ function drawTeam() {
   if (pendEl) {
     pendEl.hidden = !tm.enabled || !reqs.length;
     pendEl.innerHTML = tm.enabled && reqs.length
-      ? '<div style="font-size:11px;color:var(--dim);margin-bottom:6px">DEMANDES D\'ACCES - accepter ou refuser :</div>' +
+      ? '<div style="font-size:11px;color:var(--dim);margin-bottom:6px">DEMANDES D\'ACCES - choisis le grade puis accepte :</div>' +
         reqs.map(r =>
-          '<div class="tm-m"><b>' + esc(r.h) + '</b><span class="pill p-done" style="margin-left:8px">en attente</span>' +
+          '<div class="tm-m"><b>' + esc(r.h) + '</b>' +
+          '<select class="tmpick" data-h="' + esc(r.h) + '" style="margin-left:8px">' +
+          ['member', 'hunter', 'coadmin', 'admin', 'viewer'].map(rr =>
+            '<option value="' + rr + '"' + (rr === 'member' ? ' selected' : '') + '>' + TRLBL[rr] + '</option>').join('') +
+          '</select>' +
           '<span style="margin-left:auto"></span>' +
           '<button class="go tmok" data-h="' + esc(r.h) + '" style="padding:4px 10px">Accepter</button>' +
-          '<button class="ghost tmno" data-h="' + esc(r.h) + '" style="color:var(--red)">Refuser</button></div>'
+          '<button class="ghost tmno" data-h="' + esc(r.h) + '" style="color:var(--danger)">Refuser</button></div>'
         ).join('')
       : '';
   }
@@ -9168,9 +9172,11 @@ $('tmPending').addEventListener('click', e => {
   const no = e.target.closest('button.tmno');
   if (!ok && !no) return;
   const h = (ok || no).dataset.h;
-  jpost('/api/team', { op: ok ? 'approve' : 'deny', h, by: HANDLE }).then(r => r.json()).then(j => {
+  const row = (ok || no).closest('.tm-m');
+  const pick = row ? row.querySelector('select.tmpick') : null;
+  jpost('/api/team', { op: ok ? 'approve' : 'deny', h, r: ok && pick ? pick.value : undefined, by: HANDLE }).then(r => r.json()).then(j => {
     if (j.team) state.data.team = j.team;
-    toast('SESSION', j.ok ? (ok ? h + ' entre dans la session' : h + ' refuse et bloque') : (j.error || T('tm_cfg_no')), j.ok ? 'HIT' : 'P2');
+    toast('SESSION', j.ok ? (ok ? h + ' entre dans la session (' + (pick ? (TRLBL[pick.value] || pick.value) : 'membre') + ')' : h + ' refuse et bloque') : (j.error || T('tm_cfg_no')), j.ok ? 'HIT' : 'P2');
     blurNow(); forceDraw = true; refresh();
   }).catch(() => {});
 });
