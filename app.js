@@ -7896,11 +7896,18 @@ function drawFindings() {
       '<select data-k="' + esc(f.key) + '" class="fstat">' + sel + '</select>' +
       '<button class="ghost pocgo" data-id="' + esc(f.id) + '">POC ⧉</button>' +
       '<button class="ghost ia-run" data-t="' + esc(f.text.slice(0, 400)) + '">IA »</button>' +
+      '<button class="ghost need-member fchat" data-k="' + esc(f.key) + '" data-sev="' + esc(f.sev || '') + '" data-t="' + esc(f.text || '') + '" style="padding:4px 8px;font-size:10.5px">→ chat</button>' +
       '<button class="ghost need-coadmin fdel" data-k="' + esc(f.key) + '" style="color:var(--danger)">✕</button></div>' +
       '<div class="txt">' + hl(f.text) + '</div></div>';
   }).join('') || '<div class="fnd">' + T('f_none') + '</div>';
   document.querySelectorAll('.fnd select').forEach(s => s.addEventListener('change', () => {
     jpost('/api/findings', { op: 'patch', key: s.dataset.k, status: s.value, name: HANDLE });
+  }));
+  document.querySelectorAll('.fchat').forEach(b => b.addEventListener('click', () => {
+    jpost('/api/chat', { kind: 'finding', text: b.dataset.t, sev: b.dataset.sev, fkey: b.dataset.k, name: HANDLE || 'OPERATOR' }).then(r => r.json()).then(j => {
+      toast('SESSION', j.ok ? 'finding envoye dans le chat de session' : (j.error || 'envoi refuse'), j.ok ? 'HIT' : 'P2');
+      setTimeout(refresh, 300);
+    }).catch(() => {});
   }));
   document.querySelectorAll('.fdel').forEach(b => b.addEventListener('click', () => {
     jpost('/api/findings', { op: 'delete', key: b.dataset.k, name: HANDLE }).then(r => r.json()).then(j => {
@@ -9053,13 +9060,27 @@ function drawTeam() {
   if (blog) {
     blog.hidden = !tm.enabled;
     const bc = tm.chat || [];
-    blog.innerHTML = bc.map(m =>
-      '<div class="msg ' + (m.name === HANDLE ? 'me' : 'claude') + '"><div class="who">' +
-      esc(m.name || '?') + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + '</div>' + esc(m.text || '') + '</div>'
-    ).join('') || '<div class="msg claude">' + T('tm_chat_empty') + '</div>';
+    blog.innerHTML = bc.map(m => {
+      const cls = 'msg ' + (m.name === HANDLE ? 'me' : 'claude') + (m.kind === 'finding' ? ' msg-finding' : '');
+      const sev = m.kind === 'finding' && m.sev
+        ? ' <span class="pill ' + (m.sev === 'P1' || m.sev === 'P2' ? 'p-prog' : 'p-done') + '">' + esc(m.sev) + '</span>' : '';
+      const vt = m.v || { up: 0, down: 0, me: 0 };
+      const votes = m.id
+        ? '<span class="tmv" data-id="' + esc(m.id) + '" data-v="up" style="cursor:pointer;margin-left:10px;color:' + (vt.me === 1 ? 'var(--green)' : 'var(--faint)') + '">👍 ' + vt.up + '</span>' +
+          '<span class="tmv" data-id="' + esc(m.id) + '" data-v="down" style="cursor:pointer;margin-left:6px;color:' + (vt.me === -1 ? 'var(--danger)' : 'var(--faint)') + '">👎 ' + vt.down + '</span>'
+        : '';
+      return '<div class="' + cls + '"><div class="who">' + esc(m.name || '?') + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + sev + votes + '</div>' + esc(m.text || '') + '</div>';
+    }).join('') || '<div class="msg claude">' + T('tm_chat_empty') + '</div>';
     blog.scrollTop = blog.scrollHeight;
   }
 }
+$('tmChatlog').addEventListener('click', e => {
+  const v = e.target.closest('.tmv');
+  if (!v) return;
+  jpost('/api/team', { op: 'vote', id: v.dataset.id, v: v.dataset.v, by: HANDLE }).then(r => r.json()).then(j => {
+    if (j.ok) setTimeout(refresh, 250);
+  }).catch(() => {});
+});
 $('tmTunnel').addEventListener('click', () => {
   const open = typeof (state.data.team || {}).tunnel === 'string' && (state.data.team.tunnel || '').startsWith('https://');
   jpost('/api/team', { op: 'tunnel', action: open ? 'close' : 'open', by: HANDLE }).then(r => r.json()).then(j => {
@@ -9440,7 +9461,23 @@ if ((() => { try { return localStorage.getItem('c2ff-full') === 'on'; } catch (e
 
 // ---------- terminal de travail ----------
 // shell reel cote serveur (1 par identite), output en SSE, input en POST ligne par ligne.
-const TERM = { es: null, errs: 0, hi: 0, hist: [] };
+const TERM = { es: null, errs: 0, hi: 0, hist: [], mode: 'solo' };
+function termSetMode(mode) {
+  TERM.mode = mode === 'group' ? 'group' : 'solo';
+  if (TERM.es) { try { TERM.es.close(); } catch (e) {} TERM.es = null; }
+  TERM.errs = 0;
+  $('termOut').textContent = '';
+  const solo = $('termSolo'), grp = $('termGroup');
+  if (solo) solo.className = TERM.mode === 'solo' ? 'go need-admin' : 'ghost need-admin';
+  if (grp) grp.className = TERM.mode === 'group' ? 'go need-member' : 'ghost need-member';
+  const pill = $('termPill');
+  if (pill) { pill.textContent = TERM.mode === 'group' ? 'GROUPE' : 'SOLO'; pill.className = 'pill ' + (TERM.mode === 'group' ? 'p-prog' : 'p-live'); }
+  const info = $('termModeInfo');
+  if (info) info.textContent = TERM.mode === 'group'
+    ? "un seul shell partage : chaque frappe de chacun est visible de tous - impossible de tricher, tout est transparent"
+    : 'shell prive (admin) - les autres ne voient rien';
+  termConnect();
+}
 try { TERM.hist = JSON.parse(localStorage.getItem('c2ff-term-hist') || '[]'); } catch (e) { TERM.hist = []; }
 const termHandle = () => HANDLE || 'OPERATOR';
 const termClean = s => String(s)
@@ -9461,7 +9498,13 @@ function termKBody(extra) {
 function termConnect() {
   if (TERM.es) return;
   if (!('EventSource' in window)) return;
-  const q = '/api/term/stream?handle=' + encodeURIComponent(termHandle()) + (TEAMKEY ? '&k=' + encodeURIComponent(TEAMKEY) : '');
+  if (TERM.mode === 'solo' && ((state.data.team || {}).meRole || (state.data.team || {}).you || 'viewer') !== 'admin') {
+    termAppend('\n[terminal solo reserve a l admin - passe en GROUPE pour coder avec la session]\n');
+    return;
+  }
+  const q = '/api/term/stream?handle=' + encodeURIComponent(termHandle())
+    + (TERM.mode === 'group' ? '&term=group' : '')
+    + (TEAMKEY ? '&k=' + encodeURIComponent(TEAMKEY) : '');
   TERM.es = new EventSource(q);
   TERM.es.onopen = () => { TERM.errs = 0; };
   TERM.es.onmessage = ev => {
@@ -9487,7 +9530,7 @@ $('termForm').addEventListener('submit', e => {
   TERM.hi = TERM.hist.length;
   try { localStorage.setItem('c2ff-term-hist', JSON.stringify(TERM.hist.slice(-100))); } catch (x) {}
   $('termIn').value = '';
-  jpost('/api/term', { handle: termHandle(), op: 'write', data: v + '\n' }).catch(() => {});
+  jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'write', data: v + '\n' }).catch(() => {});
 });
 $('termIn').addEventListener('keydown', e => {
   const h = TERM.hist;
@@ -9498,13 +9541,15 @@ $('termIn').addEventListener('keydown', e => {
     $('termIn').value = TERM.hi === h.length ? '' : h[TERM.hi] || '';
     return;
   }
-  if (e.ctrlKey && e.key === 'c') { e.preventDefault(); jpost('/api/term', { handle: termHandle(), op: 'write', data: '\x03' }).catch(() => {}); }
+  if (e.ctrlKey && e.key === 'c') { e.preventDefault(); jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'write', data: '\x03' }).catch(() => {}); }
   if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); $('termOut').textContent = ''; }
-  if (e.ctrlKey && (e.key === 'd' || e.key === 'D')) { e.preventDefault(); jpost('/api/term', { handle: termHandle(), op: 'write', data: 'exit\n' }).catch(() => {}); }
+  if (e.ctrlKey && (e.key === 'd' || e.key === 'D')) { e.preventDefault(); jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'write', data: 'exit\n' }).catch(() => {}); }
 });
+$('termSolo').addEventListener('click', () => termSetMode('solo'));
+$('termGroup').addEventListener('click', () => termSetMode('group'));
 $('termRestart').addEventListener('click', () => {
-  jpost('/api/term', { handle: termHandle(), op: 'exit' })
-    .then(() => jpost('/api/term', { handle: termHandle(), op: 'start' }))
+  jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'exit' })
+    .then(() => jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'start' }))
     .catch(() => {});
   $('termOut').textContent = '';
   TERM.errs = 0;

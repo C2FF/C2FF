@@ -36,6 +36,9 @@ body[data-rank="1"] .need-coadmin, body[data-rank="1"] .need-admin,
 body[data-rank="2"] .need-coadmin, body[data-rank="2"] .need-admin,
 body[data-rank="3"] .need-admin { display:none !important }
 
+/* message finding partage dans le chat de session : mis en valeur, votable */
+#tmChatlog .msg-finding{border-left:3px solid var(--warn);background:var(--green-soft)}
+
 /* balayage CRT lent, la console vit */
 body::after{content:"";position:fixed;left:0;right:0;height:120px;pointer-events:none;z-index:0;
   background:linear-gradient(180deg,transparent,hsl(var(--hue) 62% 54% / .018),transparent);
@@ -299,7 +302,7 @@ header,nav{border-bottom-color:transparent;
   <button class="navbtn" data-tab="findings"><span data-i="navfd">Findings</span> <small id="nFnd"></small></button>
   <button class="navbtn" data-tab="fast"><span>FAST</span></button>
   <button class="navbtn" data-tab="ai"><span data-i="navai">IA</span></button>
-  <button class="navbtn need-admin" data-tab="term"><span data-i="navtrm">TERM</span></button>
+  <button class="navbtn" data-tab="term"><span>TERMINAUX</span></button>
   <button class="navbtn" data-tab="team"><span data-i="navt">Team</span></button>
   <button class="navbtn" data-tab="chat"><span data-i="navc">Coordination</span> <small id="nChat"></small></button>
 </nav>
@@ -479,10 +482,15 @@ header,nav{border-bottom-color:transparent;
 </section>
 
 <section class="view" id="v-term">
-  <h2 data-i="term_h2">Terminal - shell de travail, direct dans la console</h2>
+  <h2>Terminaux - solo prive, ou groupe partage : tout le monde tape, tout le monde voit</h2>
+  <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
+    <button class="ghost need-admin" id="termSolo">SOLO (prive)</button>
+    <button class="go need-member" id="termGroup">GROUPE (session)</button>
+    <small style="color:var(--faint);font-size:11px" id="termModeInfo"></small>
+  </div>
   <div id="termwrap" style="border:1px solid var(--line);border-radius:7px;background:#010603;overflow:hidden">
     <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;border-bottom:1px solid var(--line);background:var(--panel2)">
-      <span class="pill p-live" id="termPill">SHELL</span>
+      <span class="pill p-live" id="termPill">SOLO</span>
       <small style="color:var(--faint);flex:1" data-i="term_p">bash reel - history fleches, Ctrl+C interrompt, Ctrl+D ferme</small>
       <button class="ghost" id="termRestart" data-i="term_restart">Reinitialiser</button>
     </div>

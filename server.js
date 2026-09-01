@@ -21,6 +21,7 @@ const FINDINGS_FILE = path.join(DATA, 'findings.jsonl');
 const FLEET_FILE = path.join(DATA, 'fleet.json');
 const AI_FILE = path.join(DATA, 'ai.json');
 const TEAM_FILE = path.join(DATA, 'team.json');
+const VOTES_FILE = path.join(DATA, 'votes.json');
 const JSINT_FILE = path.join(DATA, 'jsint.json');
 const URLS_FILE = path.join(DATA, 'urls.json');
 const MODULES_FILE = path.join(DATA, 'modules.json');
@@ -104,6 +105,8 @@ function teamCfg() {
 }
 function saveTeamCfg(c) { try { fs.writeFileSync(TEAM_FILE, JSON.stringify(c, null, 1)); } catch (e) {} }
 function genKey() { return 'c2ff-' + crypto.randomBytes(12).toString('hex'); }
+const loadVotes = () => { const v = readJson(VOTES_FILE, null); return (v && typeof v === 'object') ? v : {}; };
+function saveVotes(v) { try { fs.writeFileSync(VOTES_FILE, JSON.stringify(v, null, 1)); } catch (e) {} }
 const PRESENCE = new Map(); // handle -> { last, reqs }
 const cleanHandle = h => String(h == null ? '' : h).replace(/[^\w \-.]{1,}/g, '').trim().slice(0, 16);
 const hashPin = (h, pin) => crypto.createHash('sha256').update('c2ff-pin:' + h + ':' + pin).digest('hex');
@@ -163,7 +166,16 @@ function teamState(req, h) {
     roles: t.roles, blocked: t.blocked,
     bind: BIND === '0.0.0.0' ? 'lan' : 'local', lan: lanAddr(),
     tunnel: TUNNEL ? (TUNNEL.ready && TUNNEL.url ? TUNNEL.url : (TUNNEL.err ? 'err:' + TUNNEL.err : 'starting')) : '',
-    chat: lastChat(200).filter(m => m.kind === 'team').slice(-100),
+    chat: (() => {
+      const V = loadVotes();
+      return lastChat(200).filter(m => m.kind === 'team' || m.kind === 'finding').slice(-100).map(m => {
+        const vv = V[m.id];
+        if (!vv) return m;
+        let up = 0, down = 0;
+        for (const x of Object.values(vv)) { if (x === 1) up++; else down++; }
+        return Object.assign({}, m, { v: { up, down, me: (h && vv[h]) || 0 } });
+      });
+    })(),
     rtc: rtcList(now),
     you: req ? roleOf(req, h) : 'viewer',
     meRole: memberRole(req, h),
@@ -195,11 +207,14 @@ const TERM_MAX_SESSIONS = 4;
 const TERM_BUF_MAX = 160000;
 
 const termId = (req, h) => (isLoopback(req) ? 'local' : cleanHandle(h) || '');
-function termTermAllowed(req, h) {
+function termTermAllowed(req, h, group) {
   if (isLoopback(req)) return true;
   const t = teamCfg();
   if (!t.enabled) return false;           // pas de shell expose en reseau sans salle
   if (t.blocked.includes(h)) return false;
+  // groupe : un PTY unique diffuse a tous - la transparence EST l'anti-triche.
+  // solo : session privee, admin uniquement.
+  if (group) return rankOf(req, h) >= 1;
   return roleOf(req, h) === 'admin';
 }
 function termBroadcast(ts, text) {
@@ -579,9 +594,11 @@ const MAIN = (req, res) => {
   const p = url.pathname;
   if (p.startsWith('/api/')) {
     if (!teamAllowed(req, url)) return send(res, 403, 'text/plain', 'team key required');
-    // salle ON + non valide : seul /api/state repond (etat minimal), rien d'autre
+    // salle ON + non valide : seul /api/state repond (etat minimal), rien d'autre.
+    // le handle arrive en header OU en query (les flux SSE ne peuvent pas poser de header)
     if (req.method === 'GET' && p !== '/api/state' && p !== '/index.html' && p !== '/' &&
-        teamCfg().enabled && !isLoopback(req) && !memberRole(req, reqHandle(req))) {
+        teamCfg().enabled && !isLoopback(req) &&
+        !memberRole(req, reqHandle(req) || cleanHandle(url.searchParams.get('handle') || ''))) {
       return sendJson(res, { ok: false, error: 'acces en attente de validation' });
     }
   }
@@ -745,6 +762,20 @@ const MAIN = (req, res) => {
           }
           return sendJson(res, { ok: true, team: teamState(req, by) });
         }
+        // vote like/dislike sur un message du chat de session (toggle au re-clic)
+        if (body.op === 'vote') {
+          const by = cleanHandle(body.by || body.handle);
+          if (rankOf(req, by) < 1) return sendJson(res, { ok: false, error: 'lecture seule (observateur)' });
+          const id = String(body.id || '').slice(0, 60);
+          if (!id) return sendJson(res, { ok: false, error: 'message introuvable' });
+          const v = body.v === 'up' ? 1 : body.v === 'down' ? -1 : 0;
+          const votes = loadVotes();
+          const cur = votes[id] || {};
+          if (!v || cur[by] === v) delete cur[by]; else cur[by] = v;
+          if (Object.keys(cur).length) votes[id] = cur; else delete votes[id];
+          saveVotes(votes);
+          return sendJson(res, { ok: true });
+        }
         if (body.op === 'beat') {
           const h = cleanHandle(body.handle);
           if (h) {
@@ -869,8 +900,9 @@ const MAIN = (req, res) => {
       }
       if (p === '/api/term') {
         const h = cleanHandle(body.handle || '');
-        if (!termTermAllowed(req, h)) return sendJson(res, { ok: false, error: 'terminal reserved: localhost or room admin' });
-        const id = termId(req, h);
+        const group = body.term === 'group';
+        if (!termTermAllowed(req, h, group)) return sendJson(res, { ok: false, error: group ? 'terminal de groupe : membre valide requis' : 'terminal reserve : localhost ou admin' });
+        const id = group ? 'group' : termId(req, h);
         if (body.op === 'start') {
           const ts = termSpawn(id);
           return sendJson(res, ts ? { ok: true } : { ok: false, error: 'cannot spawn shell' });
@@ -893,7 +925,15 @@ const MAIN = (req, res) => {
         return sendJson(res, { ok: false, error: 'unknown op' });
       }
       if (p === '/api/chat') {
-        appendJsonl(CHAT_FILE, { t: Date.now(), from: 'me', name: cleanHandle(body.name) || 'OPERATOR', kind: body.kind === 'team' ? 'team' : 'chat', text: trunc(body.text || '', 4000) });
+        const msg = {
+          t: Date.now(), id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), from: 'me',
+          name: cleanHandle(body.name) || 'OPERATOR',
+          kind: body.kind === 'team' ? 'team' : (body.kind === 'finding' ? 'finding' : 'chat'),
+          text: trunc(body.text || '', 4000),
+        };
+        if (body.fkey) msg.fkey = String(body.fkey).slice(0, 100);
+        if (['P1', 'P2', 'P3', 'HIT', 'SIG'].includes(body.sev)) msg.sev = body.sev;
+        appendJsonl(CHAT_FILE, msg);
         return sendJson(res, { ok: true });
       }
       if (p === '/api/queue') {
@@ -1433,10 +1473,11 @@ const MAIN = (req, res) => {
     return sendJson(res, { bases: ARSENAL.basesState(), syncing: ARSENAL.syncing(), log: ARSENAL.syncLog.slice(-8), stash });
   }
   if (p === '/api/term/stream') {
-    // SSE : replay du buffer puis output live. Distant : admin non banni seulement.
+    // SSE : replay du buffer puis output live. Groupe : membres valides ; solo : admin.
     const h = cleanHandle(url.searchParams.get('handle') || '');
-    if (!termTermAllowed(req, h)) return send(res, 403, 'text/plain', 'terminal reserved: localhost or room admin');
-    const id = termId(req, h);
+    const group = url.searchParams.get('term') === 'group';
+    if (!termTermAllowed(req, h, group)) return send(res, 403, 'text/plain', 'terminal reserved');
+    const id = group ? 'group' : termId(req, h);
     const ts = TERMS.get(id) || termSpawn(id);
     if (!ts) return send(res, 500, 'text/plain', 'cannot spawn shell');
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
