@@ -1048,10 +1048,11 @@ const MAIN = (req, res) => {
           const prog = String(body.prog || '').slice(0, 40);
           const style = ['accent', 'urgence', 'info', 'or'].includes(body.style) ? body.style : 'accent';
           const dur = Number(body.dur) > 0 ? Math.min(Number(body.dur), 2592000) : 0; // 0 = toujours, max 30 j
+          const kind = body.kind === 'challenge' ? 'challenge' : 'pin'; // challenge = epreuve chronometree
           if (!text && !prog) return sendJson(res, { ok: false, error: 'rien a epingler' });
           const cur = teamCfg();
           const news = (cur.news || [])
-            .concat([{ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), t: Date.now(), text, prog, style, exp: dur ? Date.now() + dur * 1000 : 0 }])
+            .concat([{ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), t: Date.now(), text, prog, style, kind, exp: dur ? Date.now() + dur * 1000 : 0 }])
             .slice(-3); // max 3 : le bandeau reste discret
           saveTeamCfg({ ...cur, news });
           return sendJson(res, { ok: true, team: teamState(req, by) });
@@ -1203,6 +1204,19 @@ const MAIN = (req, res) => {
             GROUPEPOCH++;
             groupBroadcast({ reset: true });
             return sendJson(res, { ok: true, epoch: GROUPEPOCH });
+          }
+          // share : publie une carte du terminal de groupe sur le chat de session
+          // (commande + sortie) - le challenge se joue dans le chat, les membres
+          // partagent leurs executions pour les faire voir de tous.
+          if (body.op === 'share') {
+            const card = GROUPCARDS.find(x => x.id === String(body.id || ''));
+            if (!card) return sendJson(res, { ok: false, error: 'carte introuvable' });
+            const txt = 'terminal ▸ ' + card.cmd + (card.out ? '\n' + card.out.slice(0, 800) : '') + (card.run ? '\n(en cours)' : '');
+            appendJsonl(CHAT_FILE, {
+              t: Date.now(), id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), from: 'me',
+              name: h || 'host', kind: 'team', text: txt.slice(0, 4000),
+            });
+            return sendJson(res, { ok: true });
           }
           if (body.op === 'run') {
             const cmd = String(body.cmd || '').replace(/\x00/g, '').slice(0, 2000).trim();

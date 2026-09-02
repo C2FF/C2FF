@@ -8030,6 +8030,7 @@ function drawPrograms() {
     $('pinProgName').textContent = p.name || p.id;
     $('pinMsg').value = '';
     $('pinErr').textContent = '';
+    $('pinKind').value = 'pin';
     $('pinDur').value = '86400';
     setPinStyle('accent');
     $('pinModal').style.display = 'grid';
@@ -9071,6 +9072,13 @@ const snDur = n => {
   if (s >= 3600) return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
   return Math.max(1, Math.floor(s / 60)) + 'm';
 };
+// challenge : chrono a la seconde
+const snClock = n => {
+  const s = Math.max(0, Math.floor((n.exp - Date.now()) / 1000));
+  if (s <= 0) return 'TERMINÉ';
+  const m = Math.floor(s / 60), r = s % 60;
+  return (m ? m + 'm ' : '') + r + 's';
+};
 function drawPin() {
   const el = $('sessPin');
   if (!el) return;
@@ -9082,19 +9090,23 @@ function drawPin() {
   const progs = state.data.programs || [];
   const expand = news.find(n => n.id === PIN_EXPAND) || news[news.length - 1];
   const rest = news.filter(n => n !== expand);
-  const mins = Math.floor(Date.now() / 60000); // le compte a rebours avance minute par minute
-  const sig = JSON.stringify([news, wel, canEdit, expand && expand.id, mins]);
+  // challenges : chrono a la seconde (rafraichi toutes les 5 s) ; epingles : a la minute
+  const anyChal = news.some(n => n.kind === 'challenge');
+  const tick = Math.floor(Date.now() / (anyChal ? 5000 : 60000));
+  const sig = JSON.stringify([news, wel, canEdit, expand && expand.id, tick]);
   if (sig === drawn_pin && !forceDraw) return;
   drawn_pin = sig;
   let html = '';
   if (expand) {
     const p = expand.prog ? progs.find(x => x.id === expand.prog) : null;
+    const chal = expand.kind === 'challenge';
     const st = snStyle(expand);
-    const d = snDur(expand);
-    html += '<div class="sn-item' + (st !== 'accent' ? ' sn-' + st : '') + '"><span class="sn-tag">EPINGLÉ</span>' +
+    const d = chal ? '' : snDur(expand);
+    html += '<div class="sn-item' + (chal ? ' sn-chal' : (st !== 'accent' ? ' sn-' + st : '')) + '">' +
+      (chal ? '<span class="sn-tag sn-tag-c">CHALLENGE</span>' : '<span class="sn-tag">EPINGLÉ</span>') +
       (p ? '<b>' + esc(p.name || p.id) + '</b>' : '') +
       (expand.text ? '<span>' + esc(expand.text) + '</span>' : '') +
-      (d ? '<span class="sn-dur">⏳ ' + d + '</span>' : '') +
+      (chal && expand.exp ? '<span class="sn-clock">⏱ ' + snClock(expand) + '</span>' : (d ? '<span class="sn-dur">⏳ ' + d + '</span>' : '')) +
       (p ? '<button class="go sn-join" data-prog="' + esc(p.id) + '">rejoindre ›</button>' : '') +
       (canEdit ? '<button class="ghost sn-del" data-id="' + esc(expand.id) + '" title="retirer l\'epingle">✕</button>' : '') +
       '</div>';
@@ -9102,9 +9114,10 @@ function drawPin() {
   if (rest.length) {
     html += '<div class="sn-row">' + rest.map(n => {
       const p = n.prog ? progs.find(x => x.id === n.prog) : null;
+      const chal = n.kind === 'challenge';
       const lbl = p ? (p.name || p.id) : (n.text || '').slice(0, 34);
-      const d = snDur(n);
-      return '<button class="sn-chip' + (snStyle(n) !== 'accent' ? ' sn-' + snStyle(n) : '') + '" data-id="' + esc(n.id) + '" title="afficher cette epingle">' +
+      const d = chal ? snClock(n) : snDur(n);
+      return '<button class="sn-chip' + (chal ? ' sn-chal' : (snStyle(n) !== 'accent' ? ' sn-' + snStyle(n) : '')) + '" data-id="' + esc(n.id) + '" title="afficher cette epingle">' +
         '<b>' + esc(lbl) + '</b>' + (d ? '<span style="color:var(--muted)">' + d + '</span>' : '') + '</button>';
     }).join('') + '</div>';
   }
@@ -9138,16 +9151,23 @@ function setPinStyle(s) {
   document.querySelectorAll('#pinStyle .pinstyle').forEach(b => b.classList.toggle('sel', b.dataset.s === PIN_STYLE));
 }
 document.querySelectorAll('#pinStyle .pinstyle').forEach(b => b.addEventListener('click', () => setPinStyle(b.dataset.s)));
+// challenge choisi : 20 min par defaut + style urgence (une epreuve se voit)
+$('pinKind').addEventListener('change', () => {
+  if ($('pinKind').value === 'challenge') {
+    $('pinDur').value = '1200';
+    setPinStyle('urgence');
+  }
+});
 $('pinForm').addEventListener('submit', e => {
   e.preventDefault();
   const prog = $('pinModal').dataset.prog || '';
   if (!prog) return;
-  jpost('/api/team', { op: 'pin', prog, text: String($('pinMsg').value || '').trim(), style: PIN_STYLE, dur: Number($('pinDur').value || 0), by: HANDLE }).then(r => r.json()).then(j => {
+  jpost('/api/team', { op: 'pin', prog, text: String($('pinMsg').value || '').trim(), style: PIN_STYLE, dur: Number($('pinDur').value || 0), kind: $('pinKind').value, by: HANDLE }).then(r => r.json()).then(j => {
     if (!j.ok) { $('pinErr').textContent = j.error || 'refuse'; return; }
     if (j.team) state.data.team = j.team;
     $('pinModal').style.display = 'none';
     drawn_pin = '';
-    toast('TEAM', 'programme epingle : visible de tous', 'HIT');
+    toast('TEAM', $('pinKind').value === 'challenge' ? 'challenge lance : chrono en marche' : 'programme epingle : visible de tous', 'HIT');
     forceDraw = true; refresh();
   }).catch(() => { $('pinErr').textContent = 'serveur injoignable'; });
 });
@@ -9800,6 +9820,7 @@ function termRender() {
       + (k.sbx === 'docker' ? '<span class="pill p-prog">sandbox</span>' : '<span class="pill p-warn">hote</span>')
       + (k.run ? '<span class="pill">en cours…</span>'
         : '<span class="pill ' + (k.exit === 0 ? 'p-live' : 'p-warn') + '">' + (k.exit === 0 ? 'ok' : (k.exit == null ? 'coupé' : 'exit ' + k.exit)) + '</span>')
+      + '<button class="ghost tshare" data-id="' + k.id + '" title="partager cette execution sur le chat de session" style="padding:2px 8px;font-size:10px">chat ▸</button>'
       + '</div>';
     let body = '';
     if (k.run) body = '<div class="tcard-out" style="color:var(--faint)">en cours…</div>';
@@ -9964,6 +9985,15 @@ $('termOut').addEventListener('click', e => {
   if (TERM.mode !== 'group') return;
   const close = e.target.closest('.tclose');
   if (close) { TERM.open[close.dataset.id] = 0; termRender(); return; }
+  // partager l'execution sur le chat de session (commande + sortie)
+  const sh = e.target.closest('.tshare');
+  if (sh) {
+    jpost('/api/term', { handle: termHandle(), term: 'group', op: 'share', id: sh.dataset.id })
+      .then(r => r.json())
+      .then(j => toast('SESSION', j.ok ? 'execution envoyee sur le chat' : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2'))
+      .catch(() => toast('SESSION', 'serveur injoignable', 'P2'));
+    return;
+  }
   const see = e.target.closest('.tsee'), more = e.target.closest('.tmore');
   if (!see && !more) return;
   const id = (see || more).dataset.id;
