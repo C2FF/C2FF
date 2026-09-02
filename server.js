@@ -1057,7 +1057,10 @@ const MAIN = (req, res) => {
           const by = cleanHandle(body.by || body.handle);
           if (rankOf(req, by) < 4) return sendJson(res, { ok: false, error: 'admin only' });
           const cur = teamCfg();
-          saveTeamCfg({ ...cur, news: (cur.news || []).filter(n => n.id !== String(body.id || '')) });
+          const id = String(body.id || '');
+          const prog = String(body.prog || '').slice(0, 40);
+          // detach par id (croix du bandeau) ou par programme (bouton detacher de la fiche)
+          saveTeamCfg({ ...cur, news: (cur.news || []).filter(n => n.id !== id && n.prog !== prog) });
           return sendJson(res, { ok: true, team: teamState(req, by) });
         }
         // role.set : les 5 grades, decision admin uniquement (le poste local est admin)

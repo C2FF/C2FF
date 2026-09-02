@@ -7969,6 +7969,9 @@ function drawPrograms() {
   // deux dimensions : pub = VISIBLE de tous, access = rang requis pour REJOINDRE.
   // un programme visible mais trop grade pour moi s'affiche verrouille.
   const _acc = p => IS_LOCAL || (p.access || 1) <= _rk || (p.owner && p.owner === HANDLE);
+  // epinglage : bouton direct sur la fiche, reserve aux admin et proprietaire.
+  // deja epingle -> bouton detacher (retrait direct, sans popup).
+  const _pinnedProgs = (_tm.news || []).filter(n => n.prog).map(n => n.prog);
   const list = [...state.data.programs].sort((a, b) => (a.demo ? 1 : 0) - (b.demo ? 1 : 0));
   $('progList').innerHTML = list.map(p => {
     const ok = _acc(p);
@@ -7985,6 +7988,11 @@ function drawPrograms() {
     '<button class="go launch" data-p="' + esc(p.id) + '"' + (ok ? '' : ' disabled title="grade insuffisant pour ce programme"') + '>GO ›</button>' +
     '<button class="ghost huntgo" data-p="' + esc(p.id) + '"' + (ok ? '' : ' disabled title="grade insuffisant pour ce programme"') + ' style="padding:6px 14px;font-size:11px">' + T('navh') + ' ›</button>' +
     (p.demo ? '' : '<button class="ghost need-member progchat" data-p="' + esc(p.id) + '" title="partager sur le chat de session : les membres pourront le rejoindre" style="padding:6px 12px;font-size:11px">chat</button>') +
+    (_rk >= 4 && !p.demo
+      ? (_pinnedProgs.includes(p.id)
+        ? '<button class="ghost pinun" data-p="' + esc(p.id) + '" title="retirer du bandeau epinglé" style="padding:6px 12px;font-size:11px;color:hsl(var(--hue) 90% 72%)">épinglé ✓</button>'
+        : '<button class="ghost pinbtn" data-p="' + esc(p.id) + '" title="epinger : visible de tous sur tous les onglets" style="padding:6px 12px;font-size:11px">épingler</button>')
+      : '') +
     (canCfg
       ? '<select class="pubsel" data-p="' + esc(p.id) + '" title="visible de tous ou reserve"><option value="1"' + (p.pub ? ' selected' : '') + '>public</option><option value="0"' + (!p.pub ? ' selected' : '') + '>prive</option></select>' +
         '<select class="acc" data-p="' + esc(p.id) + '" title="grade requis pour rejoindre">' + ACC.map(a => '<option value="' + a[0] + '"' + ((p.access || 1) === a[0] ? ' selected' : '') + '>' + a[1] + '</option>').join('') + '</select>' : '') +
@@ -8000,6 +8008,25 @@ function drawPrograms() {
     toast('PROGRAMME', 'partage sur le chat de session : ' + p.name, 'HIT');
     setTab('team');
     setTimeout(refresh, 300);
+  }));
+  // epinglage depuis la fiche : popup de message aux invites (admin + proprietaire)
+  document.querySelectorAll('.pinbtn').forEach(b => b.addEventListener('click', () => {
+    const p = state.data.programs.find(x => x.id === b.dataset.p);
+    if (!p) return;
+    $('pinProgName').textContent = p.name || p.id;
+    $('pinMsg').value = '';
+    $('pinErr').textContent = '';
+    $('pinModal').style.display = 'grid';
+    $('pinModal').dataset.prog = p.id;
+    setTimeout(() => { try { $('pinMsg').focus(); } catch (e) {} }, 60);
+  }));
+  document.querySelectorAll('.pinun').forEach(b => b.addEventListener('click', () => {
+    jpost('/api/team', { op: 'unpin', prog: b.dataset.p, by: HANDLE }).then(r => r.json()).then(j => {
+      if (j.team) state.data.team = j.team;
+      drawn_pin = '';
+      toast('TEAM', j.ok ? 'epingle retire' : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2');
+      forceDraw = true; refresh();
+    }).catch(() => {});
   }));
   // visibilite + grade d'acces : createur ou staff reglent pub et le rang requis
   document.querySelectorAll('.prog .acc, .prog .pubsel').forEach(sel => sel.addEventListener('change', () => {
@@ -9058,17 +9085,23 @@ $('sessPin').addEventListener('click', e => {
     if (!j.ok) toast('TEAM', j.error || 'refuse', 'P2');
   }).catch(() => {});
 });
-// config epinglage/bienvenue (onglet team, admin et proprietaire)
-$('tmPinAdd').addEventListener('click', () => {
-  const text = String($('tmPinText').value || '').trim();
-  const prog = String($('tmPinProg').value || '');
-  if (!text && !prog) { toast('TEAM', 'mets un texte ou un programme a epingler', 'P2'); return; }
-  jpost('/api/team', { op: 'pin', text, prog, by: HANDLE }).then(r => r.json()).then(j => {
+// popup d'epinglage d'un programme (depuis sa fiche) : message facultatif aux invites
+$('pinForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const prog = $('pinModal').dataset.prog || '';
+  if (!prog) return;
+  jpost('/api/team', { op: 'pin', prog, text: String($('pinMsg').value || '').trim(), by: HANDLE }).then(r => r.json()).then(j => {
+    if (!j.ok) { $('pinErr').textContent = j.error || 'refuse'; return; }
     if (j.team) state.data.team = j.team;
-    toast('TEAM', j.ok ? 'epingle : visible de tous' : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2');
-    if (j.ok) $('tmPinText').value = '';
-  }).catch(() => {});
+    $('pinModal').style.display = 'none';
+    drawn_pin = '';
+    toast('TEAM', 'programme epingle : visible de tous', 'HIT');
+    forceDraw = true; refresh();
+  }).catch(() => { $('pinErr').textContent = 'serveur injoignable'; });
 });
+$('pinCancel').addEventListener('click', () => { $('pinModal').style.display = 'none'; });
+$('pinModal').addEventListener('click', e => { if (e.target === $('pinModal')) $('pinModal').style.display = 'none'; });
+// bienvenue (onglet team, admin et proprietaire)
 $('tmWelcomeSave').addEventListener('click', () => {
   jpost('/api/team', { op: 'welcome', text: String($('tmWelcome').value || ''), by: HANDLE }).then(r => r.json()).then(j => {
     if (j.team) state.data.team = j.team;
@@ -9118,14 +9151,6 @@ function drawTeam() {
     set('tmRoomEl', tm.room || '');
     set('tmOn', tm.enabled ? 'on' : 'off');
     set('tmWelcome', tm.welcome || '');
-  }
-  // epinglage : select des programmes (non-demo), preselectionne le pin en cours
-  const pinSel = $('tmPinProg');
-  if (pinSel && !focusInside('#tmPinProg')) {
-    const progs = (state.data.programs || []).filter(p => !p.demo);
-    const cur = (tm.news || []).map(n => n.prog).filter(Boolean);
-    pinSel.innerHTML = '<option value="">programme prioritaire...</option>' +
-      progs.map(p => '<option value="' + esc(p.id) + '"' + (cur.includes(p.id) ? ' data-pinned' : '') + '>' + esc(p.name || p.id) + (cur.includes(p.id) ? ' (epingle)' : '') + '</option>').join('');
   }
   const pendEl = $('tmPending');
   if (pendEl) {
