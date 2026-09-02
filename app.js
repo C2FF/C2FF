@@ -20956,6 +20956,7 @@ const TRANK = { owner: 5, admin: 4, coadmin: 3, hunter: 2, member: 1, viewer: 0 
 const TRLBL = { owner: 'propriétaire', admin: 'admin', coadmin: 'co-admin', hunter: 'chasseur', member: 'membre', viewer: 'observateur' };
 let SEEN_REQ = '';
 let TM_ARM = 0; // mousedown sur select grade -> fige la liste membres/demandes 6 s
+let SN_ARM = 0; // mousedown sur le bandeau -> fige son re-render 3 s (le clic passe)
 const tmArm = e => { if (e.target.closest && e.target.closest('select')) TM_ARM = Date.now() + 6000; };
 $('tmMembers').addEventListener('mousedown', tmArm);
 $('tmPending').addEventListener('mousedown', tmArm);
@@ -20967,7 +20968,6 @@ $('sessPin').addEventListener('mousedown', () => { SN_ARM = Date.now() + 3000; }
 // les autres restent en chips compacts sur une ligne - pas de flood.
 let drawn_pin = '';
 let PIN_EXPAND = ''; // id de l'epingle depliee ('' = la plus recente)
-let SN_ARM = 0; // mousedown sur le bandeau -> fige son re-render 3 s (le clic passe)
 const snStyle = n => (n && ['urgence', 'info', 'or'].includes(n.style) ? n.style : 'accent');
 const snDur = n => {
   if (!n.exp) return '';
