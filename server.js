@@ -304,6 +304,7 @@ const GROUPCARDS = [];        // {id, by, cmd, type, desc, out, trunc, exit, run
 const GROUPCLIENTS = new Set();
 const GROUPRATE = new Map();  // handle -> { last, running }
 const GROUPPROCS = new Map(); // card id -> child process (kill possible)
+let GROUPEPOCH = 0;           // incremente a chaque reset : les clients polling detectent la purge
 const GROUP_WORKDIR = path.join(DATA, 'groupws');
 const GROUP_MAX_CARDS = 60, GROUP_OUT_MAX = 16000, GROUP_TIMEOUT = 60000, GROUP_COOLDOWN = 1500;
 let groupRunning = 0;
@@ -970,6 +971,41 @@ const MAIN = (req, res) => {
           saveTeamCfg({ ...t, members });
           PRESENCE.delete(h);
           PRESENCE.set(nh, { last: Date.now(), reqs: (PRESENCE.get(nh) || { reqs: 0 }).reqs + 1, role });
+          // anti-demaskage : tout ce qui a ete publie sous l'ancien pseudo suit
+          // le nouveau nom - messages chat (name), findings (agent + tri), votes.
+          // impossible de renommer pour faire disparaitre ses messages.
+          try {
+            const _ls = fs.readFileSync(CHAT_FILE, 'utf8').split('\n');
+            const _out = [];
+            let _ch = 0;
+            for (const l of _ls) {
+              if (!l.trim()) continue;
+              try {
+                const m = JSON.parse(l);
+                if (m.name === h) { m.name = nh; _ch++; }
+                _out.push(JSON.stringify(m));
+              } catch (e) { _out.push(l); }
+            }
+            if (_ch) fs.writeFileSync(CHAT_FILE, _out.join('\n') + '\n');
+          } catch (e) {}
+          try {
+            let _fch = 0;
+            for (const f of state.findings) {
+              if (f.agent === h) { f.agent = nh; _fch++; }
+              if (Array.isArray(f.tri)) for (const tr of f.tri) if (tr.by === h) tr.by = nh;
+            }
+            if (_fch) {
+              fs.writeFileSync(FINDINGS_FILE, state.findings.map(f => JSON.stringify(f)).join('\n') + '\n');
+            }
+          } catch (e) {}
+          try {
+            const votes = loadVotes();
+            let _vch = false;
+            for (const id of Object.keys(votes)) {
+              if (votes[id] && votes[id][h] !== undefined) { votes[id][nh] = votes[id][h]; delete votes[id][h]; _vch = true; }
+            }
+            if (_vch) saveVotes(votes);
+          } catch (e) {}
           return sendJson(res, { ok: true, renamed: true, role });
         }
         if (body.op === 'beat') {
@@ -1110,6 +1146,24 @@ const MAIN = (req, res) => {
               }
             }
             return sendJson(res, { ok: true });
+          }
+          // reset : admin/co-admin vide le terminal de groupe PARTOUT - cartes
+          // supprimees cote serveur, commandes en cours tuees, et un signal
+          // broadcast + epoch force chaque invite a vider sa vue (personne ne
+          // conserve les logs apres un reset du proprietaire).
+          if (body.op === 'reset') {
+            if (rankOf(req, h) < 3) return sendJson(res, { ok: false, error: 'admin ou co-admin requis' });
+            for (const [, pr] of GROUPPROCS) {
+              try { pr.proc.kill('SIGKILL'); } catch (e) {}
+              if (pr.cname) { try { require('child_process').spawn('docker', ['kill', pr.cname], { stdio: 'ignore' }); } catch (e) {} }
+            }
+            GROUPPROCS.clear();
+            GROUPCARDS.length = 0;
+            groupRunning = 0;
+            GROUPRATE.clear();
+            GROUPEPOCH++;
+            groupBroadcast({ reset: true });
+            return sendJson(res, { ok: true, epoch: GROUPEPOCH });
           }
           if (body.op === 'run') {
             const cmd = String(body.cmd || '').replace(/\x00/g, '').slice(0, 2000).trim();
@@ -1777,7 +1831,7 @@ const MAIN = (req, res) => {
     }
     const since = Number(url.searchParams.get('since') || 0);
     const cards = GROUPCARDS.filter(c => c.t > since);
-    return sendJson(res, { ok: true, cards, total: GROUPCARDS.length });
+    return sendJson(res, { ok: true, cards, total: GROUPCARDS.length, epoch: GROUPEPOCH });
   }
   if (p === '/api/term/buf') {
     // repli polling du terminal perso (et du spy via ?who=) : le SSE est

@@ -9685,6 +9685,7 @@ function termConnect() {
     try { p = JSON.parse(ev.data); } catch (e) { return; }
     if (TERM.mode === 'group' && !TERM.spy) {
       termConn('flux live', false);
+      if (p.reset) { TERM.cards = []; TERM.open = {}; termRender(); return; }
       if (p.cards) TERM.cards = p.cards;
       else if (p.card) {
         const i = TERM.cards.findIndex(x => x.id === p.card.id);
@@ -9763,7 +9764,13 @@ setInterval(() => {
         }
         return;
       }
-      if (!r || !Array.isArray(r.cards) || !r.cards.length) return;
+      if (!r || !Array.isArray(r.cards)) return;
+      // epoch : le serveur l'incremente a chaque reset de groupe -> purge locale
+      if (r.epoch !== undefined) {
+        if (TERM.epoch !== undefined && r.epoch !== TERM.epoch) { TERM.cards = []; TERM.open = {}; }
+        TERM.epoch = r.epoch;
+      }
+      if (!r.cards.length) return;
       if (!TERM.es && !termConnT) termConn('polling de secours', false);
       for (const c of r.cards) {
         const i = TERM.cards.findIndex(x => x.id === c.id);
@@ -9825,7 +9832,17 @@ $('termSolo').addEventListener('click', () => termSetMode('solo'));
 $('termGroup').addEventListener('click', () => termSetMode('group'));
 $('termRestart').addEventListener('click', () => {
   if (TERM.spy) { termSetMode('solo'); return; }
-  if (TERM.mode === 'group') { TERM.cards = []; TERM.open = {}; TERM.errs = 0; if (TERM.es) { try { TERM.es.close(); } catch (e) {} TERM.es = null; } termConnect(); termRender(); return; }
+  if (TERM.mode === 'group') {
+    // reset SERVEUR du terminal de groupe : purge diffusée à tous les invités
+    // (cartes supprimées + commandes en cours tuées). L'ancienne version ne
+    // vidait que la vue locale - les invités gardaient les logs.
+    TERM.cards = []; TERM.open = {}; termRender();
+    jpost('/api/term', { handle: termHandle(), term: 'group', op: 'reset' })
+      .then(r => r.json())
+      .then(j => toast('TERM', j.ok ? 'terminal de groupe réinitialisé pour tous' : (j.error || 'refusé'), j.ok ? 'HIT' : 'P2'))
+      .catch(() => {});
+    return;
+  }
   jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'exit' })
     .then(() => jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'start' }))
     .catch(() => {});
