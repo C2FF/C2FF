@@ -9476,6 +9476,7 @@ function termSetMode(mode) {
   TERM.errs = 0;
   TERM.cards = []; TERM.open = {};
   $('termOut').textContent = '';
+  termConn('');
   const solo = $('termSolo'), grp = $('termGroup');
   if (solo) solo.className = TERM.mode === 'solo' ? 'go need-member' : 'ghost need-member';
   if (grp) grp.className = TERM.mode === 'group' ? 'go need-member' : 'ghost need-member';
@@ -9509,6 +9510,17 @@ function termStartSpy(h) {
 }
 try { TERM.hist = JSON.parse(localStorage.getItem('c2ff-term-hist') || '[]'); } catch (e) { TERM.hist = []; }
 const termHandle = () => HANDLE || 'OPERATOR';
+// bandeau d'etat de connexion du terminal : plus jamais d'ecran noir sans
+// explication - on sait si le flux SSE est vivant, si le polling assure, ou pourquoi c'est refuse
+let termConnT = 0;
+function termConn(txt, warn) {
+  const el = $('termConn');
+  if (!el) return;
+  if (!txt) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.textContent = txt;
+  el.className = 'pill ' + (warn ? 'p-warn' : 'p-live');
+}
 const termClean = s => String(s)
   .replace(/\r\n/g, '\n').replace(/\r/g, '')
   .replace(/\x1b\][^\x07]*\x07/g, '')
@@ -9567,11 +9579,12 @@ function termConnect() {
     + (TERM.spy ? '&who=' + encodeURIComponent(TERM.spy) : '')
     + (TEAMKEY ? '&k=' + encodeURIComponent(TEAMKEY) : '');
   TERM.es = new EventSource(q);
-  TERM.es.onopen = () => { TERM.errs = 0; };
+  TERM.es.onopen = () => { TERM.errs = 0; if (!TERM.spy) termConn('flux live', false); };
   TERM.es.onmessage = ev => {
     let p;
     try { p = JSON.parse(ev.data); } catch (e) { return; }
     if (TERM.mode === 'group' && !TERM.spy) {
+      termConn('flux live', false);
       if (p.cards) TERM.cards = p.cards;
       else if (p.card) {
         const i = TERM.cards.findIndex(x => x.id === p.card.id);
@@ -9589,7 +9602,11 @@ function termConnect() {
     try { TERM.es.close(); } catch (e) {}
     TERM.es = null;
     TERM.errs++;
-    if (TERM.errs >= 3) { sndPlay('err'); toast('TERM', T('term_denied'), 'P2'); return; }
+    if (TERM.errs >= 3) {
+      termConn('flux direct perdu - polling de secours actif', true);
+      sndPlay('err'); toast('TERM', T('term_denied'), 'P2'); return;
+    }
+    termConn('reconnexion...', true);
     if (state.tab === 'term') setTimeout(termConnect, 2000);
   };
 }
@@ -9598,9 +9615,19 @@ function termConnect() {
 setInterval(() => {
   if (TERM.mode !== 'group' || TERM.spy || !state || state.tab !== 'term') return;
   jget('/api/term/cards?handle=' + encodeURIComponent(termHandle()) + '&since=' + (TERM.since || 0))
-    .then(r => r.json())
+    .then(r => r.json().catch(() => ({ ok: false, error: 'reponse illisible du serveur (' + r.status + ')' })))
     .then(r => {
-      if (!r || !r.ok || !Array.isArray(r.cards) || !r.cards.length) return;
+      if (!r || r.ok === false) {
+        // refus explicite (kicke / en attente) : affiche la raison, throttle 8 s
+        if (Date.now() - termConnT > 8000) {
+          termConnT = Date.now();
+          termConn(r.error || 'acces refuse', true);
+          toast('TERM', r.error || 'acces refuse', 'P2');
+        }
+        return;
+      }
+      if (!r || !Array.isArray(r.cards) || !r.cards.length) return;
+      if (!TERM.es && !termConnT) termConn('polling de secours', false);
       for (const c of r.cards) {
         const i = TERM.cards.findIndex(x => x.id === c.id);
         if (i >= 0) TERM.cards[i] = c; else TERM.cards.push(c);

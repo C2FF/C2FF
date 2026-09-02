@@ -722,6 +722,12 @@ const MAIN = (req, res) => {
   sweep();
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
+  if (p.startsWith('/api/term')) {
+    // debug temporaire : tracons l'acces des terminaux (qui, comment, resultats)
+    console.log('[term]', req.method, p, 'ip=' + req.socket.remoteAddress, 'tun=' + !!req.internalTunnel,
+      'h=' + JSON.stringify(req.headers['x-c2ff-handle'] || '') , 'q=' + (url.searchParams.get('handle') || '') + '/' + (url.searchParams.get('who') || '') + '/' + (url.searchParams.get('term') || ''),
+      'k=' + (url.searchParams.get('k') || req.headers['x-c2ff-key'] || '') .slice(0, 12));
+  }
   if (p.startsWith('/api/')) {
     if (!teamAllowed(req, url)) return send(res, 403, 'text/plain', 'team key required');
     // salle ON + non valide : seul /api/state repond (etat minimal), rien d'autre.
@@ -1674,7 +1680,14 @@ const MAIN = (req, res) => {
     // polling de secours des cartes de groupe : fiabilise l'affichage membre
     // si le flux SSE est bufferise/mort (tunnel, proxy). since = ts du dernier vu.
     const h = cleanHandle(url.searchParams.get('handle') || '');
-    if (!termTermAllowed(req, h, true)) return send(res, 403, 'text/plain', 'terminal reserved');
+    if (!termTermAllowed(req, h, true)) {
+      // raison explicite : le client l'affiche, un membre bloque ne reste plus dans le noir
+      const t = teamCfg();
+      const why = t.blocked.includes(h) ? 'kicked' : 'pending';
+      return sendJson(res, { ok: false, error: why === 'kicked'
+        ? 'acces terminal refuse : ce pseudo a ete kicke de la salle (un admin peut le debloquer)'
+        : 'acces terminal refuse : ta validation par un admin est en attente', why });
+    }
     const since = Number(url.searchParams.get('since') || 0);
     const cards = GROUPCARDS.filter(c => c.t > since);
     return sendJson(res, { ok: true, cards, total: GROUPCARDS.length });
@@ -1687,7 +1700,7 @@ const MAIN = (req, res) => {
     const group = url.searchParams.get('term') === 'group';
     if (who) {
       if (!termSpyAllowed(req, h, who)) return send(res, 403, 'text/plain', 'terminal reserved');
-      res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+      res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
       const ts = TERMS.get(who) || termSpawn(who); // paresseux : voir le perso demarre sa session
       if (!ts) return send(res, 500, 'text/plain', 'cannot spawn shell');
       if (ts.buf) res.write('data: ' + JSON.stringify(ts.buf) + '\n\n');
@@ -1698,7 +1711,7 @@ const MAIN = (req, res) => {
       return;
     }
     if (!termTermAllowed(req, h, group)) return send(res, 403, 'text/plain', 'terminal reserved');
-    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
     if (group) {
       groupSend({ res }, { cards: GROUPCARDS });
       const client = { res };
