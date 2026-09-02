@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>C2FF - Command & Control Framework</title>
 <style>
+/* l'attribut hidden gagne TOUJOURS sur un display inline (les modales pm/wizz/
+   alerte portent display:grid en style inline : sans cette regle, elles restent
+   visibles en permanence) */
+[hidden]{display:none!important}
 :root{
   color-scheme:dark;
   --hue:131; /* pilote par app.js en mode AMBIANCE - jamais de teinte primaire, reste entre les familles */
