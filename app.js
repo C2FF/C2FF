@@ -9030,6 +9030,8 @@ function drawTeam() {
       '<select class="tmrole" data-h="' + esc(m.h) + '">' + ['viewer', 'member', 'hunter', 'coadmin', 'admin'].map(r =>
         '<option value="' + r + '"' + (m.role === r ? ' selected' : '') + '>' + TRLBL[r] + '</option>').join('') + '</select>' +
       (rk >= 3 ? '<button class="ghost tmkick" data-h="' + esc(m.h) + '">' + T('tm_kick') + '</button>' : '') : '') +
+    (rk >= 3 && m.h !== HANDLE && m.st !== 'pending' ?
+      '<button class="ghost tmspy" data-h="' + esc(m.h) + '" style="padding:3px 8px;font-size:10.5px" title="voir son terminal perso en lecture seule">terminal</button>' : '') +
     '<small style="color:var(--faint);margin-left:auto">' + m.reqs + ' req</small></div>'
   ).join('') || '<div style="color:var(--faint);font-size:11.5px">' + T('tm_nobody') + '</div>';
   const micBtn = $('tmMic');
@@ -9202,6 +9204,8 @@ $('tmPending').addEventListener('click', e => {
   }).catch(() => {});
 });
 $('tmMembers').addEventListener('click', e => {
+  const spy = e.target.closest('button.tmspy');
+  if (spy) { termStartSpy(spy.dataset.h); return; }
   const b = e.target.closest('button.tmkick');
   if (!b) return;
   jpost('/api/team', { op: 'kick', h: b.dataset.h, by: HANDLE }).then(r => r.json()).then(j => {
@@ -9460,25 +9464,47 @@ if ((() => { try { return localStorage.getItem('c2ff-full') === 'on'; } catch (e
 }
 
 // ---------- terminal de travail ----------
-// solo : shell reel cote serveur (1 par identite), output en SSE, input en POST ligne par ligne.
-// groupe : cartes de commandes - pseudo + type affiches, sorties masquees par defaut, un seul
-// point d'execution (cwd dedie) : tout le monde recoit la meme carte, la triche est impossible.
-const TERM = { es: null, errs: 0, hi: 0, hist: [], mode: 'solo', cards: [], open: {} };
+// perso : shell reel PRIVE par membre (id = handle), personne n'y ecrit a part toi.
+// groupe : cartes de commandes - pseudo + type, sorties masquees par defaut,
+// un seul point d'execution isole (conteneur jetable) : tout le monde voit pareil.
+// spy : vue LECTURE SEULE du perso d'un membre (co-admin+), depuis l'onglet TEAM.
+const TERM = { es: null, errs: 0, hi: 0, hist: [], mode: 'solo', cards: [], open: {}, spy: '', since: 0 };
 function termSetMode(mode) {
   TERM.mode = mode === 'group' ? 'group' : 'solo';
+  TERM.spy = '';
   if (TERM.es) { try { TERM.es.close(); } catch (e) {} TERM.es = null; }
   TERM.errs = 0;
   TERM.cards = []; TERM.open = {};
   $('termOut').textContent = '';
   const solo = $('termSolo'), grp = $('termGroup');
-  if (solo) solo.className = TERM.mode === 'solo' ? 'go need-admin' : 'ghost need-admin';
+  if (solo) solo.className = TERM.mode === 'solo' ? 'go need-member' : 'ghost need-member';
   if (grp) grp.className = TERM.mode === 'group' ? 'go need-member' : 'ghost need-member';
   const pill = $('termPill');
-  if (pill) { pill.textContent = TERM.mode === 'group' ? 'GROUPE' : 'SOLO'; pill.className = 'pill ' + (TERM.mode === 'group' ? 'p-prog' : 'p-live'); }
+  if (pill) { pill.textContent = TERM.mode === 'group' ? 'GROUPE' : 'PERSO'; pill.className = 'pill ' + (TERM.mode === 'group' ? 'p-prog' : 'p-live'); }
   const info = $('termModeInfo');
   if (info) info.textContent = TERM.mode === 'group'
     ? 'cartes de commandes : pseudo + type, sorties masquees par defaut (un clic pour reveler) - execution isolee dans un conteneur jetable, seul le dossier de groupe est visible'
-    : 'shell prive (admin) - les autres ne voient rien';
+    : 'ton terminal prive - les autres n y accedent pas (un co-admin peut le consulter en lecture seule)';
+  const form = $('termForm');
+  if (form) form.style.display = '';
+  termConnect();
+}
+function termStartSpy(h) {
+  TERM.spy = h;
+  TERM.mode = 'solo';
+  if (TERM.es) { try { TERM.es.close(); } catch (e) {} TERM.es = null; }
+  TERM.errs = 0;
+  $('termOut').textContent = '';
+  const solo = $('termSolo'), grp = $('termGroup');
+  if (solo) solo.className = 'ghost need-member';
+  if (grp) grp.className = 'ghost need-member';
+  const pill = $('termPill');
+  if (pill) { pill.textContent = 'SPY'; pill.className = 'pill p-warn'; }
+  const info = $('termModeInfo');
+  if (info) info.textContent = 'LECTURE SEULE - terminal perso de ' + h + ' : tu vois tout, tu ne peux rien ecrire';
+  const form = $('termForm');
+  if (form) form.style.display = 'none';
+  setTab('term');
   termConnect();
 }
 try { TERM.hist = JSON.parse(localStorage.getItem('c2ff-term-hist') || '[]'); } catch (e) { TERM.hist = []; }
@@ -9536,19 +9562,16 @@ function termKBody(extra) {
 function termConnect() {
   if (TERM.es) return;
   if (!('EventSource' in window)) return;
-  if (TERM.mode === 'solo' && ((state.data.team || {}).meRole || (state.data.team || {}).you || 'viewer') !== 'admin') {
-    termAppend('\n[terminal solo reserve a l admin - passe en GROUPE pour coder avec la session]\n');
-    return;
-  }
   const q = '/api/term/stream?handle=' + encodeURIComponent(termHandle())
-    + (TERM.mode === 'group' ? '&term=group' : '')
+    + (TERM.mode === 'group' && !TERM.spy ? '&term=group' : '')
+    + (TERM.spy ? '&who=' + encodeURIComponent(TERM.spy) : '')
     + (TEAMKEY ? '&k=' + encodeURIComponent(TEAMKEY) : '');
   TERM.es = new EventSource(q);
   TERM.es.onopen = () => { TERM.errs = 0; };
   TERM.es.onmessage = ev => {
     let p;
     try { p = JSON.parse(ev.data); } catch (e) { return; }
-    if (TERM.mode === 'group') {
+    if (TERM.mode === 'group' && !TERM.spy) {
       if (p.cards) TERM.cards = p.cards;
       else if (p.card) {
         const i = TERM.cards.findIndex(x => x.id === p.card.id);
@@ -9570,10 +9593,29 @@ function termConnect() {
     if (state.tab === 'term') setTimeout(termConnect, 2000);
   };
 }
+// polling de secours des cartes : si le flux SSE est bufferise/mort (tunnel,
+// proxy), l'affichage membre passe quand meme par /api/term/cards
+setInterval(() => {
+  if (TERM.mode !== 'group' || TERM.spy || !state || state.tab !== 'term') return;
+  jget('/api/term/cards?handle=' + encodeURIComponent(termHandle()) + '&since=' + (TERM.since || 0))
+    .then(r => {
+      if (!r || !r.ok || !Array.isArray(r.cards) || !r.cards.length) return;
+      for (const c of r.cards) {
+        const i = TERM.cards.findIndex(x => x.id === c.id);
+        if (i >= 0) TERM.cards[i] = c; else TERM.cards.push(c);
+      }
+      const mx = Math.max(...TERM.cards.map(x => x.t || 0));
+      if (mx > 0) TERM.since = mx - 1500; // epsilon : une carte vue "en cours" doit re-pollir pour se finir
+      TERM.cards.sort((a, b) => (a.t || 0) - (b.t || 0));
+      if (TERM.cards.length > 80) TERM.cards = TERM.cards.slice(-60);
+      termRender();
+    }).catch(() => {});
+}, 2000);
 $('termForm').addEventListener('submit', e => {
   e.preventDefault();
   const v = $('termIn').value;
   if (!v) return;
+  if (TERM.spy) { toast('TERM', 'lecture seule - c est le terminal de ' + TERM.spy, 'P2'); return; }
   TERM.hist.push(v);
   if (TERM.hist.length > 200) TERM.hist.shift();
   TERM.hi = TERM.hist.length;
@@ -9615,6 +9657,7 @@ $('termIn').addEventListener('keydown', e => {
 $('termSolo').addEventListener('click', () => termSetMode('solo'));
 $('termGroup').addEventListener('click', () => termSetMode('group'));
 $('termRestart').addEventListener('click', () => {
+  if (TERM.spy) { termSetMode('solo'); return; }
   if (TERM.mode === 'group') { TERM.cards = []; TERM.open = {}; TERM.errs = 0; if (TERM.es) { try { TERM.es.close(); } catch (e) {} TERM.es = null; } termConnect(); termRender(); return; }
   jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'exit' })
     .then(() => jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'start' }))

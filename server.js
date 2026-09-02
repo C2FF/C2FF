@@ -207,15 +207,20 @@ const TERM_MAX_SESSIONS = 4;
 const TERM_BUF_MAX = 160000;
 
 const termId = (req, h) => (isLoopback(req) ? 'local' : cleanHandle(h) || '');
+// acces terminaux : groupe = membre+ ; perso = UN PTY prive par membre valide
+// (id = son handle) ; spy = lire le perso de quelqu'un d'autre, co-admin+
 function termTermAllowed(req, h, group) {
   if (isLoopback(req)) return true;
   const t = teamCfg();
   if (!t.enabled) return false;           // pas de shell expose en reseau sans salle
   if (t.blocked.includes(h)) return false;
-  // groupe : un PTY unique diffuse a tous - la transparence EST l'anti-triche.
-  // solo : session privee, admin uniquement.
   if (group) return rankOf(req, h) >= 1;
-  return roleOf(req, h) === 'admin';
+  return rankOf(req, h) >= 1;             // terminal perso : chaque membre a le sien
+}
+function termSpyAllowed(req, viewer, who) {
+  if (isLoopback(req)) return true;
+  if (!teamCfg().enabled || who === 'local' || !who) return false; // jamais le shell hote a distance
+  return rankOf(req, viewer) >= 3;        // le VIEWER doit etre co-admin+, lecture seule
 }
 function termBroadcast(ts, text) {
   ts.buf = (ts.buf + text).slice(-TERM_BUF_MAX);
@@ -1001,9 +1006,10 @@ const MAIN = (req, res) => {
         return sendJson(res, { ok: false, error: 'unknown op' });
       }
       if (p === '/api/term') {
-        const h = cleanHandle(body.handle || '');
+        // identite : le header prime (impossible d'ecrire/run sous le pseudo d'un autre)
+        const h = cleanHandle(req.headers['x-c2ff-handle'] || body.handle || '');
         const group = body.term === 'group';
-        if (!termTermAllowed(req, h, group)) return sendJson(res, { ok: false, error: group ? 'terminal de groupe : membre valide requis' : 'terminal reserve : localhost ou admin' });
+        if (!termTermAllowed(req, h, group)) return sendJson(res, { ok: false, error: group ? 'terminal de groupe : membre valide requis' : 'terminal perso : membre valide requis' });
         if (group) {
           // groupe = cartes : pas de PTY brut, une commande par requete
           if (body.op === 'kill') {
@@ -1641,10 +1647,33 @@ const MAIN = (req, res) => {
     let stash = null; try { stash = JSON.parse(fs.readFileSync(path.join(DATA, 'arsenal.json'), 'utf8')); } catch (e) {}
     return sendJson(res, { bases: ARSENAL.basesState(), syncing: ARSENAL.syncing(), log: ARSENAL.syncLog.slice(-8), stash });
   }
+  if (p === '/api/term/cards') {
+    // polling de secours des cartes de groupe : fiabilise l'affichage membre
+    // si le flux SSE est bufferise/mort (tunnel, proxy). since = ts du dernier vu.
+    const h = cleanHandle(url.searchParams.get('handle') || '');
+    if (!termTermAllowed(req, h, true)) return send(res, 403, 'text/plain', 'terminal reserved');
+    const since = Number(url.searchParams.get('since') || 0);
+    const cards = GROUPCARDS.filter(c => c.t > since);
+    return sendJson(res, { ok: true, cards, total: GROUPCARDS.length });
+  }
   if (p === '/api/term/stream') {
-    // SSE : replay du buffer puis output live. Groupe : cartes de commandes ; solo : PTY prive.
+    // SSE : replay du buffer puis output live. Groupe : cartes de commandes ;
+    // perso : PTY prive ; ?who= = vue lecture seule du perso d'un membre (co-admin+).
+    const who = cleanHandle(url.searchParams.get('who') || '');
     const h = cleanHandle(url.searchParams.get('handle') || '');
     const group = url.searchParams.get('term') === 'group';
+    if (who) {
+      if (!termSpyAllowed(req, h, who)) return send(res, 403, 'text/plain', 'terminal reserved');
+      res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+      const ts = TERMS.get(who) || termSpawn(who); // paresseux : voir le perso demarre sa session
+      if (!ts) return send(res, 500, 'text/plain', 'cannot spawn shell');
+      if (ts.buf) res.write('data: ' + JSON.stringify(ts.buf) + '\n\n');
+      const client = { res };
+      ts.clients.add(client);
+      const beat = setInterval(() => { try { res.write(': ping\n\n'); } catch (e) {} }, 15000);
+      req.on('close', () => { clearInterval(beat); ts.clients.delete(client); });
+      return;
+    }
     if (!termTermAllowed(req, h, group)) return send(res, 403, 'text/plain', 'terminal reserved');
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
     if (group) {
