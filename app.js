@@ -8974,13 +8974,13 @@ function tryJoin() {
   if (!/^\d{4,8}$/.test(p1)) return err('pin : 4 a 8 chiffres');
   if (JOIN_MODE === 'signup' && p1 !== p2) return err('les deux pins different');
   $('jmGo').disabled = true;
-  // changement de pseudo en etant deja connecte : l'ancien quitte (presence
-  // purgee, pas de doublon). L'inscription reste en base : si la connexion
-  // echoue, le beat re-entre automatiquement avec l'ancien.
-  if (HANDLE && HANDLE !== h && !IS_LOCAL) jpost('/api/team', { op: 'leave', handle: HANDLE }).catch(() => {});
   jpost('/api/team', { op: 'join', handle: h, pin: p1 }).then(r => r.json()).then(j => {
     $('jmGo').disabled = false;
     if (!j.ok) return err(j.error || 'refuse');
+    // pseudo accepte : si on changeait de pseudo en etant deja connecte,
+    // l'ancien quitte maintenant (presence purgee, pas de doublon) - pas
+    // avant, sinon un refus laisserait l'utilisateur deconnecte
+    if (HANDLE && HANDLE !== h && !IS_LOCAL) jpost('/api/team', { op: 'leave', handle: HANDLE }).catch(() => {});
     if (j.pending) { PENDING_H = h; return showJoin(true); }
     HANDLE = h;
     try { localStorage.setItem('c2ff-handle', h); } catch (e) {}
@@ -9284,18 +9284,18 @@ $('tmSaveHandle').addEventListener('click', () => {
     forceDraw = true; refresh();
     return;
   }
-  // changement de pseudo : l'ancien quitte la session (leave -> sort de la liste
-  // instantanement, plus de fantome actif ni de doublon), le nouveau passe par
-  // la modal creation/connexion - HANDLE ne bascule qu'a la reussite
-  const old = HANDLE;
-  if (old) jpost('/api/team', { op: 'leave', handle: old }).catch(() => {});
-  HANDLE = '';
-  try { localStorage.removeItem('c2ff-handle'); } catch (e) {}
-  JOIN_MODE = 'signup';
-  showJoin(false, 'nouveau pseudo : ' + nh + ' - confirme ton pin');
-  $('jmHandle').value = nh;
-  setTimeout(() => { try { $('jmPin').focus(); } catch (e) {} }, 80);
-  forceDraw = true; refresh();
+  // changement de pseudo : op rename -> bascule directe, on reste connecte
+  // (l'inscription pin/grade/statut est transferee). Si le pseudo est pris,
+  // erreur en toast et l'ancien pseudo reste actif - jamais de modal.
+  jpost('/api/team', { op: 'rename', nh }).then(r => r.json()).then(j => {
+    if (!j.ok) { toast('TEAM', j.error || T('tm_cfg_no'), 'P2'); forceDraw = true; return; }
+    const old = HANDLE;
+    HANDLE = nh;
+    try { localStorage.setItem('c2ff-handle', nh); } catch (e) {}
+    set('tmHandleEl', nh);
+    toast('TEAM', T('tm_saved') + ' : ' + old + ' -> ' + nh, 'HIT');
+    forceDraw = true; refresh();
+  }).catch(() => toast('TEAM', 'serveur injoignable', 'P2'));
 });
 $('tmSave').addEventListener('click', () => {
   jpost('/api/team', { op: 'config', enabled: $('tmOn').value === 'on', room: $('tmRoomEl').value }).then(r => r.json()).then(j => {

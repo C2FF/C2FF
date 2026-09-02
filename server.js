@@ -881,6 +881,11 @@ const MAIN = (req, res) => {
           if (t.blocked.includes(h)) return sendJson(res, { ok: false, error: 'pseudo refuse' });
           if (!/^\d{4,8}$/.test(pin)) return sendJson(res, { ok: false, error: 'pin : 4 a 8 chiffres' });
           const m = t.members[h];
+          // unicite stricte : un pseudo ACTIF dans la salle (beat < 25 s) ne peut
+          // pas etre pris par quelqu'un d'autre - uniquement pour un pseudo encore
+          // non inscrit (un inscrit se reconnecte via son pin, refresh compris)
+          const _p = PRESENCE.get(h);
+          if (!m && _p && Date.now() - _p.last < 25000) return sendJson(res, { ok: false, error: 'pseudo deja pris' });
           if (!m) {
             saveTeamCfg({ ...t, members: { ...t.members, [h]: { pin: hashPin(h, pin), role: 'member', status: 'pending', t: Date.now() } } });
             return sendJson(res, { ok: true, pending: true });
@@ -940,6 +945,32 @@ const MAIN = (req, res) => {
           if (isLoopback(req)) return sendJson(res, { ok: false, error: 'le poste local n a pas de session a quitter' });
           PRESENCE.delete(h);
           return sendJson(res, { ok: true });
+        }
+        // rename : changer de pseudo SANS repasser par la modal de connexion.
+        // l'inscription (pin, grade, statut) est transferee vers le nouveau pseudo,
+        // l'ancien est libere. unicite stricte : le nouveau doit etre libre
+        // (ni inscrit, ni bloque, ni actif dans la salle).
+        if (body.op === 'rename') {
+          const h = reqHandle(req) || cleanHandle(body.handle || '');
+          const nh = cleanHandle(body.nh);
+          if (!h) return sendJson(res, { ok: false, error: 'identite manquante' });
+          if (isLoopback(req)) return sendJson(res, { ok: false, error: 'le poste local n a pas de session a renommer' });
+          if (nh.length < 2) return sendJson(res, { ok: false, error: 'pseudo requis (2 caracteres min)' });
+          if (nh === h) return sendJson(res, { ok: false, error: 'pseudo identique' });
+          const t = teamCfg();
+          if (t.blocked.includes(nh)) return sendJson(res, { ok: false, error: 'pseudo refuse' });
+          if (t.members[nh]) return sendJson(res, { ok: false, error: 'pseudo deja pris' });
+          const _p = PRESENCE.get(nh);
+          if (_p && Date.now() - _p.last < 25000) return sendJson(res, { ok: false, error: 'pseudo deja pris' });
+          if (!t.members[h]) return sendJson(res, { ok: false, error: 'inscris-toi d abord (pseudo + pin)' });
+          const role = t.members[h].role;
+          const members = { ...t.members };
+          members[nh] = { ...members[h], t: Date.now() };
+          delete members[h];
+          saveTeamCfg({ ...t, members });
+          PRESENCE.delete(h);
+          PRESENCE.set(nh, { last: Date.now(), reqs: (PRESENCE.get(nh) || { reqs: 0 }).reqs + 1, role });
+          return sendJson(res, { ok: true, renamed: true, role });
         }
         if (body.op === 'beat') {
           const h = cleanHandle(body.handle);
