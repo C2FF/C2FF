@@ -21706,6 +21706,14 @@ function renderLive() {
   bar.hidden = false; bar.className = '';
   const pm = LIVE.ch.indexOf('pm-') === 0;
   const peer = pm ? livePmPeer(LIVE.ch) : '';
+  // menu deroulant : les canaux ACCESSIBLES au live (le serveur a deja filtre
+  // par grade et par privacite des wispe via le flag ok) - un seul live a la
+  // fois, le choix bascule le live vers le canal choisi
+  const sel = '<select class="lv-sel" title="basculer le live vers un autre canal accessible (grade et privacite respects)">' +
+    (tm.chats || []).filter(c => c.ok).map(c =>
+      '<option value="' + esc(c.id) + '"' + (c.id === LIVE.ch ? ' selected' : '') + '>' +
+      (c.id.indexOf('pm-') === 0 ? 'privé · ' + esc(c.id.slice(3).split('--').find(x => x !== HANDLE) || '?') : esc(c.name || c.id)) +
+      '</option>').join('') + '</select>';
   // participants : en prive = le couple ; en session = ceux poses sur le live
   // (presence lv transmise par le beat, moi toujours affiche)
   const parts = pm ? [{ h: HANDLE }, { h: peer }] : (() => {
@@ -21713,8 +21721,9 @@ function renderLive() {
     if (!all.find(m => m.h === HANDLE)) all.push({ h: HANDLE });
     return all;
   })();
-  bar.innerHTML = '<b style="color:hsl(var(--hue) 90% 75%)">🎙 LIVE · ' + (pm ? 'privé · ' + esc(peer) : 'session') + '</b>' +
-    (pm ? '' : '<span style="color:var(--faint);font-size:11px">' + parts.length + ' en direct</span>') +
+  bar.innerHTML = '<b style="color:hsl(var(--hue) 90% 75%)">🎙 LIVE</b>' + sel +
+    (pm ? '<span class="lvchip"><span class="dot"></span>privé · ' + esc(peer) + '</span>'
+      : '<span style="color:var(--faint);font-size:11px">' + parts.length + ' en direct</span>') +
     parts.filter(m => m.h).map(m =>
       '<span class="lvchip" data-spk="' + esc(m.h) + '"><span class="dot"></span>' + esc(m.h) + (m.h === HANDLE ? ' (moi)' : '') + '</span>').join('') +
     '<button class="ghost lv-mute" style="margin-left:auto">' + (LIVE.muted ? '🔇 coupé' : '🎙 micro') + '</button>' +
@@ -21724,6 +21733,13 @@ $('liveBtn').addEventListener('click', () => {
   const tm = state.data.team || {};
   if (!tm.enabled) return;
   liveJoin(CHAT_SEL || 'session');
+});
+$('liveBar').addEventListener('change', e => {
+  // bascule du live vers un autre canal accessible (un seul live a la fois :
+  // liveJoin quitte proprement l'ancien avant de rejoindre le nouveau)
+  const sel = e.target.closest('select.lv-sel');
+  if (!sel || !sel.value || sel.value === LIVE.ch) return;
+  liveJoin(sel.value);
 });
 $('liveBar').addEventListener('click', e => {
   if (e.target.closest('.lv-mute')) return liveMute();
