@@ -9598,6 +9598,7 @@ function termConnect() {
 setInterval(() => {
   if (TERM.mode !== 'group' || TERM.spy || !state || state.tab !== 'term') return;
   jget('/api/term/cards?handle=' + encodeURIComponent(termHandle()) + '&since=' + (TERM.since || 0))
+    .then(r => r.json())
     .then(r => {
       if (!r || !r.ok || !Array.isArray(r.cards) || !r.cards.length) return;
       for (const c of r.cards) {

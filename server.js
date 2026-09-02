@@ -228,19 +228,44 @@ function termBroadcast(ts, text) {
     try { c.res.write('data: ' + JSON.stringify(text) + '\n\n'); } catch (e) {}
   }
 }
+function termKill(ts) {
+  try { ts.proc.kill('SIGHUP'); } catch (e) {}
+  if (ts.cname) { try { require('child_process').spawn('docker', ['kill', ts.cname], { stdio: 'ignore' }).unref(); } catch (e) {} }
+}
 function termSpawn(id) {
   const old = TERMS.get(id);
   if (old && !old.dead) return null; // deja vivant
-  const env = { ...process.env, TERM: 'xterm-256color', COLUMNS: '110', LINES: '32' };
+  const ts = { proc: null, buf: '', clients: new Set(), dead: false, t0: Date.now(), cname: '' };
   let proc;
-  try {
-    if (process.platform !== 'win32' && fs.existsSync('/usr/bin/script')) {
-      proc = require('child_process').spawn('/usr/bin/script', ['-qfc', process.env['SHELL'] || '/bin/bash', '/dev/null'], { env, stdio: ['pipe', 'pipe', 'pipe'] });
-    } else {
-      proc = require('child_process').spawn(process.env['SHELL'] || '/bin/bash', ['-i'], { env, stdio: ['pipe', 'pipe', 'pipe'] });
-    }
-  } catch (e) { return null; }
-  const ts = { proc, buf: '', clients: new Set(), dead: false, t0: Date.now() };
+  if (id !== 'local' && dockerAvailable()) {
+    // terminal perso d un membre distant : conteneur isole (PAS le systeme
+    // de fichiers de l hebergeant) - meme montage que le terminal groupe
+    const sc = sandboxCfg();
+    const uid = typeof process.getuid === 'function' ? process.getuid() : 1000;
+    const gid = typeof process.getgid === 'function' ? process.getgid() : 1000;
+    ts.cname = 'c2ff-p-' + require('crypto').createHash('sha256').update(id).digest('hex').slice(0, 12);
+    const argv = ['run', '--rm', '-i', '--name', ts.cname, '--user', uid + ':' + gid,
+      '-v', GROUP_WORKDIR + ':/ws', '-w', '/ws',
+      '--memory', String(sc.memory || '1g'), '--pids-limit', String(sc.pids || 256), '--cpus', String(sc.cpus || '2'),
+      '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
+      '-e', 'PATH=/opt/gobin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin',
+      '-e', 'HOME=/ws', '-e', 'TERM=xterm-256color', '-e', 'LANG=C.UTF-8'];
+    const tool = path.join(ROOT, '..', sc.toolbin || 'go/bin');
+    try { if (fs.existsSync(tool)) argv.push('-v', tool + ':/opt/gobin:ro'); } catch (e) {}
+    // script(1) dans le conteneur = PTY interne (prompt + couleurs), stdin en pipe cote client
+    argv.push(String(sc.image || 'c2ff-sandbox'), '/usr/bin/script', '-qfc', '/bin/bash', '/dev/null');
+    try { proc = require('child_process').spawn('docker', argv); } catch (e) { return null; }
+  } else {
+    const env = { ...process.env, TERM: 'xterm-256color', COLUMNS: '110', LINES: '32' };
+    try {
+      if (process.platform !== 'win32' && fs.existsSync('/usr/bin/script')) {
+        proc = require('child_process').spawn('/usr/bin/script', ['-qfc', process.env['SHELL'] || '/bin/bash', '/dev/null'], { env, stdio: ['pipe', 'pipe', 'pipe'] });
+      } else {
+        proc = require('child_process').spawn(process.env['SHELL'] || '/bin/bash', ['-i'], { env, stdio: ['pipe', 'pipe', 'pipe'] });
+      }
+    } catch (e) { return null; }
+  }
+  ts.proc = proc;
   const feed = d => termBroadcast(ts, String(d));
   proc.stdout.on('data', feed);
   proc.stderr.on('data', feed);
@@ -258,9 +283,7 @@ function termSpawn(id) {
 setInterval(() => {
   for (const [id, ts] of TERMS) {
     if (ts.dead && !ts.clients.size) { TERMS.delete(id); continue; }
-    if (!ts.dead && !ts.clients.size && Date.now() - ts.t0 > 3600000) {
-      try { ts.proc.kill('SIGHUP'); } catch (e) {}
-    }
+    if (!ts.dead && !ts.clients.size && Date.now() - ts.t0 > 3600000) termKill(ts);
   }
 }, 60000);
 
@@ -1091,7 +1114,7 @@ const MAIN = (req, res) => {
         }
         if (body.op === 'exit') {
           const ts = TERMS.get(id);
-          if (ts) { try { ts.proc.kill('SIGHUP'); } catch (e) {} }
+          if (ts) termKill(ts);
           for (const c of ts ? ts.clients : []) { try { c.res.end(); } catch (e) {} }
           if (ts) ts.clients.clear();
           TERMS.delete(id);
