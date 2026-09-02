@@ -7965,25 +7965,33 @@ function drawPrograms() {
   const modes = state.data.modes || [];
   const _tm = state.data.team || {};
   const _rk = TRANK[_tm.meRole || _tm.you] || 0;
-  const ACC = [[1, 'acces : tous'], [2, 'acces : hunter+'], [3, 'acces : co-admin+'], [4, 'acces : admin']];
+  const ACC = [[1, 'rejoindre : tous'], [2, 'rejoindre : hunter+'], [3, 'rejoindre : co-admin+'], [4, 'rejoindre : admin']];
+  // deux dimensions : pub = VISIBLE de tous, access = rang requis pour REJOINDRE.
+  // un programme visible mais trop grade pour moi s'affiche verrouille.
+  const _acc = p => IS_LOCAL || (p.access || 1) <= _rk || (p.owner && p.owner === HANDLE);
   const list = [...state.data.programs].sort((a, b) => (a.demo ? 1 : 0) - (b.demo ? 1 : 0));
-  $('progList').innerHTML = list.map(p =>
-    '<div class="card"><h3>' + esc(p.name) + (p.demo ? ' <small style="color:var(--warn)">[DEMO]</small>' : '') + (p.veille ? ' <small style="color:var(--amber)">(veille)</small>' : '') + '</h3>' +
-    '<div class="subtle" style="color:var(--dim);font-size:10.5px">' + esc(p.platform || '') + (p.owner ? ' - cree par ' + esc(p.owner) : '') + '</div>' +
+  $('progList').innerHTML = list.map(p => {
+    const ok = _acc(p);
+    const canCfg = !p.demo && (_rk >= 3 || (p.owner && p.owner === HANDLE));
+    return '<div class="card"><h3>' + esc(p.name) + (p.demo ? ' <small style="color:var(--warn)">[DEMO]</small>' : '') + (p.veille ? ' <small style="color:var(--amber)">(veille)</small>' : '') + '</h3>' +
+    '<div class="subtle" style="color:var(--dim);font-size:10.5px">' + esc(p.platform || '') + (p.owner ? ' - cree par ' + esc(p.owner) : '') +
+      (p.pub ? ' <span class="pill p-live">public</span>' : ((p.access || 1) > 1 ? ' <span class="pill">prive</span>' : '')) +
+      (ok ? '' : ' <span class="pill p-warn" title="visible mais ton grade est insuffisant pour l\'utiliser">grade requis</span>') + '</div>' +
     '<div class="scope">' + esc((p.scope || []).join(' · ')) + '</div>' +
     (p.header ? '<div class="hdr">⧉ ' + esc(p.header) + '</div>' : '') +
     (p.regle ? '<div class="hdr">⌦ regle : ' + esc(p.regle) + '</div>' : '') +
     '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">' +
     '<select class="mode" data-p="' + esc(p.id) + '">' + modes.map(m => '<option value="' + esc(m.key) + '">' + esc(m.label) + ' · CWE ' + esc(m.cwes) + '</option>').join('') + '</select>' +
-    '<button class="go launch" data-p="' + esc(p.id) + '">GO ›</button>' +
-    '<button class="ghost huntgo" data-p="' + esc(p.id) + '" style="padding:6px 14px;font-size:11px">' + T('navh') + ' ›</button>' +
+    '<button class="go launch" data-p="' + esc(p.id) + '"' + (ok ? '' : ' disabled title="grade insuffisant pour ce programme"') + '>GO ›</button>' +
+    '<button class="ghost huntgo" data-p="' + esc(p.id) + '"' + (ok ? '' : ' disabled title="grade insuffisant pour ce programme"') + ' style="padding:6px 14px;font-size:11px">' + T('navh') + ' ›</button>' +
     (p.demo ? '' : '<button class="ghost need-member progchat" data-p="' + esc(p.id) + '" title="partager sur le chat de session : les membres pourront le rejoindre" style="padding:6px 12px;font-size:11px">chat</button>') +
-    (!p.demo && _rk >= 3
-      ? '<select class="acc" data-p="' + esc(p.id) + '" title="qui peut voir ce programme (decision admin/co-admin)">' + ACC.map(a => '<option value="' + a[0] + '"' + ((p.access || 1) === a[0] ? ' selected' : '') + '>' + a[1] + '</option>').join('') + '</select>' : '') +
+    (canCfg
+      ? '<select class="pubsel" data-p="' + esc(p.id) + '" title="visible de tous ou reserve"><option value="1"' + (p.pub ? ' selected' : '') + '>public</option><option value="0"' + (!p.pub ? ' selected' : '') + '>prive</option></select>' +
+        '<select class="acc" data-p="' + esc(p.id) + '" title="grade requis pour rejoindre">' + ACC.map(a => '<option value="' + a[0] + '"' + ((p.access || 1) === a[0] ? ' selected' : '') + '>' + a[1] + '</option>').join('') + '</select>' : '') +
     (p.demo ? '' : '<button class="ghost need-coadmin progd" data-p="' + esc(p.id) + '" style="padding:6px 12px;font-size:11px;color:var(--danger)">✕</button>') + '</div>' +
     '<div class="subtle" style="color:var(--dim);font-size:10.5px" id="mdesc-' + esc(p.id) + '"></div>' +
-    '</div>'
-  ).join('');
+    '</div>';
+  }).join('');
   // partage chat : le message porte le programme, un bouton rejoindre apparait chez tous
   document.querySelectorAll('.progchat').forEach(b => b.addEventListener('click', () => {
     const p = state.data.programs.find(x => x.id === b.dataset.p);
@@ -7993,9 +8001,12 @@ function drawPrograms() {
     setTab('team');
     setTimeout(refresh, 300);
   }));
-  // visibilite : admin/co-admin ouvrent ou ferment l'acces d'un programme
-  document.querySelectorAll('.prog .acc').forEach(sel => sel.addEventListener('change', () => {
-    jpost('/api/programs', { op: 'access', name: sel.dataset.p, access: Number(sel.value), by: HANDLE })
+  // visibilite + grade d'acces : createur ou staff reglent pub et le rang requis
+  document.querySelectorAll('.prog .acc, .prog .pubsel').forEach(sel => sel.addEventListener('change', () => {
+    const body = { op: 'access', name: sel.dataset.p, by: HANDLE };
+    if (sel.classList.contains('pubsel')) body.pub = sel.value === '1';
+    else body.access = Number(sel.value);
+    jpost('/api/programs', body)
       .then(r => r.json()).then(j => {
         toast('PROGRAMME', j.ok ? 'acces mis a jour' : (j.error || 'echec'), j.ok ? 'HIT' : 'P2');
         setTimeout(refresh, 300);
@@ -9105,7 +9116,9 @@ function drawTeam() {
           '<span class="tmv" data-id="' + esc(m.id) + '" data-v="down" style="cursor:pointer;margin-left:6px;color:' + (vt.me === -1 ? 'var(--danger)' : 'var(--faint)') + '">👎 ' + vt.down + '</span>'
         : '';
       const join = m.prog
-        ? '<button class="ghost tmjoin" data-prog="' + esc(m.prog) + '" style="margin-left:10px;padding:2px 10px;font-size:10px">rejoindre le programme ›</button>'
+        ? (IS_LOCAL || !(state.data.programs || []).find(x => x.id === m.prog && (x.access || 1) > (TRANK[state.data.team ? (state.data.team.meRole || state.data.team.you) : 'viewer'] || 0) && x.owner !== HANDLE)
+          ? '<button class="ghost tmjoin" data-prog="' + esc(m.prog) + '" style="margin-left:10px;padding:2px 10px;font-size:10px">rejoindre le programme ›</button>'
+          : ' <span class="pill" title="grade insuffisant pour rejoindre ce programme">grade requis</span>')
         : '';
       return '<div class="' + cls + '"><div class="who">' + esc(m.name || '?') + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + sev + votes + join + '</div>' + esc(m.text || '') + '</div>';
     }).join('') || '<div class="msg claude">' + T('tm_chat_empty') + '</div>';

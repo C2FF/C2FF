@@ -129,6 +129,14 @@ const memberRole = (req, h) => {
   const m = teamCfg().members[h];
   return (m && m.status === 'approved') ? m.role : '';
 };
+// usage d'un programme : le createur et les membres de rang >= access peuvent
+// s'en servir (recon, GO, arsenal). pub ne rend que VISIBLE, pas utilisable.
+const progUsable = (req, pr) => {
+  if (isLoopback(req) || !pr) return true;
+  const a = pr.access || 1;
+  const h = reqHandle(req);
+  return (pr.owner && pr.owner === h) || rankOf(req, h) >= a;
+};
 const isLoopback = req => !req.internalTunnel && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(String(req.socket.remoteAddress || ''));
 const lanAddr = () => {
   try {
@@ -711,11 +719,12 @@ function apiState(res, req) {
     return { id: r.id, label: r.label, program: r.program, n: agents.length, done, list: agents };
   }).sort((a, b) => (b.n - b.done) - (a.n - a.done) || b.n - a.n);
   const ai = aiCfg();
-  // programmes : un membre ne voit que les siens + ceux ouvertes a son grade
-  // (access = rang minimum requis ; owner et staff voient toujours)
+  // programmes : visibles si public (pub, meme sans le grade pour rejoindre),
+  // ou si le grade suffit (access), ou si c'est le sien (owner/staff/local)
   const programs = isLoopback(req) ? loadPrograms() : (() => {
     const rk = RANKS[memberRole(req, th)] || 0;
-    return loadPrograms().filter(pr => !pr.access || pr.access <= 1
+    return loadPrograms().filter(pr => pr.pub === true
+      || !pr.access || pr.access <= 1
       || (pr.owner && pr.owner === th) || rk >= pr.access);
   })();
   sendJson(res, {
@@ -1463,11 +1472,11 @@ const MAIN = (req, res) => {
           persistFindings();
           return sendJson(res, { ok: true, removed: before - state.findings.length });
         }
-        // creation : tout membre valide peut creer. Un programme cree par un
-        // membre de session n'est visible que du staff (access 3) jusqu'a ce
-        // qu'un admin ou co-admin l'ouvre : access = rang minimum requis
-        // (1 = tous, 2 = hunter+, 3 = co-admin+, 4 = admin). Le createur et le
-        // staff le voient toujours ; le poste local (admin) cree en ouvert (1).
+        // creation : tout membre valide peut creer. Deux dimensions :
+        // - pub : VISIBLE de tous (true) ou reserve (false) - par defaut le
+        //   poste local cree public, un membre de session cree reserve (staff)
+        // - access : rang minimum pour REJOINDRE (1 = tous, 2 = hunter+,
+        //   3 = co-admin+, 4 = admin). Createur et staff voient/utilisent toujours.
         if (body.op === 'create' && body.name) {
           const by = cleanHandle(body.by || body.handle || req.headers['x-c2ff-handle'] || '');
           const id = String(body.name).toLowerCase().replace(/[^a-z0-9_\-]/g, '').slice(0, 24) || ('prog' + Date.now());
@@ -1476,17 +1485,20 @@ const MAIN = (req, res) => {
           if (ex) return sendJson(res, { ok: true, id, existed: true });
           const scope = String(body.scope || '').split(/[,\s]+/).map(s => s.trim()).filter(Boolean).slice(0, 20);
           const access = [1, 2, 3, 4].includes(Number(body.access)) ? Number(body.access) : (isLoopback(req) ? 1 : 3);
-          progs.push({ id, name: String(body.name).slice(0, 60), scope, header: String(body.header || ''), owner: by || undefined, access, t: Date.now() });
+          const pub = typeof body.pub === 'boolean' ? body.pub : isLoopback(req);
+          progs.push({ id, name: String(body.name).slice(0, 60), scope, header: String(body.header || ''), owner: by || undefined, access, pub, t: Date.now() });
           try { fs.writeFileSync(PROGRAMS_FILE, JSON.stringify(progs, null, 1)); } catch (e) { return sendJson(res, { ok: false }); }
           return sendJson(res, { ok: true, id });
         }
-        // visibilite d'un programme : decision admin/co-admin uniquement
+        // visibilite (pub) et grade d'acces : decision du createur ou du staff
         if (body.op === 'access' && body.name) {
-          if (rankOf(req, cleanHandle(body.by || body.handle || '')) < 3) return sendJson(res, { ok: false, error: 'admin ou co-admin requis' });
+          const by = cleanHandle(body.by || body.handle || '');
           const progs = loadPrograms();
           const pr = progs.find(x => x.id === String(body.name));
           if (!pr) return sendJson(res, { ok: false, error: 'programme introuvable' });
-          pr.access = [1, 2, 3, 4].includes(Number(body.access)) ? Number(body.access) : 1;
+          if (rankOf(req, by) < 3 && !(pr.owner && pr.owner === by)) return sendJson(res, { ok: false, error: 'admin, co-admin ou createur requis' });
+          if ([1, 2, 3, 4].includes(Number(body.access))) pr.access = Number(body.access);
+          if (typeof body.pub === 'boolean') pr.pub = body.pub;
           try { fs.writeFileSync(PROGRAMS_FILE, JSON.stringify(progs, null, 1)); } catch (e) { return sendJson(res, { ok: false }); }
           return sendJson(res, { ok: true });
         }
@@ -1518,8 +1530,7 @@ const MAIN = (req, res) => {
         const progs = (() => { try { return JSON.parse(fs.readFileSync(PROGRAMS_FILE, 'utf8')); } catch (e) { return []; } })();
         const prog = progs.find(x => x.id === name) || progs.find(x => String(x.name || '').toLowerCase() === name);
         if (!prog) return sendJson(res, { ok: false, err: 'programme introuvable' });
-        if (!isLoopback(req) && (prog.access || 1) > 1 && prog.owner !== reqHandle(req)
-          && rankOf(req, reqHandle(req)) < (prog.access || 1)) return sendJson(res, { ok: false, err: 'programme prive : demande au staff' });
+        if (!progUsable(req, prog)) return sendJson(res, { ok: false, err: 'programme prive : grade requis pour le rejoindre' });
         if (isDemo(prog)) return sendJson(res, { ok: false, demo: true, err: 'programme de demonstration : cree ton programme avec ton vrai scope' });
         // header programme optionnel (X-Bug-Bounty etc), envoye a chaque requete
         let hh = AUTH.hdrsFor(prog);
@@ -1548,6 +1559,11 @@ const MAIN = (req, res) => {
         }
         if (body.op === 'run') {
           // lancement local d'un mode par l'UI : cible + mode, IA pas requise
+          if (body.program) {
+            const progs = loadPrograms();
+            const pr = progs.find(x => x.id === String(body.program)) || progs.find(x => x.name === String(body.program));
+            if (pr && !progUsable(req, pr)) return sendJson(res, { ok: false, err: 'programme prive : grade requis pour le rejoindre' });
+          }
           const patch = { enabled: true, paused: false };
           if (body.mode) patch.mode = String(body.mode);
           fleet.apply(patch);
@@ -1565,6 +1581,7 @@ const MAIN = (req, res) => {
           const progs = (() => { try { return JSON.parse(fs.readFileSync(PROGRAMS_FILE, 'utf8')); } catch (e) { return []; } })();
           const prog = progs.find(x => x.id === name) || progs.find(x => String(x.name || '').toLowerCase() === name);
           if (!prog) return sendJson(res, { ok: false, err: 'programme introuvable' });
+          if (!progUsable(req, prog)) return sendJson(res, { ok: false, err: 'programme prive : grade requis pour le rejoindre' });
           if (isDemo(prog)) return sendJson(res, { ok: false, demo: true, err: 'programme de demonstration : cree ton programme avec ton vrai scope' });
           let surf = {}; try { surf = JSON.parse(fs.readFileSync(path.join(DATA, 'surface.json'), 'utf8'))[prog.id] || null; } catch (e) {}
           if (!surf) return sendJson(res, { ok: false, err: 'recon requis : lance RECON avant ARSENAL' });
