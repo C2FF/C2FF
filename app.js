@@ -19731,8 +19731,34 @@ try {
   RAIL_SEEN = Number(localStorage.getItem('c2ff-rail-seen')) || 0;
 } catch (e) {}
 
+// rail session (droite) : chat de coordination, miroir du rail chats
+let SRAIL_SEEN = 0;
+function sessRailOpen() {
+  document.body.classList.add('srail-open');
+  try { localStorage.setItem('c2ff-srail', '1'); } catch (e) {}
+  const d = $('srDot'); if (d) d.hidden = true;
+  const _sc = state.data.chat || [];
+  if (_sc.length) SRAIL_SEEN = _sc[_sc.length - 1].t || SRAIL_SEEN;
+  try { localStorage.setItem('c2ff-srail-seen', String(SRAIL_SEEN)); } catch (e) {}
+}
+function sessRailClose() {
+  document.body.classList.remove('srail-open');
+  try { localStorage.setItem('c2ff-srail', '0'); } catch (e) {}
+  const _sc = state.data.chat || [];
+  if (_sc.length) SRAIL_SEEN = _sc[_sc.length - 1].t || SRAIL_SEEN;
+  try { localStorage.setItem('c2ff-srail-seen', String(SRAIL_SEEN)); } catch (e) {}
+}
+function sessRailToggle() {
+  if (document.body.classList.contains('srail-open')) sessRailClose(); else sessRailOpen();
+}
+try {
+  if (localStorage.getItem('c2ff-srail') === '1') sessRailOpen();
+  SRAIL_SEEN = Number(localStorage.getItem('c2ff-srail-seen')) || 0;
+} catch (e) {}
+
 function setTab(t) {
   if (t === 'chats') { chatRailToggle(); return; } // plus un onglet : la poignee bascule le rail
+  if (t === 'chat') { sessRailToggle(); return; } // rail session a droite
   if (t !== state.tab) sndPlay('tab');
   state.tab = t;
   document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
@@ -20849,7 +20875,12 @@ function drawChat() {
   const sig = c.length + ':' + (c.length ? (c[c.length - 1].t + (c[c.length - 1].text || '')).slice(-60) : '');
   if (sig === drawn.chat && !forceDraw) return;
   drawn.chat = sig;
-  $('nChat').textContent = String(c.length);
+  // en-tete du rail session + pastille non-lus (rail replie)
+  const st = $('srTitle');
+  if (st) st.textContent = '# session · ' + c.length;
+  const dot = $('srDot');
+  if (dot) dot.hidden = document.body.classList.contains('srail-open') ||
+    !c.length || c[c.length - 1].t <= SRAIL_SEEN;
   const log = $('chatlog');
   log.innerHTML = c.map(m =>
     '<div class="msg ' + esc(m.from) + (m.kind === 'queue' ? ' queue' : '') + '"><div class="who">' +
@@ -20858,6 +20889,8 @@ function drawChat() {
   ).join('') || '<div class="msg claude">' + T('ch_empty') + '</div>';
   log.scrollTop = log.scrollHeight;
 }
+$('srTab').addEventListener('click', () => sessRailToggle());
+$('sessShade').addEventListener('click', () => sessRailClose());
 $('chatform').addEventListener('submit', e => {
   e.preventDefault();
   const t = $('chatinput').value.trim();

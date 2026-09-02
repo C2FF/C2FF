@@ -229,8 +229,7 @@ button.ghost:hover{color:var(--green);border-color:var(--line-hi);background:var
 .prog .hdr{font-size:11px;color:var(--warn);margin:4px 0}
 
 /* ── chat ── */
-#chatbox{display:flex;flex-direction:column;height:62vh}
-#chatlog{flex:1;overflow-y:auto;border:1px solid var(--line);border-radius:7px;padding:13px;background:var(--panel2)}
+#chatlog{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding:12px;background:var(--panel2)}
 .msg{margin:5px 0;padding:8px 11px;border-radius:5px;max-width:82%;word-break:break-word;white-space:pre-wrap;font-size:12.5px}
 .msg-me{background:var(--green-soft);border:1px solid var(--line);margin-left:auto}
 .msg.claude{background:var(--panel3);border:1px solid var(--line)}
@@ -342,11 +341,51 @@ nav::-webkit-scrollbar{display:none}
   #railStrip{padding:5px 0}
   #railTab{width:32px;height:32px}
   body.rail-open #chatRail{width:100vw;height:100vh;top:0;bottom:0;border-radius:0;border:none}
-  body.rail-open #liveBar{left:14px}
+  body.rail-open #liveBar{left:14px;bottom:70px}
+  #liveBar{bottom:70px}
   .cr-chans{width:112px}
   #chatTabs .cht{padding:0 6px}
   #chatTabs .cht .cg{display:none}
   .cr-chead{flex-wrap:wrap}
+}
+
+/* ── rail session (droite) : miroir du rail chats ── */
+/* chat de coordination session : strip 46px a droite (poignee + pastille),
+   deplie = panneau 430px qui pousse le contenu. Meme design que la gauche. */
+#sessRail{position:fixed;right:0;top:0;bottom:0;width:46px;z-index:70;display:flex;flex-direction:row-reverse;overflow:hidden;
+  background:linear-gradient(180deg,hsl(var(--hue) 20% 6.5%),hsl(var(--hue) 14% 5%));
+  border-left:1px solid var(--line);box-shadow:-1px 0 18px hsl(var(--hue) 40% 20% / .12);
+  transition:width .26s ease}
+body.srail-open #sessRail{width:430px}
+#srStrip{width:46px;flex:none;display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:8px}
+#srTab{position:relative;width:32px;height:32px;flex:none;border-radius:9px;cursor:pointer;font-size:15px;line-height:1;
+  border:1px solid var(--line-hi);background:var(--panel2);color:var(--text);transition:all .18s}
+#srTab:hover{border-color:hsl(var(--hue) 61% 48%);box-shadow:0 0 12px hsl(var(--hue) 50% 40% / .35);transform:translateY(-1px)}
+#srDot{position:absolute;top:-4px;right:-4px;width:9px;height:9px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 7px hsl(var(--hue) 60% 48% / .8)}
+#srBody{flex:1;display:none;min-width:0;min-height:0}
+body.srail-open #srBody{display:flex}
+#sessShade{position:fixed;inset:0;z-index:65;display:none;background:hsl(var(--hue) 22% 3% / .6)}
+#sessRail .cr-chat{border-left:none}
+#chatform{flex:none;display:flex;gap:7px;flex-wrap:nowrap;padding:9px 10px;border-top:1px solid var(--line);background:var(--panel)}
+#chatform input{flex:1 1 auto;min-width:0}
+#chatform .go{flex:none}
+body.srail-open #sessShade{display:block}
+body.srail-open .wrap{margin-right:430px}
+.wrap{margin-right:46px}
+@media (max-width:1080px){
+  body.srail-open #sessRail{width:min(420px,88vw)}
+  body.srail-open .wrap{margin-right:46px}
+  #sessRail .cr-chat{background:var(--panel)}
+}
+@media (max-width:640px){
+  .wrap{margin-right:0}
+  #sessRail{top:auto;bottom:12px;right:12px;width:44px;height:auto;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 4px 16px hsl(var(--hue) 40% 18% / .3)}
+  #srStrip{padding:5px 0}
+  #srTab{width:32px;height:32px}
+  body.srail-open #sessRail{width:100vw;height:100vh;top:0;bottom:0;right:0;border-radius:0;border:none}
+  body.srail-open .wrap{margin-right:0}
 }
 
 /* ── toasts ── */
@@ -438,9 +477,7 @@ header,nav{border-bottom-color:transparent;
   <button class="navbtn" data-tab="ai"><span data-i="navai">IA</span></button>
   <button class="navbtn" data-tab="term"><span>TERMINAUX</span></button>
   <button class="navbtn" data-tab="team"><span data-i="navt">Team</span></button>
-  <button class="navbtn" data-tab="chats"><span data-i="navchs">Chats</span> <small id="nChats"></small></button>
-  <button class="navbtn" data-tab="chat"><span data-i="navc">Coordination</span> <small id="nChat"></small></button>
-</nav>
+  </nav>
 <div id="sessPin" hidden></div>
 <style>
   #sessPin{margin:0 0 10px;display:flex;flex-direction:column;gap:6px}
@@ -762,13 +799,24 @@ header,nav{border-bottom-color:transparent;
   </div>
 </div>
 
-<section class="view" id="v-chat">
-  <h2 data-i="h2c">Coordination - canal privé</h2>
-  <div id="chatbox">
-    <div id="chatlog"></div>
-    <form id="chatform" class="need-member"><input id="chatinput" data-ip="ch_ph" placeholder="root@c2ff:~# message vers l'agent d'analyse…" autocomplete="off"><button class="go" type="submit" data-i="ch_send">Envoyer</button></form>
+<aside id="sessRail">
+  <div id="srStrip">
+    <button id="srTab" title="session - coordination">🛰<i id="srDot" hidden></i></button>
   </div>
-</section>
+  <div id="srBody">
+    <div class="cr-chat">
+      <div class="cr-chead">
+        <div class="cr-hinfo">
+          <div id="srTitle"># session</div>
+          <div id="srSub">coordination - agent d'analyse</div>
+        </div>
+      </div>
+      <div id="chatlog"></div>
+      <form id="chatform" class="need-member"><input id="chatinput" data-ip="ch_ph" placeholder="root@c2ff:~# message vers l'agent d'analyse…" autocomplete="off"><button class="go" type="submit" data-i="ch_send">Envoyer</button></form>
+    </div>
+  </div>
+</aside>
+<div id="sessShade"></div>
 
 <footer><b>C2FF</b> <span class="vtag">v2.0</span> <span data-i="ft">100% local - probes déterministes, sans tokens ni dépendances externes</span></footer>
 </div>
