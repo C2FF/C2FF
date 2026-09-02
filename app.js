@@ -19742,6 +19742,11 @@ function chatRailClose() {
   document.body.classList.remove('rail-open');
   try { localStorage.setItem('c2ff-rail', '0'); } catch (e) {}
   railMarkSeen(); // fermer = tout ce qui etait affiche est lu
+  // le repli de la partie discussion remet tout a plat : a la reouverture,
+  // la liste des canaux est toujours visible (les deux pliages restent
+  // independants PENDANT l'ouverture, jamais l'un au-dessus de l'autre)
+  document.body.classList.remove('chans-off');
+  try { localStorage.setItem('c2ff-chans', '1'); } catch (e) {}
 }
 function chatRailToggle() {
   if (document.body.classList.contains('rail-open')) chatRailClose(); else chatRailOpen();
@@ -21648,13 +21653,10 @@ $('railTab').addEventListener('click', () => chatRailToggle());
 function railChansToggle() {
   const off = document.body.classList.toggle('chans-off');
   const b = $('crChansBtn');
-  if (b) b.classList.toggle('on', !off);
+  if (b) b.classList.toggle('on', off); // illumine quand les canaux sont caches
   try { localStorage.setItem('c2ff-chans', off ? '0' : '1'); } catch (e) {}
 }
-try {
-  if (localStorage.getItem('c2ff-chans') === '0') document.body.classList.add('chans-off');
-  else { const b = $('crChansBtn'); if (b) b.classList.add('on'); }
-} catch (e) {}
+try { const b = $('crChansBtn'); if (b) b.classList.add('on'); } catch (e) {}
 $('crClose').addEventListener('click', () => railChansToggle());
 $('crChansBtn').addEventListener('click', () => railChansToggle());
 $('crRailBtn').addEventListener('click', () => chatRailClose());

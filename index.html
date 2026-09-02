@@ -429,7 +429,9 @@ body.srail-open .wrap{margin-right:430px}
 /* pliage separe du rail chats : la colonne canaux se masque seule (le chat
    prend toute la largeur) sans fermer le rail - l'etat persiste par navigateur */
 body.chans-off #railBody .cr-chans{display:none}
-#crChansBtn.on{color:hsl(var(--hue) 65% 65%);border-color:hsl(var(--hue) 55% 45%)}
+#crChansBtn.on{color:hsl(var(--hue) 65% 65%);border-color:hsl(var(--hue) 55% 45%);
+  box-shadow:0 0 9px hsl(var(--hue) 50% 45% / .45);animation:chanshint 1.6s ease-in-out infinite}
+@keyframes chanshint{50%{box-shadow:0 0 14px hsl(var(--hue) 60% 55% / .65)}}
 /* header du rail session : les pills passent a la ligne au lieu de tronquer */
 #srBody .cr-chead{flex-wrap:wrap}
 .cr-hacts{flex:none;display:flex;gap:6px;align-items:center}
