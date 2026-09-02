@@ -426,6 +426,10 @@ body.srail-open .wrap{margin-right:430px}
 /* onglet IA : champs empiles avec label au-dessus, fluides sur tout ecran */
 .ai-fld{margin-bottom:12px;min-width:0}
 .ai-lbl{display:block;font-size:10.5px;letter-spacing:.08em;color:var(--muted);margin-bottom:5px;text-transform:uppercase}
+/* pliage separe du rail chats : la colonne canaux se masque seule (le chat
+   prend toute la largeur) sans fermer le rail - l'etat persiste par navigateur */
+body.chans-off #railBody .cr-chans{display:none}
+#crChansBtn.on{color:hsl(var(--hue) 65% 65%);border-color:hsl(var(--hue) 55% 45%)}
 /* header du rail session : les pills passent a la ligne au lieu de tronquer */
 #srBody .cr-chead{flex-wrap:wrap}
 .cr-hacts{flex:none;display:flex;gap:6px;align-items:center}
@@ -770,7 +774,7 @@ header,nav{border-bottom-color:transparent;
   </div>
   <div id="railBody">
     <div class="cr-chans">
-      <div class="cr-brand">💬 <span data-i="navchs">Chats</span><button class="ghost" id="crClose" title="replier le rail" style="border:none;padding:2px 7px;font-size:13px">«</button></div>
+      <div class="cr-brand">💬 <span data-i="navchs">Chats</span><button class="ghost" id="crClose" title="masquer la liste des canaux" style="border:none;padding:2px 7px;font-size:13px">«</button></div>
       <div id="chatTabs"></div>
       <div class="cr-foot">C2FF · canaux live</div>
     </div>
@@ -781,6 +785,8 @@ header,nav{border-bottom-color:transparent;
           <div id="crSub"></div>
         </div>
         <div class="cr-hacts">
+          <button class="ghost" id="crChansBtn" title="afficher / masquer la liste des canaux">☰</button>
+          <button class="ghost" id="crRailBtn" title="replier le chat">«</button>
           <button class="go need-member" id="liveBtn">🎙 LIVE</button>
           <button class="ghost need-member" id="tmWizz" title="attirer l'attention de ce canal - 1 wizz par minute">⚡</button>
         </div>

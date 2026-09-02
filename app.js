@@ -21642,7 +21642,22 @@ function drawChats() {
 }
 $('chatTabs').addEventListener('mousedown', () => { TAB_ARM = Date.now() + 3000; });
 $('railTab').addEventListener('click', () => chatRailToggle());
-$('crClose').addEventListener('click', () => chatRailClose());
+// pliage separe : le « de la colonne canaux (et le ☰ du chat) masquent
+// SEULEMENT la liste des canaux ; le « du chat replie le rail entier.
+// l'etat canaux masques persiste par navigateur.
+function railChansToggle() {
+  const off = document.body.classList.toggle('chans-off');
+  const b = $('crChansBtn');
+  if (b) b.classList.toggle('on', !off);
+  try { localStorage.setItem('c2ff-chans', off ? '0' : '1'); } catch (e) {}
+}
+try {
+  if (localStorage.getItem('c2ff-chans') === '0') document.body.classList.add('chans-off');
+  else { const b = $('crChansBtn'); if (b) b.classList.add('on'); }
+} catch (e) {}
+$('crClose').addEventListener('click', () => railChansToggle());
+$('crChansBtn').addEventListener('click', () => railChansToggle());
+$('crRailBtn').addEventListener('click', () => chatRailClose());
 $('railShade').addEventListener('click', () => chatRailClose()); // overlay : clic dehors = fermer
 $('chatTabs').addEventListener('click', e => {
   const del = e.target.closest('button.cht-del');
