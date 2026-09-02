@@ -19788,15 +19788,49 @@ function setTab(t) {
 }
 
 // ---------- toasts ----------
+function toastHeader() {
+  const box = $('toasts');
+  if (!box) return;
+  let h = $('toastHead');
+  const n = box.querySelectorAll('.toast').length;
+  if (n >= 3) {
+    if (!h) {
+      h = document.createElement('button');
+      h.id = 'toastHead';
+      h.addEventListener('click', () => {
+        box.querySelectorAll('.toast').forEach(el => { el.classList.add('gone'); setTimeout(() => el.remove(), 300); });
+        setTimeout(toastHeader, 320);
+      });
+      box.prepend(h);
+    }
+    h.textContent = n + ' notifications - tout fermer ✕';
+  } else if (h) h.remove();
+}
 function toast(title, text, cls) {
+  const box = $('toasts');
+  if (!box) return;
+  // cap : au-dela de 7, la plus ancienne part immediatement
+  const all = box.querySelectorAll('.toast');
+  if (all.length >= 7) all[0].remove();
   const el = document.createElement('div');
   el.className = 'toast ' + (cls || '');
-  el.innerHTML = '<div class="th">' + esc(title) + '</div><div class="tt">' + hl(text) + '</div>';
+  const life = cls === 'P1' ? 14000 : 8000;
+  el.innerHTML = '<div class="trow"><div class="th">' + esc(title) + '</div>' +
+    '<button class="tx" title="fermer">✕</button></div>' +
+    '<div class="tt">' + hl(text) + '</div>' +
+    '<div class="tbar" style="animation-duration:' + life + 'ms"></div>';
+  const close = () => { if (!el.isConnected) return; el.classList.add('gone'); setTimeout(() => { el.remove(); toastHeader(); }, 320); };
+  el.querySelector('.tx').addEventListener('click', e => { e.stopPropagation(); close(); });
   if (cls === 'P1' || cls === 'P2') {
+    // cliquer le corps ouvre FINDINGS - la croix, elle, ferme seulement
     el.addEventListener('click', () => { setTab('findings'); document.querySelectorAll('.navbtn').forEach(x => { if (x.dataset.tab === 'findings') x.click(); }); });
   }
-  $('toasts').appendChild(el);
-  setTimeout(() => { el.classList.add('gone'); setTimeout(() => el.remove(), 350); }, cls === 'P1' ? 14000 : 8000);
+  box.appendChild(el);
+  toastHeader();
+  // disparition auto : PAUSE au survol (on lit, la barre et le chrono attendent)
+  let tm = setTimeout(close, life);
+  el.addEventListener('mouseenter', () => clearTimeout(tm));
+  el.addEventListener('mouseleave', () => { tm = setTimeout(close, 3500); });
 }
 
 // ---------- rendu differentiel ----------

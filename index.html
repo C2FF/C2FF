@@ -336,6 +336,7 @@ nav::-webkit-scrollbar{display:none}
 /* ── mobile : poignee flottante, panneau plein ecran ── */
 @media (max-width:640px){
   .wrap{margin-left:0}
+  #toasts{left:12px;right:12px;top:12px;max-width:none}
   #chatRail{top:auto;bottom:12px;width:44px;height:auto;border:1px solid var(--line);border-radius:12px;
     box-shadow:0 4px 16px hsl(var(--hue) 40% 18% / .3)}
   #railStrip{padding:5px 0}
@@ -438,18 +439,38 @@ input:focus,select:focus{border-color:hsl(var(--hue) 58% 42% / .7);box-shadow:0 
 #chatTabs .cht:active,#railTab:active,#srTab:active{transform:scale(.96)}
 
 /* ── toasts ── */
-#toasts{position:fixed;right:16px;top:16px;z-index:20;display:flex;flex-direction:column;gap:8px;pointer-events:none}
-.toast{pointer-events:auto;min-width:290px;max-width:400px;background:var(--panel2);border:1px solid var(--line);
-  border-radius:6px;padding:9px 13px;box-shadow:0 6px 22px rgba(0,0,0,.5),0 0 0 1px hsl(var(--hue) 43% 48% / .06);
-  transition:opacity .3s;animation:toastin .28s ease-out}
+/* ── notifications : lisez a votre rythme, fermez d'un geste ── */
+/* pile haut-droite : chaque toast porte sa croix, une pastille "tout fermer"
+   apparait des 3 notifications, le survol met la disparition en pause, et une
+   barre de vie fine montre le temps restant. Cap de 7 : jamais de pile infinie. */
+#toasts{position:fixed;right:16px;top:16px;z-index:145;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:min(400px,92vw)}
+.toast{pointer-events:auto;position:relative;overflow:hidden;min-width:270px;max-width:100%;
+  background:hsl(var(--hue) 16% 8% / .92);backdrop-filter:blur(9px);border:1px solid var(--line);
+  border-radius:8px;padding:9px 13px 12px;box-shadow:0 8px 28px rgba(0,0,0,.55),0 0 0 1px hsl(var(--hue) 43% 48% / .07);
+  transition:opacity .3s,transform .3s;animation:toastin .28s ease-out}
 @keyframes toastin{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
+.toast.gone{opacity:0;transform:translateX(24px)}
 .toast.P1{border-left:3px solid var(--danger)}
 .toast.P2{border-left:3px solid var(--warn)}
 .toast.HIT{border-left:3px solid var(--green)}
-.toast .th{font-size:10px;color:var(--faint);letter-spacing:.9px;margin-bottom:3px;text-transform:uppercase}
+.toast .trow{display:flex;gap:8px;align-items:center}
+.toast .th{flex:1;min-width:0;font-size:10px;color:var(--faint);letter-spacing:.9px;text-transform:uppercase}
 .toast .th::before{content:"> "}
-.toast .tt{font-size:12px;word-break:break-word}
-.toast.gone{opacity:0}
+.toast .tx{flex:none;border:none;background:none;color:var(--faint);font-size:12px;line-height:1;
+  padding:3px 6px;border-radius:5px;cursor:pointer;opacity:.75;transition:all .15s}
+.toast .tx:hover{color:var(--text);background:hsl(var(--hue) 30% 20% / .65);opacity:1}
+.toast .tt{font-size:12px;word-break:break-word;margin-top:3px}
+.toast .tbar{position:absolute;left:0;bottom:0;height:2px;width:100%;transform-origin:left;
+  background:hsl(var(--hue) 50% 45% / .5);animation:tbar linear forwards}
+.toast.P1 .tbar{background:var(--danger)}
+.toast.P2 .tbar{background:var(--warn)}
+.toast.HIT .tbar{background:var(--green)}
+.toast:hover .tbar{animation-play-state:paused}
+@keyframes tbar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+#toastHead{pointer-events:auto;border:1px solid hsl(var(--hue) 45% 40% / .55);background:hsl(var(--hue) 20% 10% / .95);
+  backdrop-filter:blur(9px);color:hsl(var(--hue) 60% 68%);border-radius:999px;padding:5px 13px;font-size:11px;
+  cursor:pointer;align-self:flex-end;box-shadow:0 4px 16px rgba(0,0,0,.5);transition:all .15s}
+#toastHead:hover{filter:brightness(1.3);border-color:hsl(var(--hue) 55% 50%)}
 
 form.newf{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 form.newf input[type=text]{flex:1;min-width:260px}
