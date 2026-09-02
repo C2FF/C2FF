@@ -1416,35 +1416,45 @@ const MAIN = (req, res) => {
         return sendJson(res, { ok: false, error: 'unknown op' });
       }
       if (p === '/api/chat') {
-        // enforcement challenge : un finding envoye au chat pour le programme
-        // d'un challenge ACTIF exige la participation (marqueur serveur) et
-        // respecte la limite par participant - aucun contournement client possible.
         const _ch = cleanHandle(req.headers['x-c2ff-handle'] || body.name);
-        if (body.kind === 'finding' && body.prog && rankOf(req, _ch) < 4) {
-          const cur = teamCfg();
-          const n = (cur.news || []).find(x => x.kind === 'challenge' && x.prog === String(body.prog).slice(0, 40) && (!x.exp || x.exp > Date.now()));
+        const _teamKind = body.kind === 'team' || body.kind === 'finding';
+        // chat cible : un message ne part que dans un chat accessible (grade
+        // suffisant, ou participant pour un chat d'event) - verification serveur
+        let _cid = 'session';
+        const _cur = _teamKind ? teamCfg() : null;
+        if (_teamKind) {
+          const rk0 = rankOf(req, _ch);
+          const cc = (_cur.chats || []).find(c => c.id === String(body.ch || 'session').slice(0, 32));
+          if (!cc) return sendJson(res, { ok: false, error: 'chat inconnu' });
+          if (!chatOk(cc.event ? { ...cc, _parts: ((_cur.chal || {})[cc.event] || {}).parts || {} } : cc, _ch, rk0))
+            return sendJson(res, { ok: false, error: cc.event ? 'chat reserve aux participants de l event' : 'grade insuffisant pour ce chat' });
+          _cid = cc.id;
+        }
+        // limite de findings par participant, avec le marqueur de participation
+        // (op chaljoin), sans contournement possible - deux portes verrouillees :
+        // 1) TOUT message poste dans le chat de l'event compte (le chat du
+        //    challenge est la zone de jeu : limite 1 = un seul envoi, point)
+        // 2) un finding partage avec le programme du challenge compte, meme
+        //    poste dans un autre chat. Identite = header PRIME (changer le nom
+        //    dans la requete est inoperant), increment atomique avec le
+        //    message ; l'admin et le proprietaire ne sont jamais limites.
+        if (_cur && rankOf(req, _ch) < 4) {
+          const evc = (_cur.chats || []).find(c => c.id === _cid && c.event);
+          const nid = evc ? evc.event
+            : (body.kind === 'finding' && body.prog
+              ? ((_cur.news || []).find(x => x.kind === 'challenge' && x.prog === String(body.prog).slice(0, 40)) || {}).id
+              : null);
+          const n = nid && (_cur.news || []).find(x => x.id === nid);
           if (n) {
-            const c = (cur.chal || {})[n.id];
+            const c = (_cur.chal || {})[n.id];
             if (!c || !c.parts[_ch]) return sendJson(res, { ok: false, error: 'rejoins le challenge (bouton participer du bandeau) pour envoyer tes findings' });
             if ((c.limit || 0) > 0 && c.parts[_ch].finds >= c.limit) {
               return sendJson(res, { ok: false, error: 'limite du challenge atteinte : ' + c.parts[_ch].finds + '/' + c.limit + ' findings deja envoyes' });
             }
-            const chal2 = { ...cur.chal };
+            const chal2 = { ..._cur.chal };
             chal2[n.id] = { ...c, parts: { ...c.parts, [_ch]: { ...c.parts[_ch], finds: c.parts[_ch].finds + 1 } } };
-            saveTeamCfg({ ...cur, chal: chal2 });
+            saveTeamCfg({ ..._cur, chal: chal2 });
           }
-        }
-        // chat cible : un message ne part que dans un chat accessible (grade
-        // suffisant, ou participant pour un chat d'event) - verification serveur
-        let _cid = 'session';
-        if (body.kind === 'team' || body.kind === 'finding') {
-          const cur0 = teamCfg();
-          const rk0 = rankOf(req, _ch);
-          const cc = (cur0.chats || []).find(c => c.id === String(body.ch || 'session').slice(0, 32));
-          if (!cc) return sendJson(res, { ok: false, error: 'chat inconnu' });
-          if (!chatOk(cc.event ? { ...cc, _parts: ((cur0.chal || {})[cc.event] || {}).parts || {} } : cc, _ch, rk0))
-            return sendJson(res, { ok: false, error: cc.event ? 'chat reserve aux participants de l event' : 'grade insuffisant pour ce chat' });
-          _cid = cc.id;
         }
         const msg = {
           t: Date.now(), id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), from: 'me',
