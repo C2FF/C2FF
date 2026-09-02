@@ -19897,11 +19897,11 @@ function drawPrograms() {
     (p.demo ? '' : '<button class="ghost need-member progchat" data-p="' + esc(p.id) + '" title="partager sur le chat de session : les membres pourront le rejoindre" style="padding:6px 12px;font-size:11px">chat</button>') +
     (_rk >= 4 && !p.demo
       ? (_pinnedProgs.includes(p.id)
-        ? '<button class="ghost pinun" data-p="' + esc(p.id) + '" title="supprimer l\'event pour tous : epingle, challenge et chat partent" style="padding:6px 12px;font-size:11px;color:hsl(var(--hue) 90% 72%)">' + T('pin_done') + '</button>'
+        ? '<button class="ghost pinun" data-p="' + esc(p.id) + '" title="supprimer l\'event pour tous : epingle, challenge et chat partent" style="padding:6px 12px;font-size:11px;color:hsl(var(--hue) 65% 63%)">' + T('pin_done') + '</button>'
         : '<button class="ghost pinbtn" data-p="' + esc(p.id) + '" title="epinger : visible de tous sur tous les onglets" style="padding:6px 12px;font-size:11px">' + T('pin_btn') + '</button>')
       : (!_pinnedProgs.includes(p.id) || _rk >= 4 ? '' :
         (p.owner && p.owner === HANDLE
-          ? '<button class="ghost pinun" data-p="' + esc(p.id) + '" title="supprimer l\'event pour tous : epingle, challenge et chat partent" style="padding:6px 12px;font-size:11px;color:hsl(var(--hue) 90% 72%)">' + T('pin_done') + '</button>'
+          ? '<button class="ghost pinun" data-p="' + esc(p.id) + '" title="supprimer l\'event pour tous : epingle, challenge et chat partent" style="padding:6px 12px;font-size:11px;color:hsl(var(--hue) 65% 63%)">' + T('pin_done') + '</button>'
           : ''))) +
     (canCfg
       ? '<select class="pubsel" data-p="' + esc(p.id) + '" title="visible de tous ou reserve"><option value="1"' + (p.pub ? ' selected' : '') + '>public</option><option value="0"' + (!p.pub ? ' selected' : '') + '>prive</option></select>' +
@@ -20116,7 +20116,7 @@ function renderPlan() {
       '<button class="ghost plcopy" data-k="' + esc(it.k) + '" style="padding:4px 8px">⧉</button>' +
       (it.run ? '<button class="go plrun" data-k="' + esc(it.k) + '" style="padding:4px 10px;font-size:10.5px">' + T('pl_run') + ' ›</button>' : '') +
       '</div>' +
-      '<div style="margin-top:5px;font-family:monospace;font-size:10px;color:hsl(var(--hue) 55% 80%);word-break:break-all;cursor:pointer" class="plcopy" data-k="' + esc(it.k) + '">' + esc(it.curl) + '</div>' +
+      '<div style="margin-top:5px;font-family:monospace;font-size:10px;color:hsl(var(--hue) 40% 70%);word-break:break-all;cursor:pointer" class="plcopy" data-k="' + esc(it.k) + '">' + esc(it.curl) + '</div>' +
       (it.ev ? '<div style="margin-top:4px;font-family:monospace;font-size:10px;color:var(--dim);white-space:pre-wrap">' +
         (it.ev.res && it.ev.res.toLowerCase().includes('c2ff9q81z') ? '⚠ ' + T('pl_reflect') + ' - ' : '') +
         esc(it.ev.code) + ' · ' + esc(it.ev.len) + ' o<br>' + esc(it.ev.res) + '</div>' : '') +
@@ -21281,7 +21281,7 @@ function drawChats() {
       (rk >= 5 && c.id !== 'session' ? '<button class="ghost cht-del" data-cid="' + esc(c.id) + '" title="fermer ce chat" style="padding:0 3px;border:none">✕</button>' : '') +
       '</span>';
     }).join('') +
-      (rk >= 5 && tm.enabled ? '<span class="cht cht-add" id="chatAddBtn" style="border-style:dashed;color:hsl(var(--hue) 85% 68%)">+ chat</span>' : '');
+      (rk >= 5 && tm.enabled ? '<span class="cht cht-add" id="chatAddBtn" style="border-style:dashed;color:hsl(var(--hue) 61% 60%)">+ chat</span>' : '');
   }
   // LIVE : petit bouton contextuel - il rejoint le live vocal du canal affiche
   // (session = mesh, wispe = live prive 1:1). L'etat complet vit dans la
@@ -21721,7 +21721,7 @@ function renderLive() {
     if (!all.find(m => m.h === HANDLE)) all.push({ h: HANDLE });
     return all;
   })();
-  bar.innerHTML = '<b style="color:hsl(var(--hue) 90% 75%)">🎙 LIVE</b>' + sel +
+  bar.innerHTML = '<b style="color:hsl(var(--hue) 65% 66%)">🎙 LIVE</b>' + sel +
     (pm ? '<span class="lvchip"><span class="dot"></span>privé · ' + esc(peer) + '</span>'
       : '<span style="color:var(--faint);font-size:11px">' + parts.length + ' en direct</span>') +
     parts.filter(m => m.h).map(m =>
