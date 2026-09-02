@@ -126,6 +126,9 @@ function teamCfg() {
 // participants inscrits (moderation : admin et proprietaire passent toujours)
 function chatOk(c, h, rk) {
   if (!c) return false;
+  // wispe (chat prive) : SEULS les deux membres du couple y accedent, ni la
+  // moderation ni le proprietaire - un message prive reste prive
+  if ((c.id || '').indexOf('pm-') === 0) return !!h && c.id.slice(3).split('--').indexOf(h) >= 0;
   if (c.event) return rk >= 4 || !!(h && c._parts && c._parts[h]);
   return rk >= (c.min || 0);
 }
@@ -220,7 +223,7 @@ function teamState(req, h) {
     })() : n),
     bind: BIND === '0.0.0.0' ? 'lan' : 'local', lan: lanAddr(),
     tunnel: TUNNEL ? (TUNNEL.ready && TUNNEL.url ? TUNNEL.url : (TUNNEL.err ? 'err:' + TUNNEL.err : 'starting')) : '',
-    chats: (t.chats || []).map(c => {
+    chats: (t.chats || []).filter(c => (c.id || '').indexOf('pm-') !== 0 || (h && c.id.slice(3).split('--').indexOf(h) >= 0)).map(c => {
       // l'acces aux chats d'event demande la liste des participants du challenge
       const cc = c.event ? ((t.chal || {})[c.event] || {}) : {};
       const cc2 = c.event ? { ...c, _parts: cc.parts || {} } : c;
@@ -234,7 +237,7 @@ function teamState(req, h) {
         const cc = c.event ? ((t.chal || {})[c.event] || {}) : {};
         return chatOk(c.event ? { ...c, _parts: cc.parts || {} } : c, h, rk);
       }).map(c => c.id));
-      return lastChat(200).filter(m => (m.kind === 'team' || m.kind === 'finding' || m.kind === 'term') && okc.has(m.ch || 'session')).slice(-100).map(m => {
+      return lastChat(200).filter(m => (m.kind === 'team' || m.kind === 'finding' || m.kind === 'term' || m.kind === 'wizz') && okc.has(m.ch || 'session')).slice(-100).map(m => {
         const vv = V[m.id];
         if (!vv) return m;
         let up = 0, down = 0;
@@ -242,7 +245,7 @@ function teamState(req, h) {
         return Object.assign({}, m, { v: { up, down, me: (h && vv[h]) || 0 } });
       });
     })(),
-    rtc: rtcList(now),
+    rtc: rtcList(now).filter(m => m.to === h),
     you: req ? roleOf(req, h) : 'viewer',
     meRole: memberRole(req, h),
     requests,
@@ -255,6 +258,7 @@ let TUNNEL = null; // { proc, url }
 
 // signalisation WebRTC : relais pur, le media reste membre-a-membre
 const RTCMAP = new Map(); // id -> { from, to, typ, data, t }
+const WIZZRATE = new Map(); // handle -> dernier wizz (anti-flood, 1/min)
 function rtcList(now) {
   const out = [];
   for (const [id, m] of RTCMAP) {
@@ -1087,6 +1091,26 @@ const MAIN = (req, res) => {
             { from, to: cleanHandle(body.to) || '', typ: String(body.typ || '').slice(0, 8), data: String(body.data || '').slice(0, 8000), t: Date.now() });
           return sendJson(res, { ok: true });
         }
+        // wispe : ouvre (ou retrouve) le chat prive entre deux membres.
+        // accessible au couple uniquement - personne d'autre ne le voit,
+        // pas meme la moderation. cap 24 chats prives, les plus anciens ferment.
+        if (body.op === 'wsp') {
+          const by = cleanHandle(body.by || body.handle);
+          const to = cleanHandle(body.to || '');
+          if (rankOf(req, by) < 1) return sendJson(res, { ok: false, error: 'membre requis' });
+          if (!to || to === by) return sendJson(res, { ok: false, error: 'destinataire invalide' });
+          const cur = teamCfg();
+          if (!(cur.members || {})[to]) return sendJson(res, { ok: false, error: 'membre inconnu : ' + to });
+          const pid = 'pm-' + [by, to].sort().join('--');
+          if (!(cur.chats || []).find(c => c.id === pid)) {
+            const pmKeep = (cur.chats || []).filter(c => (c.id || '').indexOf('pm-') === 0 && c.id !== pid).slice(-23);
+            saveTeamCfg({
+              ...cur,
+              chats: [...(cur.chats || []).filter(c => (c.id || '').indexOf('pm-') !== 0), ...pmKeep, { id: pid, name: 'prive', min: 0, pm: [by, to].sort() }],
+            });
+          }
+          return sendJson(res, { ok: true, ch: pid, team: teamState(req, by) });
+        }
         // welcome / pin / unpin : message de bienvenue + epinglage d'actu ou de
         // programme prioritaire, affiches dans le bandeau visible sur TOUS les
         // onglets. decision admin uniquement (le proprietaire, grade ultime, passe).
@@ -1459,7 +1483,7 @@ const MAIN = (req, res) => {
       }
       if (p === '/api/chat') {
         const _ch = cleanHandle(req.headers['x-c2ff-handle'] || body.name);
-        const _teamKind = body.kind === 'team' || body.kind === 'finding';
+        const _teamKind = body.kind === 'team' || body.kind === 'finding' || body.kind === 'wizz';
         // chat cible : un message ne part que dans un chat accessible (grade
         // suffisant, ou participant pour un chat d'event) - verification serveur
         let _cid = 'session';
@@ -1472,6 +1496,14 @@ const MAIN = (req, res) => {
             return sendJson(res, { ok: false, error: cc.event ? 'chat reserve aux participants de l event' : 'grade insuffisant pour ce chat' });
           _cid = cc.id;
         }
+        // wizz (nudge MSN) : attention-ne-pas-dormir, mais FLOOD-PROOF :
+        // un seul wizz par minute et par membre, aucune derogation de grade.
+        if (body.kind === 'wizz') {
+          const nw = Date.now();
+          if (nw - (WIZZRATE.get(_ch) || 0) < 60000)
+            return sendJson(res, { ok: false, error: 'un wizz par minute maximum - laisse les dormir' });
+          WIZZRATE.set(_ch, nw);
+        }
         // limite de findings par participant, avec le marqueur de participation
         // (op chaljoin), sans contournement possible - trois portes verrouillees :
         // 1) TOUT message poste dans le chat de l'event compte (la zone de jeu :
@@ -1480,7 +1512,7 @@ const MAIN = (req, res) => {
         //    dans un autre chat. Identite = header PRIME (changer le nom dans la
         //    requete est inoperant), increment atomique avec le message ;
         //    l'admin et le proprietaire ne sont jamais limites.
-        if (_cur && rankOf(req, _ch) < 4) {
+        if (_cur && body.kind !== 'wizz' && rankOf(req, _ch) < 4) {
           const evc = (_cur.chats || []).find(c => c.id === _cid && c.event);
           const nid = evc ? evc.event
             : (body.kind === 'finding' && body.prog
@@ -1495,7 +1527,7 @@ const MAIN = (req, res) => {
         const msg = {
           t: Date.now(), id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), from: 'me',
           name: cleanHandle(body.name) || 'OPERATOR',
-          kind: body.kind === 'team' ? 'team' : (body.kind === 'finding' ? 'finding' : 'chat'),
+          kind: body.kind === 'team' ? 'team' : (body.kind === 'finding' ? 'finding' : (body.kind === 'wizz' ? 'wizz' : 'chat')),
           text: trunc(body.text || '', 4000),
           ch: _cid,
         };

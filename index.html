@@ -42,6 +42,9 @@ body[data-rank="3"] .need-admin { display:none !important }
 #tmChatlog .msg.tmfind:hover{filter:brightness(1.15)}
 #tmChatlog .msg.msg-term{border-left:3px solid hsl(var(--hue) 70% 55%);background:hsl(var(--hue) 55% 14% / .35)}
 #tmChatlog .msg.msg-term .who{color:hsl(var(--hue) 70% 70%)}
+#tmChatlog .msg.wizzline{border-left:3px solid hsl(45 95% 55%);background:hsl(45 80% 18% / .35);text-align:center;font-size:11.5px}
+@keyframes c2wizz{0%,100%{transform:translate(0,0)}10%{transform:translate(-9px,3px)}20%{transform:translate(8px,-5px)}30%{transform:translate(-7px,4px)}40%{transform:translate(6px,5px)}50%{transform:translate(-6px,-4px)}60%{transform:translate(5px,3px)}70%{transform:translate(-4px,-3px)}80%{transform:translate(3px,2px)}90%{transform:translate(-2px,-1px)}}
+body.wizzing{animation:c2wizz .55s ease-in-out}
 #tmChatlog .cfold{color:hsl(var(--hue) 85% 68%);cursor:pointer;font-size:10px;margin-left:8px}
 
 /* balayage CRT lent, la console vit */
@@ -589,6 +592,13 @@ header,nav{border-bottom-color:transparent;
     </form>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
       <button class="go need-member" id="tmMic">ACTIVER LE MICRO</button>
+      <small id="micInfo" style="color:var(--muted);font-size:11px;flex:1;min-width:150px"></small>
+    </div>
+    <div id="pmBar" hidden style="border:1px solid hsl(var(--hue) 80% 45% / .6);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:hsl(var(--hue) 60% 12% / .4);display:flex;gap:8px;align-items:center;flex-wrap:wrap"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <button class="go need-member" id="tmMic">ACTIVER LE MICRO</button>
+      <button class="ghost need-member" id="pmCall" hidden title="appel vocal prive 1:1 avec ce membre">📞 VOCAL PRIVÉ</button>
+      <button class="ghost need-member" id="tmWizz" title="attirer l'attention de ce canal - 1 wizz par minute">⚡ WIZZ</button>
       <small id="micInfo" style="color:var(--muted);font-size:11px;flex:1;min-width:150px"></small>
     </div>
     <div id="tmChatlog" style="height:44vh;overflow-y:auto;border:1px solid var(--line);border-radius:7px;padding:12px;background:var(--panel2)"></div>

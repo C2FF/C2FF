@@ -21211,6 +21211,8 @@ function drawTeam() {
       (rk >= 3 ? '<button class="ghost tmkick" data-h="' + esc(m.h) + '">' + T('tm_kick') + '</button>' : '') : '') +
     (rk >= 3 && m.h !== HANDLE && m.st !== 'pending' ?
       '<button class="ghost tmspy" data-h="' + esc(m.h) + '" style="padding:3px 8px;font-size:10.5px" title="voir son terminal perso en lecture seule">terminal</button>' : '') +
+    (rk >= 1 && m.h !== HANDLE && m.st !== 'pending' ?
+      '<button class="ghost tmwsp" data-h="' + esc(m.h) + '" style="padding:3px 8px;font-size:10.5px" title="ouvrir une conversation privee (wispe) - visible de vous deux seulement">wispe</button>' : '') +
     '<small style="color:var(--faint);margin-left:auto">' + m.reqs + ' req</small></div>'
   ).join('') || '<div style="color:var(--faint);font-size:11.5px">' + T('tm_nobody') + '</div>';
   // bouton micro : rendu dans l'onglet CHATS (drawChats)
@@ -21254,13 +21256,18 @@ function drawChats() {
   if (!list.find(c => c.id === CHAT_SEL && c.ok)) CHAT_SEL = (list.find(c => c.ok) || list[0]).id;
   if (tabs) {
     tabs.hidden = !tm.enabled;
-    tabs.innerHTML = list.map(c =>
-      '<span class="cht' + (c.id === CHAT_SEL ? ' on' : '') + (c.ok ? '' : ' locked') + '" data-cid="' + esc(c.id) + '">' +
-      esc(c.name) +
-      (c.event ? ' <span class="cev">EVENT</span>' : ((c.min || 0) > 0 ? ' <span class="cg">' + esc(CHMIN[c.min] || '') + '</span>' : '')) +
+    tabs.innerHTML = list.map(c => {
+      const ispm = (c.id || '').indexOf('pm-') === 0;
+      const peer = ispm ? (c.id.slice(3).split('--').find(x => x !== HANDLE) || '?') : '';
+      const label = ispm ? 'privé · ' + peer : c.name;
+      return '<span class="cht' + (c.id === CHAT_SEL ? ' on' : '') + (c.ok ? '' : ' locked') + '" data-cid="' + esc(c.id) + '">' +
+      esc(label) +
+      (ispm ? ' <span class="cg">PRIVÉ</span>' :
+        c.event ? ' <span class="cev">EVENT</span>' : ((c.min || 0) > 0 ? ' <span class="cg">' + esc(CHMIN[c.min] || '') + '</span>' : '')) +
       (c.ok ? '' : ' <span class="cg">🔒</span>') +
       (rk >= 5 && c.id !== 'session' ? '<button class="ghost cht-del" data-cid="' + esc(c.id) + '" title="fermer ce chat" style="padding:0 3px;border:none">✕</button>' : '') +
-      '</span>').join('') +
+      '</span>';
+    }).join('') +
       (rk >= 5 && tm.enabled ? '<span class="cht cht-add" id="chatAddBtn" style="border-style:dashed;color:hsl(var(--hue) 85% 68%)">+ chat</span>' : '');
   }
   // micro vocal de session : bouton + etat des connexions (onglet CHATS)
@@ -21283,7 +21290,41 @@ function drawChats() {
     return;
   }
   const bc = (tm.chat || []).filter(m => (m.ch || 'session') === CHAT_SEL);
+  // wizz : effet (secousse + son) sur les nouveaux, puis on les marque vus
+  for (const m of bc) {
+    if (m.kind === 'wizz' && m.t > WIZZ_LAST) {
+      if (WIZZ_INIT && m.name !== HANDLE) doWizz(m.name);
+      WIZZ_LAST = m.t;
+    }
+  }
+  WIZZ_INIT = true;
+  // vocal prive 1:1 : bouton actif uniquement sur un chat prive
+  const isPm = (CHAT_SEL || '').indexOf('pm-') === 0;
+  const pmPeer = isPm ? (CHAT_SEL.slice(3).split('--').find(x => x !== HANDLE) || '') : '';
+  const pcall = $('pmCall');
+  if (pcall) {
+    pcall.hidden = !isPm || !tm.enabled;
+    pcall.textContent = PMC_PEER === pmPeer && PMC_PEER ? 'RACCROCHER 📞' : '📞 VOCAL PRIVÉ';
+  }
+  const wizzBtn = $('tmWizz');
+  if (wizzBtn) wizzBtn.hidden = !tm.enabled;
+  const pbar = $('pmBar');
+  if (pbar) {
+    if (PMC_IN && !PMC_PEER) {
+      pbar.hidden = false;
+      pbar.innerHTML = '<b style="color:hsl(var(--hue) 90% 75%)">📞 ' + esc(PMC_IN) + ' t\'appelle en privé</b>' +
+        '<button class="go pm-ok" style="padding:4px 12px">Répondre</button>' +
+        '<button class="ghost pm-no" style="color:var(--danger)">Refuser</button>';
+    } else if (PMC_PEER) {
+      pbar.hidden = false;
+      pbar.innerHTML = '<b style="color:var(--green)">🎙 vocal privé avec ' + esc(PMC_PEER) + ' en cours</b>' +
+        '<button class="ghost pm-end" style="color:var(--danger);margin-left:auto">Raccrocher</button>';
+    } else pbar.hidden = true;
+  }
   blog.innerHTML = bc.map(m => {
+    // wizz : ligne compacte, pas de corps ni de votes
+    if (m.kind === 'wizz')
+      return '<div class="msg wizzline">⚡ <b>' + esc(m.name || '?') + '</b> ' + (m.name === HANDLE ? 'as envoyé un wizz' : 'a envoyé un wizz') + ' ⚡ <small style="color:var(--faint)">' + new Date(m.t).toLocaleTimeString('fr-FR') + '</small></div>';
     const cls = 'msg ' + (m.name === HANDLE ? 'me' : 'claude') + (m.kind === 'finding' ? ' msg-finding' : '');
     const sev = m.kind === 'finding' && m.sev
       ? ' <span class="pill ' + (m.sev === 'P1' || m.sev === 'P2' ? 'p-prog' : 'p-done') + '">' + esc(m.sev) + '</span>' : '';
@@ -21488,6 +21529,21 @@ function rtcTick() {
         }
       } else if (msg.typ === 'ice' && PCS.has(msg.from)) {
         PCS.get(msg.from).addIceCandidate(JSON.parse(msg.data)).catch(() => {});
+      } else if (msg.typ === 'pend') {
+        // appel prive refuse ou raccroche par le pair
+        if (PMC_PEER === msg.from || PMC_IN === msg.from) pmEnd(false);
+      } else if (msg.typ === 'psdp') {
+        const d = JSON.parse(msg.data);
+        if (d.type === 'offer') {
+          if (PMC_PEER && PMC_PEER !== msg.from) {
+            // deja en ligne privee avec quelqu'un d'autre : refus auto
+            jpost('/api/team', { op: 'rtc', from: HANDLE, to: msg.from, typ: 'pend', data: 'refuse' }).catch(() => {});
+          } else { PMC_IN = msg.from; PMC_OFFER = d; forceDraw = true; drawChats(); }
+        } else if (d.type === 'answer' && PCS2.has(msg.from)) {
+          PCS2.get(msg.from).setRemoteDescription(d).catch(() => {});
+        }
+      } else if (msg.typ === 'pice' && PCS2.has(msg.from)) {
+        PCS2.get(msg.from).addIceCandidate(JSON.parse(msg.data)).catch(() => {});
       }
     } catch (e) {}
   }
@@ -21495,6 +21551,112 @@ function rtcTick() {
   if (handled) { /* rien de plus : les streams declenchent eux-memes le rendu */ }
 }
 $('tmMic').addEventListener('click', micToggle);
+// ---------- wizz (nudge a la MSN) : secousse de la page + son, anti-flood
+let WIZZ_LAST = 0, WIZZ_INIT = false;
+function wizzSound() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    wizzSound.ctx = wizzSound.ctx || new AC();
+    const ctx = wizzSound.ctx, now = ctx.currentTime;
+    [0, 0.18].forEach((dt, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'square';
+      o.frequency.setValueAtTime(dt ? 620 : 880, now + dt);
+      g.gain.setValueAtTime(0.12, now + dt);
+      g.gain.exponentialRampToValueAtTime(0.001, now + dt + 0.15);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(now + dt); o.stop(now + dt + 0.16);
+    });
+  } catch (e) {}
+}
+function doWizz(from) {
+  wizzSound();
+  document.body.classList.remove('wizzing');
+  void document.body.offsetWidth; // restart de l'animation
+  document.body.classList.add('wizzing');
+  setTimeout(() => document.body.classList.remove('wizzing'), 600);
+  toast('WIZZ', '⚡ ' + from + ' a fait trembler ta console', 'HIT');
+}
+$('tmWizz').addEventListener('click', () => {
+  if (!HANDLE) return toast('SESSION', T('tm_no_handle'), 'P2');
+  jpost('/api/chat', { kind: 'wizz', name: HANDLE, ch: CHAT_SEL, text: '⚡ wizz' }).then(r => r.json()).then(j => {
+    if (j.ok) { WIZZ_LAST = Date.now(); drawChats(); }
+    else toast('WIZZ', j.error || 'refuse', 'P2');
+  }).catch(() => {});
+});
+// ---------- vocal prive 1:1 (en plus du mesh de session) :
+// meme relais op rtc, types prefixes 'p' pour ne pas croiser le mesh
+const PCS2 = new Map();
+let PMC_PEER = '', PMC_IN = '', PMC_OFFER = null;
+function newPCP(h) {
+  const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+  if (PMC_MIC) PMC_MIC.getTracks().forEach(t => pc.addTrack(t, PMC_MIC));
+  pc.onicecandidate = e => { if (e.candidate) jpost('/api/team', { op: 'rtc', from: HANDLE, to: h, typ: 'pice', data: JSON.stringify(e.candidate) }).catch(() => {}); };
+  pc.ontrack = e => {
+    let a = document.getElementById('c2ffPmAudio_' + h);
+    if (!a) { a = document.createElement('audio'); a.id = 'c2ffPmAudio_' + h; a.className = 'c2ffAudio'; a.autoplay = true; document.body.appendChild(a); }
+    a.srcObject = e.streams[0]; a.play().catch(() => {});
+  };
+  PCS2.set(h, pc);
+  return pc;
+}
+let PMC_MIC = null;
+async function pmStart(h) {
+  if (!HANDLE) return toast('SESSION', T('tm_no_handle'), 'P2');
+  if (PMC_PEER) return toast('WISPE', 'un appel prive est deja en cours avec ' + PMC_PEER, 'P2');
+  try { PMC_MIC = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS); }
+  catch (e) { return toast('WISPE', T('tm_mic_denied'), 'P2'); }
+  PMC_PEER = h;
+  const pc = newPCP(h);
+  try {
+    const o = await pc.createOffer();
+    await pc.setLocalDescription({ type: 'offer', sdp: hqSdp(o.sdp) });
+    jpost('/api/team', { op: 'rtc', from: HANDLE, to: h, typ: 'psdp', data: JSON.stringify({ type: 'offer', sdp: pc.localDescription.sdp }) }).catch(() => {});
+  } catch (e) { pmEnd(false); return; }
+  forceDraw = true; drawChats();
+}
+async function pmAccept() {
+  const from = PMC_IN, offer = PMC_OFFER; PMC_IN = ''; PMC_OFFER = null;
+  if (!from || !offer) return;
+  try { PMC_MIC = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS); }
+  catch (e) {
+    jpost('/api/team', { op: 'rtc', from: HANDLE, to: from, typ: 'pend', data: 'refuse' }).catch(() => {});
+    return toast('WISPE', T('tm_mic_denied'), 'P2');
+  }
+  PMC_PEER = from;
+  try {
+    const pc = newPCP(from);
+    await pc.setRemoteDescription(offer);
+    const a = await pc.createAnswer();
+    await pc.setLocalDescription({ type: 'answer', sdp: hqSdp(a.sdp) });
+    jpost('/api/team', { op: 'rtc', from: HANDLE, to: from, typ: 'psdp', data: JSON.stringify({ type: 'answer', sdp: pc.localDescription.sdp }) }).catch(() => {});
+  } catch (e) { pmEnd(false); return; }
+  forceDraw = true; drawChats();
+}
+function pmEnd(signal) {
+  const tell = PMC_PEER || PMC_IN;
+  if (signal !== false && tell)
+    jpost('/api/team', { op: 'rtc', from: HANDLE, to: tell, typ: 'pend', data: PMC_PEER ? 'bye' : 'refuse' }).catch(() => {});
+  PMC_PEER = ''; PMC_IN = ''; PMC_OFFER = null;
+  if (PMC_MIC) { try { PMC_MIC.getTracks().forEach(t => t.stop()); } catch (e) {} PMC_MIC = null; }
+  for (const [, pc] of PCS2) { try { pc.close(); } catch (e) {} }
+  PCS2.clear();
+  document.querySelectorAll('audio[id^="c2ffPmAudio_"]').forEach(a => { try { a.pause(); a.srcObject = null; } catch (e) {} a.remove(); });
+  forceDraw = true; drawChats();
+}
+$('pmCall').addEventListener('click', () => {
+  const tm = state.data.team || {};
+  if (!CHAT_SEL || CHAT_SEL.indexOf('pm-') !== 0) return;
+  const peer = CHAT_SEL.slice(3).split('--').find(x => x !== HANDLE);
+  if (!peer) return;
+  if (PMC_PEER === peer) pmEnd();
+  else pmStart(peer);
+});
+$('pmBar').addEventListener('click', e => {
+  if (e.target.closest('.pm-ok')) pmAccept();
+  else if (e.target.closest('.pm-no') || e.target.closest('.pm-end')) pmEnd();
+});
 // roles + kick : delegation sur la liste membres
 $('tmMembers').addEventListener('change', e => {
   const sel = e.target.closest('select.tmrole');
@@ -21520,6 +21682,17 @@ $('tmPending').addEventListener('click', e => {
 $('tmMembers').addEventListener('click', e => {
   const spy = e.target.closest('button.tmspy');
   if (spy) { termStartSpy(spy.dataset.h); return; }
+  const wsp = e.target.closest('button.tmwsp');
+  if (wsp) {
+    jpost('/api/team', { op: 'wsp', to: wsp.dataset.h, by: HANDLE }).then(r => r.json()).then(j => {
+      if (!j.ok) return toast('WISPE', j.error || 'refuse', 'P2');
+      CHAT_SEL = j.ch; CHAT_DRAWN = '';
+      setTab('chs');
+      toast('WISPE', 'conversation privee avec ' + wsp.dataset.h + ' - seuls vous deux la voient', 'HIT');
+      forceDraw = true; refresh();
+    }).catch(() => {});
+    return;
+  }
   const b = e.target.closest('button.tmkick');
   if (!b) return;
   jpost('/api/team', { op: 'kick', h: b.dataset.h, by: HANDLE }).then(r => r.json()).then(j => {
