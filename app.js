@@ -19986,6 +19986,7 @@ function drawPrograms() {
       huntSel = arSel = '';
       SURF = {}; ATKS = {}; JSI = {};
       drawn.prog = drawn.hunt = drawn.ars = drawn.pip = ''; PIP_PROGS_SIG = '';
+      drawn_pin = ''; // l'epingle du programme supprime ne reste pas au bandeau
       blurNow(); refresh();
     }).catch(() => sndPlay('err'));
   }));
@@ -20958,12 +20959,15 @@ let TM_ARM = 0; // mousedown sur select grade -> fige la liste membres/demandes 
 const tmArm = e => { if (e.target.closest && e.target.closest('select')) TM_ARM = Date.now() + 6000; };
 $('tmMembers').addEventListener('mousedown', tmArm);
 $('tmPending').addEventListener('mousedown', tmArm);
+// bandeau d'epingles : tout mousedown fige son re-render 3 s (croix, participer...)
+$('sessPin').addEventListener('mousedown', () => { SN_ARM = Date.now() + 3000; });
 // bandeau EPINGLÉ / BIENVENUE : visible sur TOUS les onglets (entre le menu et
 // les stats), deco accent du theme. max 3 epingles cote serveur - discret.
 // plusieurs epingles : une seule DEPLIEE (la plus recente, ou celle cliquee),
 // les autres restent en chips compacts sur une ligne - pas de flood.
 let drawn_pin = '';
 let PIN_EXPAND = ''; // id de l'epingle depliee ('' = la plus recente)
+let SN_ARM = 0; // mousedown sur le bandeau -> fige son re-render 3 s (le clic passe)
 const snStyle = n => (n && ['urgence', 'info', 'or'].includes(n.style) ? n.style : 'accent');
 const snDur = n => {
   if (!n.exp) return '';
@@ -20983,6 +20987,9 @@ const snClock = n => {
 function drawPin() {
   const el = $('sessPin');
   if (!el) return;
+  // interaction en cours sur le bandeau ? le re-render periodique (chrono a la
+  // seconde sur les challenges) detruit le bouton sous le curseur sinon
+  if (Date.now() < SN_ARM) { drawn_pin = ''; return; }
   const tm = state.data.team || {};
   const news = tm.news || [];
   const wel = (tm.welcome || '').trim();
