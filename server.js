@@ -96,14 +96,20 @@ function teamCfg() {
   // migration legacy : roles {handle:'admin'} -> membre approuve sans pin
   for (const [h, r] of Object.entries(c.roles || {}))
     if (r === 'admin' && !members[h]) members[h] = { pin: '', role: 'admin', status: 'approved', t: 0 };
+  // epingles expires : disparus des qu'ils sont lus (durée de l'evenement ecoulee)
+  const news = Array.isArray(c.news) ? c.news.filter(n => n && typeof n === 'object' && (!n.exp || n.exp > Date.now())).slice(-3) : [];
+  // registre des challenges : { [newsId]: { limit, parts: { [handle]: { t, finds } } } }
+  // les entrees d'epingles purges sont nettoyees en meme temps
+  const chal = (c.chal && typeof c.chal === 'object') ? { ...c.chal } : {};
+  for (const k of Object.keys(chal)) if (!news.some(n => n.id === k)) delete chal[k];
   return {
     enabled: !!c.enabled, room: String(c.room || ''), key: String(c.key || ''), live: !!c.live,
     roles: (c.roles && typeof c.roles === 'object') ? c.roles : {},
     members,
     blocked: Array.isArray(c.blocked) ? c.blocked : [],
     welcome: String(c.welcome || '').slice(0, 200),
-    // epingles expires : disparus des qu'ils sont lus (durée de l'evenement ecoulee)
-    news: Array.isArray(c.news) ? c.news.filter(n => n && typeof n === 'object' && (!n.exp || n.exp > Date.now())).slice(-3) : [],
+    news,
+    chal,
   };
 }
 function saveTeamCfg(c) { try { fs.writeFileSync(TEAM_FILE, JSON.stringify(c, null, 1)); } catch (e) {} }
@@ -175,7 +181,12 @@ function teamState(req, h) {
   return {
     enabled: t.enabled, room: t.room, protected: t.enabled,
     roles: t.roles, blocked: t.blocked,
-    welcome: t.welcome || '', news: t.news || [],
+    welcome: t.welcome || '',
+    news: (t.news || []).map(n => n.kind === 'challenge' ? (() => {
+      const c = (t.chal || {})[n.id] || {};
+      return { ...n, limit: c.limit || 0, nparts: Object.keys(c.parts || {}).length,
+        me: (h && (c.parts || {})[h]) || null };
+    })() : n),
     bind: BIND === '0.0.0.0' ? 'lan' : 'local', lan: lanAddr(),
     tunnel: TUNNEL ? (TUNNEL.ready && TUNNEL.url ? TUNNEL.url : (TUNNEL.err ? 'err:' + TUNNEL.err : 'starting')) : '',
     chat: (() => {
@@ -1051,11 +1062,35 @@ const MAIN = (req, res) => {
           const kind = body.kind === 'challenge' ? 'challenge' : 'pin'; // challenge = epreuve chronometree
           if (!text && !prog) return sendJson(res, { ok: false, error: 'rien a epingler' });
           const cur = teamCfg();
+          const nid = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
           const news = (cur.news || [])
-            .concat([{ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), t: Date.now(), text, prog, style, kind, exp: dur ? Date.now() + dur * 1000 : 0 }])
+            .concat([{ id: nid, t: Date.now(), text, prog, style, kind, exp: dur ? Date.now() + dur * 1000 : 0 }])
             .slice(-3); // max 3 : le bandeau reste discret
-          saveTeamCfg({ ...cur, news });
+          // challenge : registre de participation + limite de findings par participant
+          const chal = { ...(cur.chal || {}) };
+          if (kind === 'challenge') {
+            const lim = Math.max(0, Math.min(20, Math.floor(Number(body.lim) || 0))); // 0 = illimite
+            chal[nid] = { limit: lim, parts: {} };
+          }
+          saveTeamCfg({ ...cur, news, chal });
           return sendJson(res, { ok: true, team: teamState(req, by) });
+        }
+        // chaljoin : le marqueur qui ATTACHE le membre au challenge (cote
+        // serveur, incompressible). Sans participation, pas de findings envoyes
+        // sur le programme du challenge ; avec, la limite s'applique a coup sur.
+        if (body.op === 'chaljoin') {
+          const h = reqHandle(req) || cleanHandle(body.handle || '');
+          if (!h) return sendJson(res, { ok: false, error: 'identite manquante' });
+          if (rankOf(req, h) < 1) return sendJson(res, { ok: false, error: 'membre requis pour participer' });
+          const cur = teamCfg();
+          const n = (cur.news || []).find(x => x.id === String(body.id || '') && x.kind === 'challenge');
+          if (!n) return sendJson(res, { ok: false, error: 'challenge introuvable ou termine' });
+          const chal = { ...(cur.chal || {}) };
+          const c = { limit: 0, parts: {}, ...(chal[n.id] || {}) };
+          if (!c.parts[h]) c.parts = { ...c.parts, [h]: { t: Date.now(), finds: 0 } };
+          chal[n.id] = c;
+          saveTeamCfg({ ...cur, chal });
+          return sendJson(res, { ok: true });
         }
         if (body.op === 'unpin') {
           const by = cleanHandle(body.by || body.handle);
@@ -1296,6 +1331,24 @@ const MAIN = (req, res) => {
         return sendJson(res, { ok: false, error: 'unknown op' });
       }
       if (p === '/api/chat') {
+        // enforcement challenge : un finding envoye au chat pour le programme
+        // d'un challenge ACTIF exige la participation (marqueur serveur) et
+        // respecte la limite par participant - aucun contournement client possible.
+        const _ch = cleanHandle(req.headers['x-c2ff-handle'] || body.name);
+        if (body.kind === 'finding' && body.prog && rankOf(req, _ch) < 4) {
+          const cur = teamCfg();
+          const n = (cur.news || []).find(x => x.kind === 'challenge' && x.prog === String(body.prog).slice(0, 40) && (!x.exp || x.exp > Date.now()));
+          if (n) {
+            const c = (cur.chal || {})[n.id];
+            if (!c || !c.parts[_ch]) return sendJson(res, { ok: false, error: 'rejoins le challenge (bouton participer du bandeau) pour envoyer tes findings' });
+            if ((c.limit || 0) > 0 && c.parts[_ch].finds >= c.limit) {
+              return sendJson(res, { ok: false, error: 'limite du challenge atteinte : ' + c.parts[_ch].finds + '/' + c.limit + ' findings deja envoyes' });
+            }
+            const chal2 = { ...cur.chal };
+            chal2[n.id] = { ...c, parts: { ...c.parts, [_ch]: { ...c.parts[_ch], finds: c.parts[_ch].finds + 1 } } };
+            saveTeamCfg({ ...cur, chal: chal2 });
+          }
+        }
         const msg = {
           t: Date.now(), id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), from: 'me',
           name: cleanHandle(body.name) || 'OPERATOR',

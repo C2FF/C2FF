@@ -598,6 +598,17 @@ header,nav{border-bottom-color:transparent;
           <option value="604800">7 jours</option>
         </select>
       </div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center" id="pinLimRow">
+        <span style="font-size:11px;color:var(--muted);flex:none">limite de findings / participant</span>
+        <select id="pinLim" style="flex:1;min-width:110px">
+          <option value="0">illimité</option>
+          <option value="1">1 finding</option>
+          <option value="2">2 findings</option>
+          <option value="3" selected>3 findings</option>
+          <option value="5">5 findings</option>
+          <option value="10">10 findings</option>
+        </select>
+      </div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">
         <span style="font-size:11px;color:var(--muted);flex:none">apparence</span>
         <div id="pinStyle" style="display:flex;gap:6px;flex-wrap:wrap">

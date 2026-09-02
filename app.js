@@ -7910,7 +7910,7 @@ function drawFindings() {
       '<select data-k="' + esc(f.key) + '" class="fstat">' + sel + '</select>' +
       '<button class="ghost pocgo" data-id="' + esc(f.id) + '">POC ⧉</button>' +
       '<button class="ghost ia-run" data-t="' + esc(f.text.slice(0, 400)) + '">IA »</button>' +
-      '<button class="ghost need-member fchat" data-k="' + esc(f.key) + '" data-sev="' + esc(f.sev || '') + '" data-t="' + esc(f.text || '') + '" style="padding:4px 8px;font-size:10.5px">→ chat</button>' +
+      '<button class="ghost need-member fchat" data-k="' + esc(f.key) + '" data-sev="' + esc(f.sev || '') + '" data-t="' + esc(f.text || '') + '" data-p="' + esc(f.program || '') + '" style="padding:4px 8px;font-size:10.5px">→ chat</button>' +
       '<button class="ghost need-coadmin fdel" data-k="' + esc(f.key) + '" style="color:var(--danger)">✕</button></div>' +
       '<div class="txt">' + hl(f.text) + '</div></div>';
   }).join('') || '<div class="fnd">' + T('f_none') + '</div>';
@@ -7918,8 +7918,11 @@ function drawFindings() {
     jpost('/api/findings', { op: 'patch', key: s.dataset.k, status: s.value, name: HANDLE });
   }));
   document.querySelectorAll('.fchat').forEach(b => b.addEventListener('click', () => {
-    jpost('/api/chat', { kind: 'finding', text: b.dataset.t, sev: b.dataset.sev, fkey: b.dataset.k, name: HANDLE || 'OPERATOR' }).then(r => r.json()).then(j => {
+    // prog porte le programme du finding : si un challenge est actif dessus,
+    // le serveur enforce participation + limite (aucun contournement client)
+    jpost('/api/chat', { kind: 'finding', text: b.dataset.t, sev: b.dataset.sev, fkey: b.dataset.k, prog: b.dataset.p, name: HANDLE || 'OPERATOR' }).then(r => r.json()).then(j => {
       toast('SESSION', j.ok ? 'finding envoye dans le chat de session' : (j.error || 'envoi refuse'), j.ok ? 'HIT' : 'P2');
+      if (j.ok) sndPlay('ok');
       setTimeout(refresh, 300);
     }).catch(() => {});
   }));
@@ -8032,6 +8035,7 @@ function drawPrograms() {
     $('pinErr').textContent = '';
     $('pinKind').value = 'pin';
     $('pinDur').value = '86400';
+    $('pinLimRow').style.display = 'none';
     setPinStyle('accent');
     $('pinModal').style.display = 'grid';
     $('pinModal').dataset.prog = p.id;
@@ -9102,12 +9106,20 @@ function drawPin() {
     const chal = expand.kind === 'challenge';
     const st = snStyle(expand);
     const d = chal ? '' : snDur(expand);
+    const myRk = TRANK[tm.meRole || tm.you] || 0;
+    // etat du challenge : participe-t-on ? combien de findings restants ?
+    const joined = !!(expand.me);
+    const lim = expand.limit || 0;
+    const cnt = expand.me ? expand.me.finds : 0;
     html += '<div class="sn-item' + (chal ? ' sn-chal' : (st !== 'accent' ? ' sn-' + st : '')) + '">' +
       (chal ? '<span class="sn-tag sn-tag-c">CHALLENGE</span>' : '<span class="sn-tag">EPINGLÉ</span>') +
       (p ? '<b>' + esc(p.name || p.id) + '</b>' : '') +
       (expand.text ? '<span>' + esc(expand.text) + '</span>' : '') +
       (chal && expand.exp ? '<span class="sn-clock">⏱ ' + snClock(expand) + '</span>' : (d ? '<span class="sn-dur">⏳ ' + d + '</span>' : '')) +
+      (chal && expand.nparts ? '<span class="sn-dur">' + expand.nparts + ' participant' + (expand.nparts > 1 ? 's' : '') + '</span>' : '') +
+      (chal && joined ? '<span class="pill ' + (lim && cnt >= lim ? 'p-warn' : 'p-live') + '">' + (lim ? cnt + '/' + lim + ' findings' : cnt + ' envoyé' + (cnt > 1 ? 's' : '')) + '</span>' : '') +
       (p ? '<button class="go sn-join" data-prog="' + esc(p.id) + '">rejoindre ›</button>' : '') +
+      (chal && !joined && myRk >= 1 ? '<button class="go sn-part" data-id="' + esc(expand.id) + '">participer ›</button>' : '') +
       (canEdit ? '<button class="ghost sn-del" data-id="' + esc(expand.id) + '" title="retirer l\'epingle">✕</button>' : '') +
       '</div>';
   }
@@ -9136,6 +9148,15 @@ $('sessPin').addEventListener('click', e => {
   // chip compact clique : cette epingle passe en version depliee
   const chip = e.target.closest('button.sn-chip');
   if (chip) { PIN_EXPAND = chip.dataset.id; drawn_pin = ''; drawPin(); return; }
+  // participer au challenge : le marqueur serveur attache le membre (limite enforcee ensuite)
+  const part = e.target.closest('button.sn-part');
+  if (part) {
+    jpost('/api/team', { op: 'chaljoin', id: part.dataset.id }).then(r => r.json()).then(j => {
+      toast('CHALLENGE', j.ok ? 'tu participes - tes findings sur ce programme comptent maintenant' : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2');
+      if (j.ok) { forceDraw = true; refresh(); }
+    }).catch(() => {});
+    return;
+  }
   const del = e.target.closest('button.sn-del');
   if (!del) return;
   jpost('/api/team', { op: 'unpin', id: del.dataset.id, by: HANDLE }).then(r => r.json()).then(j => {
@@ -9151,9 +9172,11 @@ function setPinStyle(s) {
   document.querySelectorAll('#pinStyle .pinstyle').forEach(b => b.classList.toggle('sel', b.dataset.s === PIN_STYLE));
 }
 document.querySelectorAll('#pinStyle .pinstyle').forEach(b => b.addEventListener('click', () => setPinStyle(b.dataset.s)));
-// challenge choisi : 20 min par defaut + style urgence (une epreuve se voit)
+// challenge choisi : 20 min par defaut, style urgence + limite de findings visibles
 $('pinKind').addEventListener('change', () => {
-  if ($('pinKind').value === 'challenge') {
+  const chal = $('pinKind').value === 'challenge';
+  $('pinLimRow').style.display = chal ? '' : 'none';
+  if (chal) {
     $('pinDur').value = '1200';
     setPinStyle('urgence');
   }
@@ -9162,7 +9185,7 @@ $('pinForm').addEventListener('submit', e => {
   e.preventDefault();
   const prog = $('pinModal').dataset.prog || '';
   if (!prog) return;
-  jpost('/api/team', { op: 'pin', prog, text: String($('pinMsg').value || '').trim(), style: PIN_STYLE, dur: Number($('pinDur').value || 0), kind: $('pinKind').value, by: HANDLE }).then(r => r.json()).then(j => {
+  jpost('/api/team', { op: 'pin', prog, text: String($('pinMsg').value || '').trim(), style: PIN_STYLE, dur: Number($('pinDur').value || 0), kind: $('pinKind').value, lim: Number($('pinLim').value || 0), by: HANDLE }).then(r => r.json()).then(j => {
     if (!j.ok) { $('pinErr').textContent = j.error || 'refuse'; return; }
     if (j.team) state.data.team = j.team;
     $('pinModal').style.display = 'none';
