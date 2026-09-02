@@ -102,6 +102,15 @@ function teamCfg() {
   // les entrees d'epingles purges sont nettoyees en meme temps
   const chal = (c.chal && typeof c.chal === 'object') ? { ...c.chal } : {};
   for (const k of Object.keys(chal)) if (!news.some(n => n.id === k)) delete chal[k];
+  // chats de session multiples : [{id, name, min (grade requis), event (newsId)}]
+  // 'session' est le canal par defaut, indestructible ; les chats d'event sont
+  // purges avec leur epingle (le chat du challenge meurt avec le challenge)
+  const chats = (Array.isArray(c.chats) ? c.chats : []).filter(x => x && typeof x === 'object'
+    && x.id && x.id !== 'session' && (!x.event || news.some(n => n.id === x.event)))
+    .map(x => ({ id: String(x.id).slice(0, 32), name: String(x.name || 'chat').slice(0, 24),
+      min: Math.max(0, Math.min(4, Math.floor(Number(x.min) || 0))), event: String(x.event || '') }))
+    .slice(0, 7);
+  chats.unshift({ id: 'session', name: 'session', min: 0, event: '' });
   return {
     enabled: !!c.enabled, room: String(c.room || ''), key: String(c.key || ''), live: !!c.live,
     roles: (c.roles && typeof c.roles === 'object') ? c.roles : {},
@@ -110,7 +119,15 @@ function teamCfg() {
     welcome: String(c.welcome || '').slice(0, 200),
     news,
     chal,
+    chats,
   };
+}
+// acces a un chat : grade >= min ; un chat d'event (challenge) est reserve aux
+// participants inscrits (moderation : admin et proprietaire passent toujours)
+function chatOk(c, h, rk) {
+  if (!c) return false;
+  if (c.event) return rk >= 4 || !!(h && c._parts && c._parts[h]);
+  return rk >= (c.min || 0);
 }
 function saveTeamCfg(c) { try { fs.writeFileSync(TEAM_FILE, JSON.stringify(c, null, 1)); } catch (e) {} }
 function genKey() { return 'c2ff-' + crypto.randomBytes(12).toString('hex'); }
@@ -189,9 +206,21 @@ function teamState(req, h) {
     })() : n),
     bind: BIND === '0.0.0.0' ? 'lan' : 'local', lan: lanAddr(),
     tunnel: TUNNEL ? (TUNNEL.ready && TUNNEL.url ? TUNNEL.url : (TUNNEL.err ? 'err:' + TUNNEL.err : 'starting')) : '',
+    chats: (t.chats || []).map(c => {
+      // l'acces aux chats d'event demande la liste des participants du challenge
+      const cc = c.event ? ((t.chal || {})[c.event] || {}) : {};
+      const cc2 = c.event ? { ...c, _parts: cc.parts || {} } : c;
+      return { id: c.id, name: c.name, min: c.min || 0, event: c.event || '', ok: chatOk(cc2, h, rk) };
+    }),
     chat: (() => {
       const V = loadVotes();
-      return lastChat(200).filter(m => m.kind === 'team' || m.kind === 'finding').slice(-100).map(m => {
+      // isolation : on ne recoit QUE les messages des chats auxquels on a acces
+      // (les non-participants ne voient pas le chat du challenge, ni le lire)
+      const okc = new Set((t.chats || []).filter(c => {
+        const cc = c.event ? ((t.chal || {})[c.event] || {}) : {};
+        return chatOk(c.event ? { ...c, _parts: cc.parts || {} } : c, h, rk);
+      }).map(c => c.id));
+      return lastChat(200).filter(m => (m.kind === 'team' || m.kind === 'finding') && okc.has(m.ch || 'session')).slice(-100).map(m => {
         const vv = V[m.id];
         if (!vv) return m;
         let up = 0, down = 0;
@@ -1072,7 +1101,14 @@ const MAIN = (req, res) => {
             const lim = Math.max(0, Math.min(20, Math.floor(Number(body.lim) || 0))); // 0 = illimite
             chal[nid] = { limit: lim, parts: {} };
           }
-          saveTeamCfg({ ...cur, news, chal });
+          // option "chat dedie a l'event" : un chat reserve aux participants du
+          // challenge, ouverts a l'epingle et ferme avec elle
+          let chats = [...(cur.chats || [])];
+          if (kind === 'challenge' && body.evchat) {
+            chats = chats.filter(c => c && c.id !== 'ev-' + nid)
+              .concat([{ id: 'ev-' + nid, name: 'event ' + (prog || '').slice(0, 12), min: 0, event: nid }]).slice(-8);
+          }
+          saveTeamCfg({ ...cur, news, chal, chats });
           return sendJson(res, { ok: true, team: teamState(req, by) });
         }
         // chaljoin : le marqueur qui ATTACHE le membre au challenge (cote
@@ -1099,7 +1135,38 @@ const MAIN = (req, res) => {
           const id = String(body.id || '');
           const prog = String(body.prog || '').slice(0, 40);
           // detach par id (croix du bandeau) ou par programme (bouton detacher de la fiche)
-          saveTeamCfg({ ...cur, news: (cur.news || []).filter(n => n.id !== id && n.prog !== prog) });
+          // les chats d'event attaches suivent leur epingle a la porte
+          const dead = (cur.news || []).filter(n => n.id === id || n.prog === prog).map(n => 'ev-' + n.id);
+          saveTeamCfg({
+            ...cur,
+            news: (cur.news || []).filter(n => n.id !== id && n.prog !== prog),
+            chats: (cur.chats || []).filter(c => !dead.includes(c.id) && !c.event),
+          });
+          return sendJson(res, { ok: true, team: teamState(req, by) });
+        }
+        // chatadd / chatdel : la creation de chats est un droit de proprietaire
+        // (le poste local) ; le grade minimum d'entree se choisit a la creation
+        if (body.op === 'chatadd') {
+          const by = cleanHandle(body.by || body.handle);
+          if (rankOf(req, by) < 5) return sendJson(res, { ok: false, error: 'proprietaire uniquement' });
+          const name = String(body.name || '').replace(/[<>]{1,}/g, '').trim().slice(0, 24);
+          if (name.length < 2) return sendJson(res, { ok: false, error: 'nom trop court (2 caracteres min)' });
+          const min = Math.max(0, Math.min(4, Math.floor(Number(body.min) || 0)));
+          const cur = teamCfg();
+          if ((cur.chats || []).filter(c => c.id !== 'session' && !c.event).length >= 6)
+            return sendJson(res, { ok: false, error: 'maximum 6 chats personnels' });
+          const cid = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+          saveTeamCfg({ ...cur, chats: (cur.chats || []).concat([{ id: cid, name, min, event: '' }]) });
+          return sendJson(res, { ok: true, team: teamState(req, by) });
+        }
+        if (body.op === 'chatdel') {
+          const by = cleanHandle(body.by || body.handle);
+          if (rankOf(req, by) < 5) return sendJson(res, { ok: false, error: 'proprietaire uniquement' });
+          const cid = String(body.id || '');
+          if (cid === 'session') return sendJson(res, { ok: false, error: 'le chat session est indestructible' });
+          const cur = teamCfg();
+          if (!(cur.chats || []).some(c => c.id === cid)) return sendJson(res, { ok: false, error: 'chat inconnu' });
+          saveTeamCfg({ ...cur, chats: (cur.chats || []).filter(c => c.id !== cid) });
           return sendJson(res, { ok: true, team: teamState(req, by) });
         }
         // role.set : les 5 grades, decision admin uniquement (le poste local est admin)
@@ -1349,11 +1416,24 @@ const MAIN = (req, res) => {
             saveTeamCfg({ ...cur, chal: chal2 });
           }
         }
+        // chat cible : un message ne part que dans un chat accessible (grade
+        // suffisant, ou participant pour un chat d'event) - verification serveur
+        let _cid = 'session';
+        if (body.kind === 'team' || body.kind === 'finding') {
+          const cur0 = teamCfg();
+          const rk0 = rankOf(req, _ch);
+          const cc = (cur0.chats || []).find(c => c.id === String(body.ch || 'session').slice(0, 32));
+          if (!cc) return sendJson(res, { ok: false, error: 'chat inconnu' });
+          if (!chatOk(cc.event ? { ...cc, _parts: ((cur0.chal || {})[cc.event] || {}).parts || {} } : cc, _ch, rk0))
+            return sendJson(res, { ok: false, error: cc.event ? 'chat reserve aux participants de l event' : 'grade insuffisant pour ce chat' });
+          _cid = cc.id;
+        }
         const msg = {
           t: Date.now(), id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), from: 'me',
           name: cleanHandle(body.name) || 'OPERATOR',
           kind: body.kind === 'team' ? 'team' : (body.kind === 'finding' ? 'finding' : 'chat'),
           text: trunc(body.text || '', 4000),
+          ch: _cid,
         };
         if (body.fkey) msg.fkey = String(body.fkey).slice(0, 100);
         if (body.prog) msg.prog = String(body.prog).slice(0, 40); // programme partage : bouton rejoindre sur le chat

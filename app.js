@@ -90,6 +90,9 @@ const I18N = {
     tm_tun_wait: 'tunnel public en cours d ouverture (quelques secondes)…', tm_tun_on: 'SESSION OUVERTE AU MONDE : {u} - le lien d invitation marche partout, pas besoin du meme reseau',
     tm_tun_closed: 'tunnel ferme - retour LAN/local', tm_chat_empty: 'canal de session ouvert - les membres de la salle se lisent ici',
     tm_chat_h2: 'Chat de session', tm_msg_ph: 'message vers la session…',
+    navchs: 'CHATS', chs_h2: 'Chats de session',
+    chs_p: 'Un canal par sujet : le chat session est ouvert a tous, le proprietaire cree des chats reserves a un grade, et chaque challenge peut ouvrir son chat dedie - reserve aux participants.',
+    chs_name_ph: 'nom du chat', chs_locked: 'chat verrouille : grade insuffisant ou participation a l event requise',
     tm_admin: 'admin', tm_guest: 'invite',
     tm_kick: 'KICK', tm_kick_ok: 'membre exclu de la salle (re-cliquer debloque)',
     tm_role_ok: 'role mis a jour', tm_mic_on: 'ACTIVER LE MICRO',
@@ -184,6 +187,9 @@ const I18N = {
     tm_tun_wait: 'public tunnel coming up (a few seconds)…', tm_tun_on: 'SESSION OPEN TO WORLD: {u} - the invite link works from anywhere, no shared network needed',
     tm_tun_closed: 'tunnel closed - back to LAN/local', tm_chat_empty: 'session channel open - room members read each other here',
     tm_chat_h2: 'Session chat', tm_msg_ph: 'message to the session…',
+    navchs: 'CHATS', chs_h2: 'Session chats',
+    chs_p: 'One channel per topic: the session chat is open to everyone, the session owner creates grade-restricted chats, and each challenge can open its own chat - reserved to participants.',
+    chs_name_ph: 'chat name', chs_locked: 'locked chat: insufficient grade or event participation required',
     tm_admin: 'admin', tm_guest: 'guest',
     tm_kick: 'KICK', tm_kick_ok: 'member removed from the room (click again to unblock)',
     tm_role_ok: 'role updated', tm_mic_on: 'ENABLE MICROPHONE',
@@ -9176,6 +9182,7 @@ document.querySelectorAll('#pinStyle .pinstyle').forEach(b => b.addEventListener
 $('pinKind').addEventListener('change', () => {
   const chal = $('pinKind').value === 'challenge';
   $('pinLimRow').style.display = chal ? '' : 'none';
+  if ($('pinEvRow')) $('pinEvRow').hidden = !chal; // chat dedie : option challenge uniquement
   if (chal) {
     $('pinDur').value = '1200';
     setPinStyle('urgence');
@@ -9185,7 +9192,7 @@ $('pinForm').addEventListener('submit', e => {
   e.preventDefault();
   const prog = $('pinModal').dataset.prog || '';
   if (!prog) return;
-  jpost('/api/team', { op: 'pin', prog, text: String($('pinMsg').value || '').trim(), style: PIN_STYLE, dur: Number($('pinDur').value || 0), kind: $('pinKind').value, lim: Number($('pinLim').value || 0), by: HANDLE }).then(r => r.json()).then(j => {
+  jpost('/api/team', { op: 'pin', prog, text: String($('pinMsg').value || '').trim(), style: PIN_STYLE, dur: Number($('pinDur').value || 0), kind: $('pinKind').value, lim: Number($('pinLim').value || 0), evchat: $('pinEv') ? $('pinEv').checked : false, by: HANDLE }).then(r => r.json()).then(j => {
     if (!j.ok) { $('pinErr').textContent = j.error || 'refuse'; return; }
     if (j.team) state.data.team = j.team;
     $('pinModal').style.display = 'none';
@@ -9205,6 +9212,7 @@ $('tmWelcomeSave').addEventListener('click', () => {
   }).catch(() => {});
 });
 function drawTeam() {
+  drawChats(); // chats de session : onglet dedie, rendu a chaque poll (changement de canal sans re-render complet)
   const tm = state.data.team || {};
   const remote = tm.bind === 'lan';
   const tun = typeof tm.tunnel === 'string' ? tm.tunnel : '';
@@ -9300,30 +9308,94 @@ function drawTeam() {
   if (tunBtn) { tunBtn.hidden = !tm.enabled; tunBtn.disabled = tun === 'starting'; tunBtn.textContent = world ? T('tm_tun_close') : T('tm_tun_open'); }
   const liveBtn = $('tmLive');
   if (liveBtn) { liveBtn.textContent = remote ? T('tm_shore') : T('tm_live'); liveBtn.hidden = !tm.enabled; }
-  // chat de session : canal dedie a la room, separe de la coordination
-  const blog = $('tmChatlog');
-  if (blog) {
-    blog.hidden = !tm.enabled;
-    const bc = tm.chat || [];
-    blog.innerHTML = bc.map(m => {
-      const cls = 'msg ' + (m.name === HANDLE ? 'me' : 'claude') + (m.kind === 'finding' ? ' msg-finding' : '');
-      const sev = m.kind === 'finding' && m.sev
-        ? ' <span class="pill ' + (m.sev === 'P1' || m.sev === 'P2' ? 'p-prog' : 'p-done') + '">' + esc(m.sev) + '</span>' : '';
-      const vt = m.v || { up: 0, down: 0, me: 0 };
-      const votes = m.id
-        ? '<span class="tmv" data-id="' + esc(m.id) + '" data-v="up" style="cursor:pointer;margin-left:10px;color:' + (vt.me === 1 ? 'var(--green)' : 'var(--faint)') + '">👍 ' + vt.up + '</span>' +
-          '<span class="tmv" data-id="' + esc(m.id) + '" data-v="down" style="cursor:pointer;margin-left:6px;color:' + (vt.me === -1 ? 'var(--danger)' : 'var(--faint)') + '">👎 ' + vt.down + '</span>'
-        : '';
-      const join = m.prog
-        ? (IS_LOCAL || !(state.data.programs || []).find(x => x.id === m.prog && (x.access || 1) > (TRANK[state.data.team ? (state.data.team.meRole || state.data.team.you) : 'viewer'] || 0) && x.owner !== HANDLE)
-          ? '<button class="ghost tmjoin" data-prog="' + esc(m.prog) + '" style="margin-left:10px;padding:2px 10px;font-size:10px">rejoindre le programme ›</button>'
-          : ' <span class="pill" title="grade insuffisant pour rejoindre ce programme">grade requis</span>')
-        : '';
-      return '<div class="' + cls + '"><div class="who">' + esc(m.name || '?') + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + sev + votes + join + '</div>' + esc(m.text || '') + '</div>';
-    }).join('') || '<div class="msg claude">' + T('tm_chat_empty') + '</div>';
-    blog.scrollTop = blog.scrollHeight;
-  }
+  // chat de session : rendu dans l'onglet CHATS dedie (drawChats)
 }
+// ---------- onglet CHATS : canaux multiples de la session ----------
+// 'session' = canal par defaut ouvert a tous ; le proprietaire cree des chats
+// reserves a un grade (member, hunter, co-admin, admin) ; un challenge peut
+// ouvrir son chat 'event', reserve aux participants (isolation serveur incluse).
+let CHAT_SEL = 'session';
+const CHMIN = { 0: '', 1: 'member', 2: 'hunter', 3: 'co-admin', 4: 'admin' };
+function drawChats() {
+  const tm = state.data.team || {};
+  const myRole = tm.meRole || tm.you || 'viewer';
+  const rk = TRANK[myRole] || 0;
+  const tabs = $('chatTabs');
+  const list = (tm.chats && tm.chats.length ? tm.chats : [{ id: 'session', name: 'session', min: 0, event: '', ok: true }]);
+  if (!list.find(c => c.id === CHAT_SEL && c.ok)) CHAT_SEL = (list.find(c => c.ok) || list[0]).id;
+  if (tabs) {
+    tabs.hidden = !tm.enabled;
+    tabs.innerHTML = list.map(c =>
+      '<span class="cht' + (c.id === CHAT_SEL ? ' on' : '') + (c.ok ? '' : ' locked') + '" data-cid="' + esc(c.id) + '">' +
+      esc(c.name) +
+      (c.event ? ' <span class="cev">EVENT</span>' : ((c.min || 0) > 0 ? ' <span class="cg">' + esc(CHMIN[c.min] || '') + '</span>' : '')) +
+      (c.ok ? '' : ' <span class="cg">🔒</span>') +
+      (rk >= 5 && c.id !== 'session' ? '<button class="ghost cht-del" data-cid="' + esc(c.id) + '" title="fermer ce chat" style="padding:0 3px;border:none">✕</button>' : '') +
+      '</span>').join('') +
+      (rk >= 5 && tm.enabled ? '<span class="cht cht-add" id="chatAddBtn" style="border-style:dashed;color:hsl(var(--hue) 85% 68%)">+ chat</span>' : '');
+  }
+  const blog = $('tmChatlog');
+  if (!blog) return;
+  blog.hidden = !tm.enabled;
+  const cur = list.find(c => c.id === CHAT_SEL);
+  if (!cur || !cur.ok) {
+    blog.innerHTML = '<div class="msg claude">🔒 ' + T('chs_locked') + '</div>';
+    return;
+  }
+  const bc = (tm.chat || []).filter(m => (m.ch || 'session') === CHAT_SEL);
+  blog.innerHTML = bc.map(m => {
+    const cls = 'msg ' + (m.name === HANDLE ? 'me' : 'claude') + (m.kind === 'finding' ? ' msg-finding' : '');
+    const sev = m.kind === 'finding' && m.sev
+      ? ' <span class="pill ' + (m.sev === 'P1' || m.sev === 'P2' ? 'p-prog' : 'p-done') + '">' + esc(m.sev) + '</span>' : '';
+    const vt = m.v || { up: 0, down: 0, me: 0 };
+    const votes = m.id
+      ? '<span class="tmv" data-id="' + esc(m.id) + '" data-v="up" style="cursor:pointer;margin-left:10px;color:' + (vt.me === 1 ? 'var(--green)' : 'var(--faint)') + '">👍 ' + vt.up + '</span>' +
+        '<span class="tmv" data-id="' + esc(m.id) + '" data-v="down" style="cursor:pointer;margin-left:6px;color:' + (vt.me === -1 ? 'var(--danger)' : 'var(--faint)') + '">👎 ' + vt.down + '</span>'
+      : '';
+    const join = m.prog
+      ? (IS_LOCAL || !(state.data.programs || []).find(x => x.id === m.prog && (x.access || 1) > rk && x.owner !== HANDLE)
+        ? '<button class="ghost tmjoin" data-prog="' + esc(m.prog) + '" style="margin-left:10px;padding:2px 10px;font-size:10px">rejoindre le programme ›</button>'
+        : ' <span class="pill" title="grade insuffisant pour rejoindre ce programme">grade requis</span>')
+      : '';
+    return '<div class="' + cls + '"><div class="who">' + esc(m.name || '?') + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + sev + votes + join + '</div>' + esc(m.text || '') + '</div>';
+  }).join('') || '<div class="msg claude">' + T('tm_chat_empty') + '</div>';
+  blog.scrollTop = blog.scrollHeight;
+}
+$('chatTabs').addEventListener('click', e => {
+  const del = e.target.closest('button.cht-del');
+  if (del) {
+    jpost('/api/team', { op: 'chatdel', id: del.dataset.cid, by: HANDLE }).then(r => r.json()).then(j => {
+      if (j.team) state.data.team = j.team;
+      toast('CHATS', j.ok ? 'chat ferme' : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2');
+      if (j.ok) { forceDraw = true; refresh(); }
+    }).catch(() => {});
+    return;
+  }
+  if (e.target.closest('#chatAddBtn')) {
+    $('chatAddForm').hidden = !$('chatAddForm').hidden;
+    if (!$('chatAddForm').hidden) $('chatAddName').focus();
+    return;
+  }
+  const c = e.target.closest('.cht');
+  if (c && c.dataset.cid && c.dataset.cid !== CHAT_SEL) { CHAT_SEL = c.dataset.cid; drawChats(); }
+});
+$('chatAddCancel').addEventListener('click', () => { $('chatAddForm').hidden = true; });
+$('chatAddForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('chatAddName').value.trim();
+  if (!name) return;
+  jpost('/api/team', { op: 'chatadd', name, min: Number($('chatAddMin').value || 0), by: HANDLE }).then(r => r.json()).then(j => {
+    if (j.team) state.data.team = j.team;
+    if (j.ok && j.team) {
+      const nc = (j.team.chats || []).filter(c => c.ok).pop();
+      if (nc) CHAT_SEL = nc.id;
+    }
+    $('chatAddName').value = '';
+    $('chatAddForm').hidden = true;
+    toast('CHATS', j.ok ? 'chat ouvert : ' + name : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2');
+    if (j.ok) { forceDraw = true; refresh(); }
+  }).catch(() => {});
+});
 $('tmChatlog').addEventListener('click', e => {
   const jn = e.target.closest('button.tmjoin');
   if (jn) {
@@ -9352,7 +9424,7 @@ $('tmMsgForm').addEventListener('submit', e => {
   e.preventDefault();
   const t = $('tmMsg').value.trim();
   if (!t) return;
-  jpost('/api/chat', { text: t, name: HANDLE || 'invide', kind: 'team' });
+  jpost('/api/chat', { text: t, name: HANDLE || 'invide', kind: 'team', ch: CHAT_SEL });
   $('tmMsg').value = '';
   setTimeout(refresh, 250);
 });
