@@ -8963,6 +8963,10 @@ document.addEventListener('keydown', e => {
 const TRANK = { admin: 4, coadmin: 3, hunter: 2, member: 1, viewer: 0 };
 const TRLBL = { admin: 'admin', coadmin: 'co-admin', hunter: 'chasseur', member: 'membre', viewer: 'observateur' };
 let SEEN_REQ = '';
+let TM_ARM = 0; // mousedown sur select grade -> fige la liste membres/demandes 6 s
+const tmArm = e => { if (e.target.closest && e.target.closest('select')) TM_ARM = Date.now() + 6000; };
+$('tmMembers').addEventListener('mousedown', tmArm);
+$('tmPending').addEventListener('mousedown', tmArm);
 function drawTeam() {
   const tm = state.data.team || {};
   const remote = tm.bind === 'lan';
@@ -8973,8 +8977,9 @@ function drawTeam() {
   rtcTick();
   // interaction en cours dans la liste ? (select de grade ouvert, bouton focalise)
   // ms de presence change a chaque poll : sans ce garde, le re-render detruit le
-  // select sous le curseur. drawn reset : le rendu repart des que le focus sort.
-  if (focusInside('#tmMembers') || focusInside('#tmPending')) { drawn.team = ''; return; }
+  // select sous le curseur. ARM : un mousedown sur un select fige la liste 6 s
+  // meme si le focus bouge (le dropdown natif se ferme des que le DOM change).
+  if (focusInside('#tmMembers') || focusInside('#tmPending') || Date.now() < TM_ARM) { drawn.team = ''; return; }
   const sig = JSON.stringify([tm.enabled, tm.room, tm.members, HANDLE, tm.bind, tm.lan, tun, tm.chat, tm.you, microOn, tm.requests]);
   if (sig === drawn.team && !forceDraw) return;
   drawn.team = sig;
@@ -9468,7 +9473,7 @@ if ((() => { try { return localStorage.getItem('c2ff-full') === 'on'; } catch (e
 // groupe : cartes de commandes - pseudo + type, sorties masquees par defaut,
 // un seul point d'execution isole (conteneur jetable) : tout le monde voit pareil.
 // spy : vue LECTURE SEULE du perso d'un membre (co-admin+), depuis l'onglet TEAM.
-const TERM = { es: null, errs: 0, hi: 0, hist: [], mode: 'solo', cards: [], open: {}, spy: '', since: 0 };
+const TERM = { es: null, errs: 0, hi: 0, hist: [], mode: 'solo', cards: [], open: {}, spy: '', since: 0, bpos: 0 };
 function termSetMode(mode) {
   TERM.mode = mode === 'group' ? 'group' : 'solo';
   TERM.spy = '';
@@ -9476,6 +9481,7 @@ function termSetMode(mode) {
   TERM.errs = 0;
   TERM.cards = []; TERM.open = {};
   $('termOut').textContent = '';
+  TERM.bpos = 0;
   termConn('');
   const solo = $('termSolo'), grp = $('termGroup');
   if (solo) solo.className = TERM.mode === 'solo' ? 'go need-member' : 'ghost need-member';
@@ -9496,6 +9502,7 @@ function termStartSpy(h) {
   if (TERM.es) { try { TERM.es.close(); } catch (e) {} TERM.es = null; }
   TERM.errs = 0;
   $('termOut').textContent = '';
+  TERM.bpos = 0;
   const solo = $('termSolo'), grp = $('termGroup');
   if (solo) solo.className = 'ghost need-member';
   if (grp) grp.className = 'ghost need-member';
@@ -9535,15 +9542,28 @@ function termAppend(t) {
 }
 // rendu cartes du mode groupe : pseudo + type + cible visibles, sortie masquee
 // sauf si c est la tienne ou si tu as clique voir (1 = apercu 4000 c, 2 = tout)
+let TERM_SIG = '';
 function termRender() {
   if (TERM.mode !== 'group') return;
   const el = $('termOut');
   if (!el) return;
   const me = termHandle();
+  // rien n'a change ? ne re-rend surtout pas : reconstruire l'innerHTML reset
+  // le scroll interne des cartes deroulees (le fil remonte en haut tout seul)
+  const sig = JSON.stringify([TERM.cards, TERM.open, me]);
+  if (sig === TERM_SIG) return;
+  TERM_SIG = sig;
   const stick = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  // memoire du scroll interne de chaque carte deroulee, restoree apres rendu
+  const scrolls = {};
+  el.querySelectorAll('.tcard[data-id] .tcard-out').forEach(p => {
+    const c = p.closest('.tcard');
+    if (c && p.scrollTop) scrolls[c.dataset.id] = p.scrollTop;
+  });
   el.innerHTML = TERM.cards.length ? TERM.cards.map(k => {
     const mine = k.by === me;
-    const lv = mine ? Math.max(1, TERM.open[k.id] || 0) : (TERM.open[k.id] || 0);
+    const op = TERM.open[k.id] || 0;
+    const lv = mine ? (op === 0 ? 0 : Math.max(1, op)) : op; // une carte a moi se replie aussi (op 0 explicite)
     const head = '<div class="tcard-h"><b class="tcard-by">' + esc(k.by) + '$</b>'
       + '<span class="tcard-cmd" title="' + esc(k.cmd) + '">' + esc(k.cmd.length > 90 ? k.cmd.slice(0, 90) + '…' : k.cmd) + '</span>'
       + '<span class="pill p-prog">' + esc(k.type || '') + '</span>'
@@ -9561,11 +9581,17 @@ function termRender() {
         const show = full ? o : o.slice(0, 4000);
         const rest = o.length - show.length;
         body = '<pre class="tcard-out">' + esc(show) + '</pre>'
-          + (rest > 0 ? '<button class="ghost tmore" data-id="' + k.id + '">+' + (rest > 1024 ? Math.round(rest / 1024) + ' Ko' : rest + ' c') + ' masques - tout derouler</button>' : '');
+          + (rest > 0 ? '<button class="ghost tmore" data-id="' + k.id + '">+' + (rest > 1024 ? Math.round(rest / 1024) + ' Ko' : rest + ' c') + ' masques - tout derouler</button>' : '')
+          + '<button class="ghost tclose" data-id="' + k.id + '">replier</button>';
       }
     }
-    return '<div class="tcard' + (mine ? ' tcard-mine' : '') + (k.run ? ' tcard-run' : '') + '">' + head + body + '</div>';
+    return '<div class="tcard' + (mine ? ' tcard-mine' : '') + (k.run ? ' tcard-run' : '') + '" data-id="' + esc(k.id) + '">' + head + body + '</div>';
   }).join('') : '<div style="color:var(--faint);padding:20px;text-align:center">aucune commande - tape la premiere, tout le monde la verra signee de ton pseudo</div>';
+  el.querySelectorAll('.tcard[data-id] .tcard-out').forEach(p => {
+    const c = p.closest('.tcard');
+    const v = c && scrolls[c.dataset.id];
+    if (v) p.scrollTop = v;
+  });
   if (stick) el.scrollTop = el.scrollHeight;
 }
 function termKBody(extra) {
@@ -9574,6 +9600,9 @@ function termKBody(extra) {
 function termConnect() {
   if (TERM.es) return;
   if (!('EventSource' in window)) return;
+  // hors localhost (tunnel, LAN via proxy) le SSE est bufferise ou coupe en boucle :
+  // tout passe par le polling (cartes groupe deja prevu, perso/spy via /api/term/buf)
+  if (!IS_LOCAL) { termConn('polling', false); return; }
   const q = '/api/term/stream?handle=' + encodeURIComponent(termHandle())
     + (TERM.mode === 'group' && !TERM.spy ? '&term=group' : '')
     + (TERM.spy ? '&who=' + encodeURIComponent(TERM.spy) : '')
@@ -9610,6 +9639,43 @@ function termConnect() {
     if (state.tab === 'term') setTimeout(termConnect, 2000);
   };
 }
+// application d'un buffer recu par polling (perso ou spy) : reset si le buf
+// serveur a ete tronque ou si la session a redemarre
+function termBufApply(r) {
+  if (r.reset || (r.pos || 0) < (TERM.bpos || 0)) $('termOut').textContent = '';
+  if (r.buf) { const t = termClean(r.buf); if (t) termAppend(t); }
+  TERM.bpos = r.pos || 0;
+}
+function termBufErr(r) {
+  if (Date.now() - termConnT > 8000) {
+    termConnT = Date.now();
+    termConn(r.error || 'acces refuse', true);
+    toast('TERM', r.error || 'acces refuse', 'P2');
+  }
+}
+// polling du spy hors localhost : le SSE qui porte ?who= est bufferise via tunnel
+setInterval(() => {
+  if (!state || state.tab !== 'term' || !TERM.spy || IS_LOCAL) return;
+  jget('/api/term/buf?who=' + encodeURIComponent(TERM.spy) + '&handle=' + encodeURIComponent(termHandle()) + '&since=' + (TERM.bpos || 0))
+    .then(r => r.json().catch(() => ({ ok: false, error: 'reponse illisible du serveur (' + r.status + ')' })))
+    .then(r => {
+      if (!r || r.ok === false) { termBufErr(r || {}); return; }
+      termConn('polling', false);
+      termBufApply(r);
+    }).catch(() => {});
+}, 2000);
+// polling du terminal perso hors localhost : 1 s, l'echo doit rester reactif.
+// C'ETAIT l'ecran noir membre : le SSE perso via tunnel ne livrait rien.
+setInterval(() => {
+  if (!state || state.tab !== 'term' || TERM.spy || IS_LOCAL || TERM.mode !== 'solo') return;
+  jget('/api/term/buf?handle=' + encodeURIComponent(termHandle()) + '&since=' + (TERM.bpos || 0))
+    .then(r => r.json().catch(() => ({ ok: false, error: 'reponse illisible du serveur (' + r.status + ')' })))
+    .then(r => {
+      if (!r || r.ok === false) { termBufErr(r || {}); return; }
+      termConn('polling', false);
+      termBufApply(r);
+    }).catch(() => {});
+}, 1000);
 // polling de secours des cartes : si le flux SSE est bufferise/mort (tunnel,
 // proxy), l'affichage membre passe quand meme par /api/term/cards
 setInterval(() => {
@@ -9659,6 +9725,8 @@ $('termForm').addEventListener('submit', e => {
 });
 $('termOut').addEventListener('click', e => {
   if (TERM.mode !== 'group') return;
+  const close = e.target.closest('.tclose');
+  if (close) { TERM.open[close.dataset.id] = 0; termRender(); return; }
   const see = e.target.closest('.tsee'), more = e.target.closest('.tmore');
   if (!see && !more) return;
   const id = (see || more).dataset.id;

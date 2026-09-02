@@ -1692,6 +1692,31 @@ const MAIN = (req, res) => {
     const cards = GROUPCARDS.filter(c => c.t > since);
     return sendJson(res, { ok: true, cards, total: GROUPCARDS.length });
   }
+  if (p === '/api/term/buf') {
+    // repli polling du terminal perso (et du spy via ?who=) : le SSE est
+    // bufferise/mort via tunnel ou proxy - le perso n'avait AUCUN secours,
+    // d'ou l'ecran noir cote membre. since = position deja vue dans le buf.
+    const who = cleanHandle(url.searchParams.get('who') || '');
+    const h = cleanHandle(url.searchParams.get('handle') || '');
+    let ts;
+    if (who) {
+      if (!termSpyAllowed(req, h, who)) return sendJson(res, { ok: false, error: 'terminal refuse', why: 'spy' });
+      ts = TERMS.get(who) || termSpawn(who); // paresseux, comme le stream spy
+    } else {
+      if (!termTermAllowed(req, h, false)) {
+        const t = teamCfg();
+        const why = t.blocked.includes(h) ? 'kicked' : 'pending';
+        return sendJson(res, { ok: false, error: why === 'kicked'
+          ? 'acces terminal refuse : ce pseudo a ete kicke de la salle (un admin peut le debloquer)'
+          : 'acces terminal refuse : ta validation par un admin est en attente', why });
+      }
+      ts = TERMS.get(termId(req, h)) || termSpawn(termId(req, h)); // paresseux : le SSE ne demarre plus le PTY hors localhost
+    }
+    const buf = ts ? ts.buf : '';
+    const since = Number(url.searchParams.get('since') || 0);
+    if (buf.length < since) return sendJson(res, { ok: true, buf, pos: buf.length, reset: true }); // tronque ou session neuve
+    return sendJson(res, { ok: true, buf: buf.slice(since), pos: buf.length });
+  }
   if (p === '/api/term/stream') {
     // SSE : replay du buffer puis output live. Groupe : cartes de commandes ;
     // perso : PTY prive ; ?who= = vue lecture seule du perso d'un membre (co-admin+).
