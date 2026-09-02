@@ -8037,6 +8037,11 @@ function drawPrograms() {
     const p = state.data.programs.find(x => x.id === b.dataset.p);
     if (!p) return;
     $('pinProgName').textContent = p.name || p.id;
+    // scope : le programme de la fiche pre-rempli, mais on peut epingler un
+    // autre programme de la liste (challenge sur un autre scope)
+    const sel = $('pinProgSel');
+    sel.innerHTML = (state.data.programs || []).map(x =>
+      '<option value="' + esc(x.id) + '"' + (x.id === p.id ? ' selected' : '') + '>' + esc(x.name || x.id) + '</option>').join('');
     $('pinMsg').value = '';
     $('pinErr').textContent = '';
     $('pinKind').value = 'pin';
@@ -9178,6 +9183,11 @@ function setPinStyle(s) {
   document.querySelectorAll('#pinStyle .pinstyle').forEach(b => b.classList.toggle('sel', b.dataset.s === PIN_STYLE));
 }
 document.querySelectorAll('#pinStyle .pinstyle').forEach(b => b.addEventListener('click', () => setPinStyle(b.dataset.s)));
+// changement de scope dans le popup : le bandeau suit le programme choisi
+$('pinProgSel').addEventListener('change', () => {
+  const p = (state.data.programs || []).find(x => x.id === $('pinProgSel').value);
+  $('pinProgName').textContent = p ? (p.name || p.id) : $('pinProgSel').value;
+});
 // challenge choisi : 20 min par defaut, style urgence + limite de findings visibles
 $('pinKind').addEventListener('change', () => {
   const chal = $('pinKind').value === 'challenge';
@@ -9277,8 +9287,8 @@ function drawTeam() {
     '<b style="color:' + (m.h === HANDLE ? 'var(--green)' : 'var(--text)') + '">' + esc(m.h) + (m.h === HANDLE ? ' <small style="color:var(--faint)">' + T('tm_you') + '</small>' : '') + '</b>' +
     '<span class="pill ' + (m.role === 'owner' ? 'p-owner' : m.role === 'admin' ? 'p-prog' : 'p-done') + '">' + (m.st === 'pending' ? 'en attente' : (TRLBL[m.role] || m.role || 'membre')) + '</span>' +
     '<span class="pill ' + (m.active ? 'p-live' : 'p-done') + '">' + (m.active ? T('tm_here') : Math.round(m.ms / 60000) + ' min') + '</span>' +
-    (amAdmin && m.h !== HANDLE ?
-      '<select class="tmrole" data-h="' + esc(m.h) + '">' + ['viewer', 'member', 'hunter', 'coadmin', 'admin'].map(r =>
+    (amAdmin && m.h !== HANDLE && m.role !== 'owner' && (TRANK[m.role] || 0) < rk ?
+      '<select class="tmrole" data-h="' + esc(m.h) + '">' + ['viewer', 'member', 'hunter', 'coadmin', 'admin'].filter(r => TRANK[r] < rk).map(r =>
         '<option value="' + r + '"' + (m.role === r ? ' selected' : '') + '>' + TRLBL[r] + '</option>').join('') + '</select>' +
       (rk >= 3 ? '<button class="ghost tmkick" data-h="' + esc(m.h) + '">' + T('tm_kick') + '</button>' : '') : '') +
     (rk >= 3 && m.h !== HANDLE && m.st !== 'pending' ?

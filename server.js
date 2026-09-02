@@ -1172,11 +1172,18 @@ const MAIN = (req, res) => {
         // role.set : les 5 grades, decision admin uniquement (le poste local est admin)
         if (body.op === 'role.set') {
           const by = cleanHandle(body.by || body.handle);
-          if (rankOf(req, by) < 4) return sendJson(res, { ok: false, error: 'admin only' });
+          const myRk = rankOf(req, by);
+          if (myRk < 4) return sendJson(res, { ok: false, error: 'admin ou proprietaire requis' });
           const cur = teamCfg();
           const h = cleanHandle(body.h);
           const r = ['admin', 'coadmin', 'hunter', 'member', 'viewer'].includes(body.r) ? body.r : 'member';
           if (!h) return sendJson(res, { ok: false, error: 'handle required' });
+          // personne ne touche au grade d'un membre de rang >= au sien
+          // (le proprietaire seul passe) ni au role owner, non assignable
+          const tRk = RANKS[(cur.members[h] || {}).role] || 0;
+          if (h === by) return sendJson(res, { ok: false, error: 'on ne modifie pas son propre grade' });
+          if ((tRk >= myRk || RANKS[r] >= myRk) && myRk < 5)
+            return sendJson(res, { ok: false, error: 'grade du membre trop eleve pour toi' });
           const members = { ...cur.members };
           members[h] = members[h] ? { ...members[h], role: r } : { pin: '', role: r, status: 'approved', t: Date.now() };
           saveTeamCfg({ ...cur, members });
@@ -1313,10 +1320,21 @@ const MAIN = (req, res) => {
           if (body.op === 'share') {
             const card = GROUPCARDS.find(x => x.id === String(body.id || ''));
             if (!card) return sendJson(res, { ok: false, error: 'carte introuvable' });
+            // un participant d'un challenge actif partage dans le chat de SON
+            // event (la commande + sa sortie vont aux autres participants) ;
+            // sinon le partage part dans le chat session comme avant
+            let chid = 'session';
+            const cur = teamCfg();
+            const now = Date.now();
+            const mine = (cur.news || []).filter(n => n.kind === 'challenge' && (!n.exp || n.exp > now)
+              && (cur.chal || {})[n.id] && ((cur.chal[n.id].parts || {})[h] || rankOf(req, h) >= 4));
+            const evn = mine[mine.length - 1];
+            const evc = evn && (cur.chats || []).find(c => c.event === evn.id);
+            if (evc) chid = evc.id;
             const txt = 'terminal ▸ ' + card.cmd + (card.out ? '\n' + card.out.slice(0, 800) : '') + (card.run ? '\n(en cours)' : '');
             appendJsonl(CHAT_FILE, {
               t: Date.now(), id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), from: 'me',
-              name: h || 'host', kind: 'team', text: txt.slice(0, 4000),
+              name: h || 'host', kind: 'team', text: txt.slice(0, 4000), ch: chid,
             });
             return sendJson(res, { ok: true });
           }
@@ -1738,6 +1756,18 @@ const MAIN = (req, res) => {
           const progs = loadPrograms().filter(x => x.id !== id);
           try { fs.writeFileSync(PROGRAMS_FILE, JSON.stringify(progs, null, 1)); } catch (e) { return sendJson(res, { ok: false }); }
           purgeProgData(id);
+          // le programme disparait : son epingle, son challenge et le chat de
+          // l'event meurent avec lui (le bandeau ne peut pas epingler un mort)
+          {
+            const cur = teamCfg();
+            const dead = (cur.news || []).filter(n => n.prog === id).map(n => n.id);
+            if (dead.length) saveTeamCfg({
+              ...cur,
+              news: (cur.news || []).filter(n => n.prog !== id),
+              chal: Object.fromEntries(Object.entries(cur.chal || {}).filter(([k]) => !dead.includes(k))),
+              chats: (cur.chats || []).filter(c => !c.event || !dead.includes(c.event)),
+            });
+          }
           const before = state.findings.length;
           state.findings = state.findings.filter(f => f.program !== id);
           persistFindings();
