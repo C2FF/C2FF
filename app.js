@@ -22055,7 +22055,7 @@ $('tmWizz').addEventListener('click', () => {
     if (j.ok) {
       WIZZ_LAST = Date.now(); // son propre wizz : pas de double effet au retour
       wizzSound(); wizzShake();
-      toast('WIZZ', '⚡ wizz envoye - ta console tremble aussi', 'HIT');
+      toast('WIZZ', '⚡ wizz envoye', 'HIT');
       drawChats();
     }
     else toast('WIZZ', j.error || 'refuse', 'P2');
