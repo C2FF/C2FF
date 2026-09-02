@@ -8046,6 +8046,7 @@ function drawPrograms() {
     $('pinErr').textContent = '';
     $('pinKind').value = 'pin';
     $('pinDur').value = '86400';
+    if ($('pinDurCustomRow')) $('pinDurCustomRow').hidden = true;
     $('pinLimRow').style.display = 'none';
     setPinStyle('accent');
     $('pinModal').style.display = 'grid';
@@ -9198,11 +9199,22 @@ $('pinKind').addEventListener('change', () => {
     setPinStyle('urgence');
   }
 });
+// duree libre : l'option "personnalise..." ouvre le reglage fin (nombre + unite)
+function pinDurSeconds() {
+  if ($('pinDur').value !== 'custom') return Number($('pinDur').value || 0);
+  const n = Math.max(1, Math.floor(Number($('pinDurNum').value || 0)));
+  const u = Number($('pinDurUnit').value || 60);
+  return Math.min(2592000, n * u); // cap serveur : 30 jours
+}
+$('pinDur').addEventListener('change', () => {
+  if ($('pinDurCustomRow')) $('pinDurCustomRow').hidden = $('pinDur').value !== 'custom';
+  if ($('pinDur').value === 'custom') setTimeout(() => { try { $('pinDurNum').focus(); $('pinDurNum').select(); } catch (e) {} }, 60);
+});
 $('pinForm').addEventListener('submit', e => {
   e.preventDefault();
   const prog = $('pinModal').dataset.prog || '';
   if (!prog) return;
-  jpost('/api/team', { op: 'pin', prog, text: String($('pinMsg').value || '').trim(), style: PIN_STYLE, dur: Number($('pinDur').value || 0), kind: $('pinKind').value, lim: Number($('pinLim').value || 0), evchat: $('pinEv') ? $('pinEv').checked : false, by: HANDLE }).then(r => r.json()).then(j => {
+  jpost('/api/team', { op: 'pin', prog, text: String($('pinMsg').value || '').trim(), style: PIN_STYLE, dur: pinDurSeconds(), kind: $('pinKind').value, lim: Number($('pinLim').value || 0), evchat: $('pinEv') ? $('pinEv').checked : false, by: HANDLE }).then(r => r.json()).then(j => {
     if (!j.ok) { $('pinErr').textContent = j.error || 'refuse'; return; }
     if (j.team) state.data.team = j.team;
     $('pinModal').style.display = 'none';

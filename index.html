@@ -629,7 +629,19 @@ header,nav{border-bottom-color:transparent;
           <option value="3600">1 heure</option>
           <option value="86400">24 heures</option>
           <option value="604800">7 jours</option>
+          <option value="custom">personnalisé…</option>
         </select>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center" id="pinDurCustomRow" hidden>
+        <span style="font-size:11px;color:var(--muted);flex:none">durée libre</span>
+        <input type="number" id="pinDurNum" min="1" max="99999" value="1" style="width:90px">
+        <select id="pinDurUnit" style="flex:1;min-width:110px">
+          <option value="60" selected>minutes</option>
+          <option value="1">secondes</option>
+          <option value="3600">heures</option>
+          <option value="86400">jours</option>
+        </select>
+        <small style="color:var(--faint);font-size:10.5px">max 30 jours</small>
       </div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center" id="pinLimRow">
         <span style="font-size:11px;color:var(--muted);flex:none">limite de findings / participant</span>
