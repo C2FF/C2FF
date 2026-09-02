@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <title>C2FF - Command & Control Framework</title>
 <style>
 /* l'attribut hidden gagne TOUJOURS sur un display inline (les modales pm/wizz/
@@ -340,7 +340,12 @@ nav::-webkit-scrollbar{display:none}
     box-shadow:0 4px 16px hsl(var(--hue) 40% 18% / .3)}
   #railStrip{padding:5px 0}
   #railTab{width:32px;height:32px}
-  body.rail-open #chatRail{width:100vw;height:100vh;top:0;bottom:0;border-radius:0;border:none}
+  body.rail-open #chatRail{width:auto;height:auto;inset:0;border-radius:0;border:none}
+  /* la barre d envoi respire au-dessus de la barre maison iPhone */
+  #tmMsgForm{padding-bottom:calc(9px + env(safe-area-inset-bottom))}
+  #tmChatlog{padding-bottom:12px}
+  /* champs a 16px : en dessous, iOS zoome la page au focus et casse le layout */
+  input,select,textarea{font-size:16px}
   body.rail-open #liveBar{left:14px;bottom:70px}
   #liveBar{bottom:70px}
   .cr-chans{width:112px}
@@ -384,7 +389,8 @@ body.srail-open .wrap{margin-right:430px}
     box-shadow:0 4px 16px hsl(var(--hue) 40% 18% / .3)}
   #srStrip{padding:5px 0}
   #srTab{width:32px;height:32px}
-  body.srail-open #sessRail{width:100vw;height:100vh;top:0;bottom:0;right:0;border-radius:0;border:none}
+  body.srail-open #sessRail{width:auto;height:auto;inset:0;border-radius:0;border:none}
+  #srPanel{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
   body.srail-open .wrap{margin-right:0}
 }
 
@@ -764,7 +770,7 @@ header,nav{border-bottom-color:transparent;
 <div id="liveBar" hidden></div>
 
 <div id="wizzAsk" hidden style="position:fixed;inset:0;z-index:120;background:hsl(var(--hue) 22% 3% / .85);display:grid;place-items:center">
-  <div style="background:var(--panel);border:1px solid hsl(var(--hue) 58% 42% / .6);border-radius:10px;padding:22px 26px;max-width:420px">
+  <div style="background:var(--panel);border:1px solid hsl(var(--hue) 58% 42% / .6);border-radius:10px;padding:22px 26px;width:min(420px,92vw);max-height:86vh;overflow-y:auto">
     <h3 style="margin:0 0 8px;font-size:15px">⚡ Premier wizz reçu</h3>
     <p style="font-size:12px;color:var(--muted);margin:0 0 14px">Un wizz secoue ta console pour attirer ton attention. Tu préfères désactiver la réception des wizz, ou continuer d'être averti ? (ce choix est définitif, tu ne peux le faire qu'une fois)</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
@@ -774,7 +780,7 @@ header,nav{border-bottom-color:transparent;
   </div>
 </div>
 <div id="alertModal" hidden style="position:fixed;inset:0;z-index:140;display:grid;place-items:center;background:hsl(0 90% 5% / .45)">
-  <div class="acard" style="background:hsl(0 60% 10%);border:2px solid hsl(0 95% 55%);border-radius:12px;padding:28px 34px;max-width:480px;text-align:center;box-shadow:0 0 60px hsl(0 95% 40% / .7);animation:alertcard .8s ease-in-out infinite">
+  <div class="acard" style="background:hsl(0 60% 10%);border:2px solid hsl(0 95% 55%);border-radius:12px;padding:28px 34px;width:min(480px,92vw);max-height:86vh;overflow-y:auto;text-align:center;box-shadow:0 0 60px hsl(0 95% 40% / .7);animation:alertcard .8s ease-in-out infinite">
     <div style="font-size:34px;line-height:1;margin-bottom:10px">🚨</div>
     <h2 style="margin:0 0 10px;font-size:19px;letter-spacing:.12em;color:hsl(0 95% 78%)">ALERTE GÉNÉRALE</h2>
     <p id="alertMsgTx" style="font-size:15px;font-weight:700;color:hsl(0 20% 96%);margin:0 0 10px"></p>
