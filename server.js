@@ -220,7 +220,7 @@ function teamState(req, h) {
     const ms = now - m.last;
     if (ms > 600000) { PRESENCE.delete(mh); continue; }
     const mm = t.members[mh];
-    members.push({ h: mh, last: m.last, ms, active: ms < 25000, reqs: m.reqs, role: m.role, st: mm ? mm.status : '' });
+    members.push({ h: mh, last: m.last, ms, active: ms < 25000, reqs: m.reqs, role: m.role, st: mm ? mm.status : '', lv: m.live || '' });
   }
   members.sort((a, b) => a.h.localeCompare(b.h)); // ordre stable : les lignes ne sautent pas a chaque beat
   // file d'attente d'entree : visible des ranks >= co-admin seulement
@@ -1093,7 +1093,10 @@ const MAIN = (req, res) => {
           const h = cleanHandle(body.handle);
           if (h) {
             if (teamCfg().blocked.includes(h)) return sendJson(res, { ok: false, error: 'kicked from this room' });
-            PRESENCE.set(h, { last: Date.now(), reqs: (PRESENCE.get(h) || { reqs: 0 }).reqs + 1, role: roleOf(req, h) });
+            // lv : canal vocal courant (session ou pm-...) - presence LIVE
+            const lv = body.lv === 'session' || (typeof body.lv === 'string' && body.lv.indexOf('pm-') === 0)
+              ? String(body.lv).slice(0, 48) : '';
+            PRESENCE.set(h, { last: Date.now(), reqs: (PRESENCE.get(h) || { reqs: 0 }).reqs + 1, role: roleOf(req, h), live: lv });
           }
           const t = teamCfg();
           const me = t.members[h];

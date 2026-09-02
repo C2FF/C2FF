@@ -21153,7 +21153,7 @@ function drawTeam() {
   // select sous le curseur. ARM : un mousedown sur un select fige la liste 6 s
   // meme si le focus bouge (le dropdown natif se ferme des que le DOM change).
   if (focusInside('#tmMembers') || focusInside('#tmPending') || Date.now() < TM_ARM) { drawn.team = ''; return; }
-  const sig = JSON.stringify([tm.enabled, tm.room, tm.members, HANDLE, tm.bind, tm.lan, tun, tm.chat, tm.you, microOn, tm.requests]);
+  const sig = JSON.stringify([tm.enabled, tm.room, tm.members, HANDLE, tm.bind, tm.lan, tun, tm.chat, tm.you, LIVE.ch, tm.requests]);
   if (sig === drawn.team && !forceDraw) return;
   drawn.team = sig;
   // demandes d'entree : toast + notif a l'arrivee de chaque nouveau pseudo
@@ -21217,6 +21217,7 @@ function drawTeam() {
     '<b style="color:' + (m.h === HANDLE ? 'var(--green)' : 'var(--text)') + '">' + esc(m.h) + (m.h === HANDLE ? ' <small style="color:var(--faint)">' + T('tm_you') + '</small>' : '') + '</b>' +
     '<span class="pill ' + (m.role === 'owner' ? 'p-owner' : m.role === 'admin' ? 'p-prog' : 'p-done') + '">' + (m.st === 'pending' ? 'en attente' : (TRLBL[m.role] || m.role || 'membre')) + '</span>' +
     '<span class="pill ' + (m.active ? 'p-live' : 'p-done') + '">' + (m.active ? T('tm_here') : Math.round(m.ms / 60000) + ' min') + '</span>' +
+    (m.lv ? '<span class="pill p-live" title="en live vocal (' + esc(m.lv === 'session' ? 'session' : 'privé') + ')">🎙</span>' : '') +
     (amAdmin && m.h !== HANDLE && m.role !== 'owner' && (TRANK[m.role] || 0) < rk ?
       '<select class="tmrole" data-h="' + esc(m.h) + '">' + ['viewer', 'member', 'hunter', 'coadmin', 'admin'].filter(r => TRANK[r] < rk).map(r =>
         '<option value="' + r + '"' + (m.role === r ? ' selected' : '') + '>' + TRLBL[r] + '</option>').join('') + '</select>' +
@@ -21282,20 +21283,19 @@ function drawChats() {
     }).join('') +
       (rk >= 5 && tm.enabled ? '<span class="cht cht-add" id="chatAddBtn" style="border-style:dashed;color:hsl(var(--hue) 85% 68%)">+ chat</span>' : '');
   }
-  // live vocal dedie a UN chat a la fois : sur le canal session, le bouton
-  // micro (live de session, mesh) ; sur un wispe, uniquement le bouton vocal
-  // prive - le micro global n'existe plus dans les conversations privees
+  // LIVE : petit bouton contextuel - il rejoint le live vocal du canal affiche
+  // (session = mesh, wispe = live prive 1:1). L'etat complet vit dans la
+  // pilule fixe #liveBar (renderLive), visible sur tous les onglets.
   const isPm = (CHAT_SEL || '').indexOf('pm-') === 0;
-  const micBtn = $('tmMic');
-  if (micBtn) {
-    micBtn.textContent = microOn ? T('tm_mic_off') : T('tm_mic_on');
-    micBtn.classList.toggle('mic-live', microOn);
-    micBtn.hidden = !tm.enabled || isPm;
-    micBtn.title = 'live vocal du chat session uniquement - un seul live a la fois';
+  const lbtn = $('liveBtn');
+  if (lbtn) {
+    lbtn.hidden = !tm.enabled;
+    lbtn.textContent = LIVE.ch === CHAT_SEL ? '⏹ QUITTER LE LIVE' : '🎙 LIVE';
+    lbtn.title = isPm
+      ? 'rejoindre le live vocal prive avec ' + (CHAT_SEL.slice(3).split('--').find(x => x !== HANDLE) || '?')
+      : 'rejoindre le live vocal de session (mesh) - un seul live a la fois';
   }
-  const mi = $('micInfo');
-  if (mi) mi.textContent = !tm.enabled || isPm ? '' :
-    microOn ? (PCS.size ? T('mic_live').replace('{n}', PCS.size) : T('mic_wait')) : '';
+  renderLive();
   const blog = $('tmChatlog');
   if (!blog) return;
   blog.hidden = !tm.enabled;
@@ -21326,13 +21326,6 @@ function drawChats() {
     try { asked = localStorage.getItem('c2ff-wizz-ask') === '1'; } catch (e) {}
     if (!asked) { const qa = $('wizzAsk'); if (qa) qa.hidden = false; }
   }
-  // vocal prive 1:1 : bouton actif uniquement sur un chat prive
-  const pmPeer = isPm ? (CHAT_SEL.slice(3).split('--').find(x => x !== HANDLE) || '') : '';
-  const pcall = $('pmCall');
-  if (pcall) {
-    pcall.hidden = !isPm || !tm.enabled;
-    pcall.textContent = PMC_PEER === pmPeer && PMC_PEER ? 'RACCROCHER 📞' : '📞 VOCAL PRIVÉ';
-  }
   const wizzBtn = $('tmWizz');
   if (wizzBtn) {
     // session : admin/proprietaire seulement - prive : tous, conversation entamee
@@ -21340,19 +21333,6 @@ function drawChats() {
     wizzBtn.title = isPm
       ? 'attirer l\'attention en prive - 1 wizz / 30 s'
       : (rk >= 5 ? 'wizz de session - proprietaire : 1/min' : 'wizz de session - admin : 1/3 min');
-  }
-  const pbar = $('pmBar');
-  if (pbar) {
-    if (PMC_IN && !PMC_PEER) {
-      pbar.hidden = false;
-      pbar.innerHTML = '<b style="color:hsl(var(--hue) 90% 75%)">📞 ' + esc(PMC_IN) + ' t\'appelle en privé</b>' +
-        '<button class="go pm-ok" style="padding:4px 12px">Répondre</button>' +
-        '<button class="ghost pm-no" style="color:var(--danger)">Refuser</button>';
-    } else if (PMC_PEER) {
-      pbar.hidden = false;
-      pbar.innerHTML = '<b style="color:var(--green)">🎙 vocal privé avec ' + esc(PMC_PEER) + ' en cours</b>' +
-        '<button class="ghost pm-end" style="color:var(--danger);margin-left:auto">Raccrocher</button>';
-    } else pbar.hidden = true;
   }
   blog.innerHTML = bc.map(m => {
     // wizz : ligne compacte, pas de corps ni de votes
@@ -21478,9 +21458,23 @@ $('tmLive').addEventListener('click', () => {
   }).catch(() => {});
 });
 
-// ---------- audio de session : WebRTC mesh, le serveur ne relaye que la signalisation ----------
-let MIC = null, microOn = false;
-const PCS = new Map(); // handle -> RTCPeerConnection
+// ---------- MOTEUR LIVE : le systeme vocal unifie de C2FF. Un seul live a la
+// fois, attache a UN canal (session = mesh vocal de session, pm = live 1:1 du
+// wispe). Pas de gros bouton "activer le micro" : un petit bouton contextuel
+// [LIVE] dans la barre du chat + une pilule d'etat fixe (tous les onglets)
+// avec participants, anneau de parole, mute et sortie. WebRTC mesh/1:1, le
+// serveur ne relaye que la signalisation.
+const LIVE = {
+  ch: '',            // canal vocal courant : 'session' | 'pm-<a>--<b>' | '' = hors live
+  mic: null,         // MediaStream local
+  muted: false,      // micro coupe localement (on reste dans le live)
+  peers: new Map(),  // handle -> RTCPeerConnection (mesh et pm dans la meme map)
+  ringing: '',       // appel entrant qui sonne
+  offer: null,       // offre pm en attente de reponse
+  at: 0,             // timestamp du join (garde anti double-clic)
+  an: new Map(),     // handle -> AnalyserNode (anneau de parole)
+  rang: '',          // dernier appel sonne (la sonnerie ne rejoue pas a chaque poll)
+};
 const RTCSEEN = new Set();
 // audio de qualite : 48 kHz mono, annulation d'echo + suppression de bruit +
 // controle de gain cote navigateur (traitement natif WebRTC, sans latence ajoutee)
@@ -21498,95 +21492,249 @@ function hqSdp(sdp) {
   return sdp.replace(/(a=rtpmap:(\d+) opus\/48000[^\r\n]*\r\n)/i,
     (m, line, pt) => line + 'a=fmtp:' + pt + ' maxaveragebitrate=128000;maxplaybackrate=48000;stereo=0;usedtx=0\r\n');
 }
-async function micToggle() {
-  if (microOn) return micOff();
-  if (!HANDLE) return toast('SESSION', T('tm_no_handle'), 'P2');
-  if (PMC_PEER || PMC_IN) return toast('SESSION', 'un vocal privé est en cours : un seul live à la fois', 'P2');
-  try { MIC = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS); }
-  catch (e) { return toast('SESSION', T('tm_mic_denied'), 'P2'); }
-  microOn = true;
-  micProposeAll();
-  forceDraw = true; refresh();
+const livePmPeer = ch => ((ch || '').indexOf('pm-') === 0 ? (ch.slice(3).split('--').find(x => x !== HANDLE) || '') : '');
+function liveAudio(h) {
+  let a = document.getElementById('c2ffLive_' + h);
+  if (!a) { a = document.createElement('audio'); a.id = 'c2ffLive_' + h; a.className = 'c2ffAudio'; a.autoplay = true; document.body.appendChild(a); }
+  return a;
 }
-function micOff() {
-  microOn = false;
-  if (MIC) { try { MIC.getTracks().forEach(t => t.stop()); } catch (e) {} MIC = null; }
-  for (const [, pc] of PCS) { try { pc.close(); } catch (e) {} }
-  PCS.clear();
-  document.querySelectorAll('audio.c2ffAudio').forEach(a => { try { a.pause(); a.srcObject = null; } catch (e) {} a.remove(); });
-  forceDraw = true; refresh();
+function speakWatch(h, stream) {
+  // anneau de parole : analyseur RMS sur le flux (local = moi, distant = pair)
+  try {
+    const ctx = audioCtx();
+    if (!ctx) return;
+    const src = ctx.createMediaStreamSource(stream);
+    const an = ctx.createAnalyser(); an.fftSize = 256;
+    src.connect(an);
+    LIVE.an.set(h, an);
+  } catch (e) {}
 }
-function newPC(h) {
+function livePC(h) {
   // STUN : necessaire des que la session passe par le tunnel monde (reseaux
   // differents) ; en LAN les candidats locaux suffisent deja
+  const pm = LIVE.ch.indexOf('pm-') === 0;
   const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-  if (MIC) MIC.getTracks().forEach(t => pc.addTrack(t, MIC));
-  pc.onicecandidate = e => { if (e.candidate) jpost('/api/team', { op: 'rtc', from: HANDLE, to: h, typ: 'ice', data: JSON.stringify(e.candidate) }).catch(() => {}); };
+  if (LIVE.mic) LIVE.mic.getTracks().forEach(t => pc.addTrack(t, LIVE.mic));
+  pc.onicecandidate = e => { if (e.candidate) jpost('/api/team', { op: 'rtc', from: HANDLE, to: h, typ: pm ? 'pice' : 'ice', data: JSON.stringify(e.candidate) }).catch(() => {}); };
   pc.ontrack = e => {
-    let a = document.getElementById('c2ffAudio_' + h);
-    if (!a) { a = document.createElement('audio'); a.id = 'c2ffAudio_' + h; a.className = 'c2ffAudio'; a.autoplay = true; document.body.appendChild(a); }
+    const a = liveAudio(h);
     a.srcObject = e.streams[0]; a.play().catch(() => {});
+    speakWatch(h, e.streams[0]);
   };
-  PCS.set(h, pc);
+  LIVE.peers.set(h, pc);
   return pc;
 }
-function micProposeAll() {
-  if (!MIC || !microOn) return;
+async function liveGetMic() {
+  try { LIVE.mic = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS); }
+  catch (e) { return false; }
+  speakWatch(HANDLE, LIVE.mic);
+  return true;
+}
+function liveMute() {
+  if (!LIVE.ch) return;
+  LIVE.muted = !LIVE.muted;
+  if (LIVE.mic) LIVE.mic.getTracks().forEach(t => { t.enabled = !LIVE.muted; });
+  renderLive();
+  toast('LIVE', LIVE.muted ? 'micro coupe (tu restes dans le live)' : 'micro reactive', '');
+}
+function liveLeave(signal) {
+  const wasPm = LIVE.ch.indexOf('pm-') === 0;
+  const peer = livePmPeer(LIVE.ch);
+  if (signal !== false && wasPm && peer)
+    jpost('/api/team', { op: 'rtc', from: HANDLE, to: peer, typ: 'pend', data: 'bye' }).catch(() => {});
+  for (const [, pc] of LIVE.peers) { try { pc.close(); } catch (e) {} }
+  LIVE.peers.clear();
+  if (LIVE.mic) { try { LIVE.mic.getTracks().forEach(t => t.stop()); } catch (e) {} LIVE.mic = null; }
+  LIVE.muted = false; LIVE.ch = ''; LIVE.ringing = ''; LIVE.offer = null; LIVE.at = 0; LIVE.rang = '';
+  LIVE.an.clear();
+  document.querySelectorAll('audio[id^="c2ffLive_"]').forEach(a => { try { a.pause(); a.srcObject = null; } catch (e) {} a.remove(); });
+  renderLive(); drawChats();
+}
+async function liveJoin(ch) {
+  if (!HANDLE) return toast('SESSION', T('tm_no_handle'), 'P2');
+  if (LIVE.ringing) return toast('LIVE', 'un appel entre : reponds ou refuse d\'abord', 'P2');
+  if (LIVE.ch === ch) return liveLeave(true); // deja en live ici : le bouton sert a quitter
+  if (LIVE.ch) liveLeave(true); // handover en un clic : un seul live a la fois
+  if (!(await liveGetMic())) return toast('LIVE', T('tm_mic_denied'), 'P2');
+  LIVE.ch = ch; LIVE.at = Date.now();
+  const peer = livePmPeer(ch);
+  if (peer) {
+    // live prive 1:1 : offre directe au pair
+    try {
+      const pc = livePC(peer);
+      const o = await pc.createOffer();
+      await pc.setLocalDescription({ type: 'offer', sdp: hqSdp(o.sdp) });
+      jpost('/api/team', { op: 'rtc', from: HANDLE, to: peer, typ: 'psdp', data: JSON.stringify({ type: 'offer', sdp: pc.localDescription.sdp }) }).catch(() => {});
+    } catch (e) { liveLeave(false); return; }
+  } else {
+    // live de session : mesh, offre a tous les membres actifs
+    const tm = state.data.team || {};
+    (tm.members || []).forEach(m => {
+      if (m.h === HANDLE || !m.active || LIVE.peers.has(m.h)) return;
+      const pc = livePC(m.h);
+      pc.createOffer().then(o => pc.setLocalDescription({ type: 'offer', sdp: hqSdp(o.sdp) }))
+        .then(() => jpost('/api/team', { op: 'rtc', from: HANDLE, to: m.h, typ: 'sdp', data: JSON.stringify({ type: 'offer', sdp: pc.localDescription.sdp }) }))
+        .catch(() => {});
+    });
+  }
+  toast('LIVE', peer ? 'live prive avec ' + peer + ' - c\'est en direct' : 'live de session rejoint', 'HIT');
+  forceDraw = true; renderLive(); drawChats();
+}
+function liveAccept() {
+  const peer = LIVE.ringing, offer = LIVE.offer;
+  LIVE.ringing = ''; LIVE.offer = null;
+  if (!peer || !offer) return;
+  if (LIVE.ch) liveLeave(true); // un seul live a la fois
+  (async () => {
+    if (!(await liveGetMic())) {
+      jpost('/api/team', { op: 'rtc', from: HANDLE, to: peer, typ: 'pend', data: 'refuse' }).catch(() => {});
+      return toast('LIVE', T('tm_mic_denied'), 'P2');
+    }
+    LIVE.ch = 'pm-' + [HANDLE, peer].sort().join('--'); LIVE.at = Date.now();
+    try {
+      const pc = livePC(peer);
+      await pc.setRemoteDescription(offer);
+      const a = await pc.createAnswer();
+      await pc.setLocalDescription({ type: 'answer', sdp: hqSdp(a.sdp) });
+      jpost('/api/team', { op: 'rtc', from: HANDLE, to: peer, typ: 'psdp', data: JSON.stringify({ type: 'answer', sdp: pc.localDescription.sdp }) }).catch(() => {});
+    } catch (e) { liveLeave(false); return; }
+    toast('LIVE', 'vocal prive avec ' + peer + ' en direct', 'HIT');
+    forceDraw = true; renderLive(); drawChats();
+  })();
+}
+function liveMeshOffer() {
+  if (!LIVE.mic || LIVE.ch !== 'session') return;
   const tm = state.data.team || {};
   (tm.members || []).forEach(m => {
-    if (m.h === HANDLE || !m.active || PCS.has(m.h)) return;
-    const pc = newPC(m.h);
+    if (m.h === HANDLE || !m.active || LIVE.peers.has(m.h)) return;
+    const pc = livePC(m.h);
     pc.createOffer().then(o => pc.setLocalDescription({ type: 'offer', sdp: hqSdp(o.sdp) }))
       .then(() => jpost('/api/team', { op: 'rtc', from: HANDLE, to: m.h, typ: 'sdp', data: JSON.stringify({ type: 'offer', sdp: pc.localDescription.sdp }) }))
       .catch(() => {});
   });
 }
+function speakTick() {
+  // anneaux de parole : un tick leger (350 ms) met a jour les pastilles
+  const buf = new Uint8Array(256);
+  for (const [h, an] of LIVE.an) {
+    let v = 0;
+    try { an.getByteFrequencyData(buf); for (let i = 0; i < buf.length; i++) v += buf[i]; } catch (e) {}
+    const el = document.querySelector('[data-spk="' + h + '"]');
+    if (el) el.classList.toggle('spk', v / buf.length > 10);
+  }
+}
+setInterval(speakTick, 350);
 function rtcTick() {
   if (!HANDLE) return;
   const list = ((state.data.team || {}).rtc || []);
   if (RTCSEEN.size > 800) RTCSEEN.clear();
-  let handled = false;
   for (const msg of list) {
     if (msg.to !== HANDLE || RTCSEEN.has(msg.id)) continue;
-    RTCSEEN.add(msg.id); handled = true;
+    RTCSEEN.add(msg.id);
     try {
       if (msg.typ === 'sdp') {
         const d = JSON.parse(msg.data);
         if (d.type === 'offer') {
-          const pc = newPC(msg.from);
+          // offre mesh : je reponds seulement si je suis en live de session
+          if (LIVE.ch !== 'session') continue;
+          const pc = livePC(msg.from);
           pc.setRemoteDescription(d)
             .then(() => pc.createAnswer()).then(a => pc.setLocalDescription({ type: 'answer', sdp: hqSdp(a.sdp) }))
             .then(() => jpost('/api/team', { op: 'rtc', from: HANDLE, to: msg.from, typ: 'sdp', data: JSON.stringify({ type: 'answer', sdp: pc.localDescription.sdp }) }))
             .catch(() => {});
-        } else if (d.type === 'answer' && PCS.has(msg.from)) {
-          PCS.get(msg.from).setRemoteDescription(d).catch(() => {});
+        } else if (d.type === 'answer' && LIVE.peers.has(msg.from)) {
+          LIVE.peers.get(msg.from).setRemoteDescription(d).catch(() => {});
         }
-      } else if (msg.typ === 'ice' && PCS.has(msg.from)) {
-        PCS.get(msg.from).addIceCandidate(JSON.parse(msg.data)).catch(() => {});
-      } else if (msg.typ === 'pend') {
-        // appel prive refuse ou raccroche par le pair
-        if (PMC_PEER === msg.from || PMC_IN === msg.from) pmEnd(false);
+      } else if (msg.typ === 'ice' && LIVE.peers.has(msg.from)) {
+        LIVE.peers.get(msg.from).addIceCandidate(JSON.parse(msg.data)).catch(() => {});
       } else if (msg.typ === 'psdp') {
         const d = JSON.parse(msg.data);
         if (d.type === 'offer') {
-          if (PMC_PEER === msg.from || PMC_IN === msg.from) {
-            // doublon : l'appel est deja en cours (ou deja sonne) avec ce pair
-          } else if (PMC_PEER || PMC_IN) {
-            // deja en ligne privee avec quelqu'un d'autre : refus auto
+          if (LIVE.ch && livePmPeer(LIVE.ch) === msg.from) {
+            // doublon : deja en live prive avec ce pair
+          } else if (LIVE.ch || LIVE.ringing) {
+            // deja en live (ou un appel sonne) : refus auto
             jpost('/api/team', { op: 'rtc', from: HANDLE, to: msg.from, typ: 'pend', data: 'refuse' }).catch(() => {});
-          } else { PMC_IN = msg.from; PMC_OFFER = d; forceDraw = true; drawChats(); }
-        } else if (d.type === 'answer' && PCS2.has(msg.from)) {
-          PCS2.get(msg.from).setRemoteDescription(d).catch(() => {});
+          } else { LIVE.ringing = msg.from; LIVE.offer = d; forceDraw = true; renderLive(); }
+        } else if (d.type === 'answer' && LIVE.peers.has(msg.from)) {
+          LIVE.peers.get(msg.from).setRemoteDescription(d).catch(() => {});
         }
-      } else if (msg.typ === 'pice' && PCS2.has(msg.from)) {
-        PCS2.get(msg.from).addIceCandidate(JSON.parse(msg.data)).catch(() => {});
+      } else if (msg.typ === 'pice' && LIVE.peers.has(msg.from)) {
+        LIVE.peers.get(msg.from).addIceCandidate(JSON.parse(msg.data)).catch(() => {});
+      } else if (msg.typ === 'pend') {
+        if (LIVE.ringing === msg.from) {
+          // il a raccroche avant reponse : la sonnerie s'arrete
+          LIVE.ringing = ''; LIVE.offer = null; LIVE.rang = ''; renderLive();
+        } else if (LIVE.ch.indexOf('pm-') === 0 && livePmPeer(LIVE.ch) === msg.from) {
+          liveLeave(false);
+          toast('LIVE', msg.from + ' a quitte le live prive', '');
+        }
       }
     } catch (e) {}
   }
-  if (microOn) micProposeAll(); // les arrives tard reçoivent une offre au prochain draw
-  if (handled) { /* rien de plus : les streams declenchent eux-memes le rendu */ }
+  if (LIVE.ch === 'session') liveMeshOffer(); // les arrives tard reçoivent une offre au prochain draw
 }
-$('tmMic').addEventListener('click', micToggle);
+// pilule LIVE : etat vocal permanent, tous les onglets - live en cours
+// (participants + anneaux de parole) ou appel entrant (sonnerie)
+function liveRing() {
+  try {
+    const ctx = audioCtx(); if (!ctx) return;
+    const now = ctx.currentTime;
+    [0, 0.25, 0.5].forEach(dt => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(720, now + dt);
+      g.gain.setValueAtTime(0.001, now + dt);
+      g.gain.linearRampToValueAtTime(0.15, now + dt + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.001, now + dt + 0.2);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(now + dt); o.stop(now + dt + 0.22);
+    });
+  } catch (e) {}
+}
+function renderLive() {
+  const bar = $('liveBar');
+  if (!bar) return;
+  const tm = state.data.team || {};
+  if (LIVE.ringing) {
+    if (LIVE.rang !== LIVE.ringing) { LIVE.rang = LIVE.ringing; liveRing(); }
+    bar.hidden = false; bar.className = 'ring';
+    bar.innerHTML = '<b style="color:hsl(45 95% 60%)">📞 ' + esc(LIVE.ringing) + ' t\'appelle en live privé</b>' +
+      '<button class="go lv-ok">Répondre</button><button class="ghost lv-no" style="color:var(--danger)">Refuser</button>';
+    return;
+  }
+  if (!LIVE.ch) { bar.hidden = true; bar.innerHTML = ''; LIVE.rang = ''; return; }
+  bar.hidden = false; bar.className = '';
+  const pm = LIVE.ch.indexOf('pm-') === 0;
+  const peer = pm ? livePmPeer(LIVE.ch) : '';
+  // participants : en prive = le couple ; en session = ceux poses sur le live
+  // (presence lv transmise par le beat, moi toujours affiche)
+  const parts = pm ? [{ h: HANDLE }, { h: peer }] : (() => {
+    const all = (tm.members || []).filter(m => m.active && m.lv === 'session');
+    if (!all.find(m => m.h === HANDLE)) all.push({ h: HANDLE });
+    return all;
+  })();
+  bar.innerHTML = '<b style="color:hsl(var(--hue) 90% 75%)">🎙 LIVE · ' + (pm ? 'privé · ' + esc(peer) : 'session') + '</b>' +
+    (pm ? '' : '<span style="color:var(--faint);font-size:11px">' + parts.length + ' en direct</span>') +
+    parts.filter(m => m.h).map(m =>
+      '<span class="lvchip" data-spk="' + esc(m.h) + '"><span class="dot"></span>' + esc(m.h) + (m.h === HANDLE ? ' (moi)' : '') + '</span>').join('') +
+    '<button class="ghost lv-mute" style="margin-left:auto">' + (LIVE.muted ? '🔇 coupé' : '🎙 micro') + '</button>' +
+    '<button class="ghost lv-end" style="color:var(--danger)">⏹ quitter</button>';
+}
+$('liveBtn').addEventListener('click', () => {
+  const tm = state.data.team || {};
+  if (!tm.enabled) return;
+  liveJoin(CHAT_SEL || 'session');
+});
+$('liveBar').addEventListener('click', e => {
+  if (e.target.closest('.lv-mute')) return liveMute();
+  if (e.target.closest('.lv-end')) return liveLeave(true);
+  if (e.target.closest('.lv-ok')) return liveAccept();
+  if (e.target.closest('.lv-no')) {
+    const peer = LIVE.ringing;
+    LIVE.ringing = ''; LIVE.offer = null; LIVE.rang = ''; renderLive();
+    if (peer) jpost('/api/team', { op: 'rtc', from: HANDLE, to: peer, typ: 'pend', data: 'refuse' }).catch(() => {});
+  }
+});
 // ---------- wizz (nudge a la MSN) : secousse de la page + son, anti-flood
 let WIZZ_LAST = 0, WIZZ_INIT = false;
 // deblocage audio : les navigateurs suspendent l'AudioContext tant que
@@ -21717,91 +21865,6 @@ $('tmAlert').addEventListener('click', () => {
 // fermer le panneau central : l'ecran reste en theme rouge tant que
 // l'alerte n'est pas levee par le proprietaire (etat serveur)
 $('alertOk').addEventListener('click', () => { $('alertModal').hidden = true; });
-// ---------- vocal prive 1:1 (en plus du mesh de session) :
-// meme relais op rtc, types prefixes 'p' pour ne pas croiser le mesh
-const PCS2 = new Map();
-let PMC_PEER = '', PMC_IN = '', PMC_OFFER = null, PMC_AT = 0;
-function newPCP(h) {
-  const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-  if (PMC_MIC) PMC_MIC.getTracks().forEach(t => pc.addTrack(t, PMC_MIC));
-  pc.onicecandidate = e => { if (e.candidate) jpost('/api/team', { op: 'rtc', from: HANDLE, to: h, typ: 'pice', data: JSON.stringify(e.candidate) }).catch(() => {}); };
-  pc.ontrack = e => {
-    let a = document.getElementById('c2ffPmAudio_' + h);
-    if (!a) { a = document.createElement('audio'); a.id = 'c2ffPmAudio_' + h; a.className = 'c2ffAudio'; a.autoplay = true; document.body.appendChild(a); }
-    a.srcObject = e.streams[0]; a.play().catch(() => {});
-  };
-  PCS2.set(h, pc);
-  return pc;
-}
-let PMC_MIC = null;
-async function pmStart(h) {
-  if (!HANDLE) return toast('SESSION', T('tm_no_handle'), 'P2');
-  if (PMC_PEER) return toast('WISPE', 'un appel prive est deja en cours avec ' + PMC_PEER, 'P2');
-  if (PMC_IN) return toast('WISPE', 'un appel entre : reponds ou refuse d\'abord', 'P2');
-  // PMC_PEER pose AVANT l'attente du micro : un double-clic ne doit pas
-  // creer deux PC et deux offres (l'ancien PC devenait orphelin, micro leak)
-  PMC_PEER = h; PMC_AT = Date.now();
-  // un seul live a la fois : l'appel prive reprend le micro, le live de
-  // session (mesh) est coupe proprement
-  if (microOn) { micOff(); toast('WISPE', 'live de session coupe - vocal prive a la place', ''); }
-  try { PMC_MIC = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS); }
-  catch (e) { PMC_PEER = ''; forceDraw = true; drawChats(); return toast('WISPE', T('tm_mic_denied'), 'P2'); }
-  const pc = newPCP(h);
-  try {
-    const o = await pc.createOffer();
-    await pc.setLocalDescription({ type: 'offer', sdp: hqSdp(o.sdp) });
-    jpost('/api/team', { op: 'rtc', from: HANDLE, to: h, typ: 'psdp', data: JSON.stringify({ type: 'offer', sdp: pc.localDescription.sdp }) }).catch(() => {});
-  } catch (e) { pmEnd(false); return; }
-  forceDraw = true; drawChats();
-}
-async function pmAccept() {
-  const from = PMC_IN, offer = PMC_OFFER; PMC_IN = ''; PMC_OFFER = null;
-  if (!from || !offer) return;
-  try { PMC_MIC = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS); }
-  catch (e) {
-    jpost('/api/team', { op: 'rtc', from: HANDLE, to: from, typ: 'pend', data: 'refuse' }).catch(() => {});
-    return toast('WISPE', T('tm_mic_denied'), 'P2');
-  }
-  PMC_PEER = from;
-  // un seul live a la fois (meme regle que pour l'appelant)
-  if (microOn) { micOff(); toast('WISPE', 'live de session coupe - vocal prive a la place', ''); }
-  try {
-    const pc = newPCP(from);
-    await pc.setRemoteDescription(offer);
-    const a = await pc.createAnswer();
-    await pc.setLocalDescription({ type: 'answer', sdp: hqSdp(a.sdp) });
-    jpost('/api/team', { op: 'rtc', from: HANDLE, to: from, typ: 'psdp', data: JSON.stringify({ type: 'answer', sdp: pc.localDescription.sdp }) }).catch(() => {});
-  } catch (e) { pmEnd(false); return; }
-  forceDraw = true; drawChats();
-}
-function pmEnd(signal) {
-  const tell = PMC_PEER || PMC_IN;
-  if (signal !== false && tell)
-    jpost('/api/team', { op: 'rtc', from: HANDLE, to: tell, typ: 'pend', data: PMC_PEER ? 'bye' : 'refuse' }).catch(() => {});
-  PMC_PEER = ''; PMC_IN = ''; PMC_OFFER = null;
-  if (PMC_MIC) { try { PMC_MIC.getTracks().forEach(t => t.stop()); } catch (e) {} PMC_MIC = null; }
-  for (const [, pc] of PCS2) { try { pc.close(); } catch (e) {} }
-  PCS2.clear();
-  document.querySelectorAll('audio[id^="c2ffPmAudio_"]').forEach(a => { try { a.pause(); a.srcObject = null; } catch (e) {} a.remove(); });
-  forceDraw = true; drawChats();
-}
-$('pmCall').addEventListener('click', () => {
-  const tm = state.data.team || {};
-  if (!CHAT_SEL || CHAT_SEL.indexOf('pm-') !== 0) return;
-  const peer = CHAT_SEL.slice(3).split('--').find(x => x !== HANDLE);
-  if (!peer) return;
-  if (PMC_PEER === peer) {
-    // garde anti double-clic : le 2e clic arrive < 800 ms apres le depart,
-    // ce n'est pas un raccrocher vole
-    if (Date.now() - PMC_AT > 800) pmEnd();
-    return;
-  }
-  pmStart(peer);
-});
-$('pmBar').addEventListener('click', e => {
-  if (e.target.closest('.pm-ok')) pmAccept();
-  else if (e.target.closest('.pm-no') || e.target.closest('.pm-end')) pmEnd();
-});
 // premier wizz recu : desactiver definitivement, ou rester averti
 $('wizzAsk').addEventListener('click', e => {
   const off = e.target.closest('.wizz-off'), keep = e.target.closest('.wizz-keep');
@@ -22502,7 +22565,7 @@ async function refresh() {
     // de validation beat aussi : des que l'admin accepte, il entre automatiquement.
     if (state.tick % 3 === 0 && (HANDLE || (JOIN_OPEN && JOIN_WAIT && PENDING_H))) {
       const bh = HANDLE || PENDING_H;
-      jpost('/api/team', { op: 'beat', handle: bh }).then(r => r.json()).then(j => {
+      jpost('/api/team', { op: 'beat', handle: bh, lv: LIVE.ch }).then(r => r.json()).then(j => {
         if (j.team) state.data.team = j.team;
         if (j.me === 'pending') showJoin(true);
         else if (j.me === 'approved' && !HANDLE) {

@@ -238,6 +238,16 @@ button.ghost:hover{color:var(--green);border-color:var(--line-hi);background:var
 .msg .who{font-size:10px;color:var(--faint);letter-spacing:.8px;margin-bottom:2px;text-transform:uppercase}
 .msg.queue{background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.3)}
 #tmMic.mic-live{border-color:var(--danger);color:var(--danger);animation:billive 1.4s ease-in-out infinite}
+/* LIVE : pilule vocale fixe, tous les onglets - participants, anneaux de
+   parole (vert = il parle), mute, sortie ; variante .ring pour l'appel entrant */
+#liveBar{position:fixed;left:14px;bottom:14px;z-index:95;background:var(--panel);border:1px solid hsl(var(--hue) 80% 45% / .6);border-radius:10px;padding:8px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;box-shadow:0 6px 24px rgba(0,0,0,.5);max-width:min(460px,86vw);font-size:12px}
+#liveBar[hidden]{display:none!important}
+#liveBar.ring{border-color:hsl(45 95% 55% / .85);animation:billive 1.4s ease-in-out infinite}
+#liveBar .lvchip{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;background:hsl(var(--hue) 60% 14% / .55);border:1px solid var(--line);font-size:11px;color:var(--muted)}
+#liveBar .lvchip .dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
+#liveBar .lvchip.spk{color:var(--text);border-color:hsl(var(--hue) 80% 45% / .7)}
+#liveBar .lvchip.spk .dot{background:var(--green);box-shadow:0 0 6px var(--green)}
+#liveBar button{padding:3px 10px;font-size:11px}
 audio.c2ffAudio{display:none}
 #chatform{display:flex;gap:8px;margin-top:10px}
 #chatinput{flex:1}
@@ -612,7 +622,6 @@ header,nav{border-bottom-color:transparent;
       <button class="go" type="submit" data-i="chs_create">creer</button>
       <button class="ghost" type="button" id="chatAddCancel" data-i="chs_cancel">annuler</button>
     </form>
-    <div id="pmBar" hidden style="border:1px solid hsl(var(--hue) 80% 45% / .6);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:hsl(var(--hue) 60% 12% / .4);display:flex;gap:8px;align-items:center;flex-wrap:wrap"></div>
     <div id="wizzAsk" hidden style="position:fixed;inset:0;z-index:120;background:hsl(var(--hue) 30% 3% / .85);display:grid;place-items:center">
       <div style="background:var(--panel);border:1px solid hsl(var(--hue) 80% 45% / .6);border-radius:10px;padding:22px 26px;max-width:420px">
         <h3 style="margin:0 0 8px;font-size:15px">⚡ Premier wizz reçu</h3>
@@ -623,6 +632,7 @@ header,nav{border-bottom-color:transparent;
         </div>
       </div>
     </div>
+    <div id="liveBar" hidden></div>
     <div id="alertModal" hidden style="position:fixed;inset:0;z-index:140;display:grid;place-items:center;background:hsl(0 90% 5% / .45)">
       <div class="acard" style="background:hsl(0 60% 10%);border:2px solid hsl(0 95% 55%);border-radius:12px;padding:28px 34px;max-width:480px;text-align:center;box-shadow:0 0 60px hsl(0 95% 40% / .7);animation:alertcard .8s ease-in-out infinite">
         <div style="font-size:34px;line-height:1;margin-bottom:10px">🚨</div>
@@ -633,10 +643,8 @@ header,nav{border-bottom-color:transparent;
       </div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-      <button class="go need-member" id="tmMic">ACTIVER LE MICRO</button>
-      <button class="ghost need-member" id="pmCall" hidden title="appel vocal prive 1:1 avec ce membre">📞 VOCAL PRIVÉ</button>
+      <button class="go need-member" id="liveBtn">🎙 LIVE</button>
       <button class="ghost need-member" id="tmWizz" title="attirer l'attention de ce canal - 1 wizz par minute">⚡ WIZZ</button>
-      <small id="micInfo" style="color:var(--muted);font-size:11px;flex:1;min-width:150px"></small>
     </div>
     <div id="tmChatlog" style="height:44vh;overflow-y:auto;border:1px solid var(--line);border-radius:7px;padding:12px;background:var(--panel2)"></div>
     <form id="tmMsgForm" class="need-member" style="display:flex;gap:8px;margin-top:8px">
