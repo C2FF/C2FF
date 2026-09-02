@@ -8016,6 +8016,8 @@ function drawPrograms() {
     $('pinProgName').textContent = p.name || p.id;
     $('pinMsg').value = '';
     $('pinErr').textContent = '';
+    $('pinDur').value = '86400';
+    setPinStyle('accent');
     $('pinModal').style.display = 'grid';
     $('pinModal').dataset.prog = p.id;
     setTimeout(() => { try { $('pinMsg').focus(); } catch (e) {} }, 60);
@@ -9042,7 +9044,19 @@ $('tmMembers').addEventListener('mousedown', tmArm);
 $('tmPending').addEventListener('mousedown', tmArm);
 // bandeau EPINGLÉ / BIENVENUE : visible sur TOUS les onglets (entre le menu et
 // les stats), deco accent du theme. max 3 epingles cote serveur - discret.
+// plusieurs epingles : une seule DEPLIEE (la plus recente, ou celle cliquee),
+// les autres restent en chips compacts sur une ligne - pas de flood.
 let drawn_pin = '';
+let PIN_EXPAND = ''; // id de l'epingle depliee ('' = la plus recente)
+const snStyle = n => (n && ['urgence', 'info', 'or'].includes(n.style) ? n.style : 'accent');
+const snDur = n => {
+  if (!n.exp) return '';
+  const s = Math.max(0, Math.floor((n.exp - Date.now()) / 1000));
+  if (s <= 0) return 'terminé';
+  if (s >= 86400) return Math.floor(s / 86400) + 'j ' + Math.floor((s % 86400) / 3600) + 'h';
+  if (s >= 3600) return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
+  return Math.max(1, Math.floor(s / 60)) + 'm';
+};
 function drawPin() {
   const el = $('sessPin');
   if (!el) return;
@@ -9051,19 +9065,34 @@ function drawPin() {
   const wel = (tm.welcome || '').trim();
   if (!tm.enabled || (!news.length && !wel)) { el.hidden = true; drawn_pin = ''; return; }
   const canEdit = (TRANK[tm.meRole || tm.you] || 0) >= 4;
-  const sig = JSON.stringify([news, wel, canEdit]);
+  const progs = state.data.programs || [];
+  const expand = news.find(n => n.id === PIN_EXPAND) || news[news.length - 1];
+  const rest = news.filter(n => n !== expand);
+  const mins = Math.floor(Date.now() / 60000); // le compte a rebours avance minute par minute
+  const sig = JSON.stringify([news, wel, canEdit, expand && expand.id, mins]);
   if (sig === drawn_pin && !forceDraw) return;
   drawn_pin = sig;
-  const progs = state.data.programs || [];
   let html = '';
-  for (const n of news) {
-    const p = n.prog ? progs.find(x => x.id === n.prog) : null;
-    html += '<div class="sn-item"><span class="sn-tag">EPINGLÉ</span>' +
+  if (expand) {
+    const p = expand.prog ? progs.find(x => x.id === expand.prog) : null;
+    const st = snStyle(expand);
+    const d = snDur(expand);
+    html += '<div class="sn-item' + (st !== 'accent' ? ' sn-' + st : '') + '"><span class="sn-tag">EPINGLÉ</span>' +
       (p ? '<b>' + esc(p.name || p.id) + '</b>' : '') +
-      (n.text ? '<span>' + esc(n.text) + '</span>' : '') +
+      (expand.text ? '<span>' + esc(expand.text) + '</span>' : '') +
+      (d ? '<span class="sn-dur">⏳ ' + d + '</span>' : '') +
       (p ? '<button class="go sn-join" data-prog="' + esc(p.id) + '">rejoindre ›</button>' : '') +
-      (canEdit ? '<button class="ghost sn-del" data-id="' + esc(n.id) + '" title="retirer l\'epingle">✕</button>' : '') +
+      (canEdit ? '<button class="ghost sn-del" data-id="' + esc(expand.id) + '" title="retirer l\'epingle">✕</button>' : '') +
       '</div>';
+  }
+  if (rest.length) {
+    html += '<div class="sn-row">' + rest.map(n => {
+      const p = n.prog ? progs.find(x => x.id === n.prog) : null;
+      const lbl = p ? (p.name || p.id) : (n.text || '').slice(0, 34);
+      const d = snDur(n);
+      return '<button class="sn-chip' + (snStyle(n) !== 'accent' ? ' sn-' + snStyle(n) : '') + '" data-id="' + esc(n.id) + '" title="afficher cette epingle">' +
+        '<b>' + esc(lbl) + '</b>' + (d ? '<span style="color:var(--muted)">' + d + '</span>' : '') + '</button>';
+    }).join('') + '</div>';
   }
   if (wel) html += '<div class="sn-item sn-welcome"><span class="sn-tag sn-tag-w">BIENVENUE</span><span>' + esc(wel) + '</span></div>';
   el.innerHTML = html;
@@ -9077,6 +9106,9 @@ $('sessPin').addEventListener('click', e => {
     toast('PROGRAMME', 'programme prioritaire : ' + jn.dataset.prog, 'HIT');
     return;
   }
+  // chip compact clique : cette epingle passe en version depliee
+  const chip = e.target.closest('button.sn-chip');
+  if (chip) { PIN_EXPAND = chip.dataset.id; drawn_pin = ''; drawPin(); return; }
   const del = e.target.closest('button.sn-del');
   if (!del) return;
   jpost('/api/team', { op: 'unpin', id: del.dataset.id, by: HANDLE }).then(r => r.json()).then(j => {
@@ -9085,12 +9117,18 @@ $('sessPin').addEventListener('click', e => {
     if (!j.ok) toast('TEAM', j.error || 'refuse', 'P2');
   }).catch(() => {});
 });
-// popup d'epinglage d'un programme (depuis sa fiche) : message facultatif aux invites
+// popup d'epinglage d'un programme (depuis sa fiche) : message, durée et apparence
+let PIN_STYLE = 'accent';
+function setPinStyle(s) {
+  PIN_STYLE = ['accent', 'urgence', 'info', 'or'].includes(s) ? s : 'accent';
+  document.querySelectorAll('#pinStyle .pinstyle').forEach(b => b.classList.toggle('sel', b.dataset.s === PIN_STYLE));
+}
+document.querySelectorAll('#pinStyle .pinstyle').forEach(b => b.addEventListener('click', () => setPinStyle(b.dataset.s)));
 $('pinForm').addEventListener('submit', e => {
   e.preventDefault();
   const prog = $('pinModal').dataset.prog || '';
   if (!prog) return;
-  jpost('/api/team', { op: 'pin', prog, text: String($('pinMsg').value || '').trim(), by: HANDLE }).then(r => r.json()).then(j => {
+  jpost('/api/team', { op: 'pin', prog, text: String($('pinMsg').value || '').trim(), style: PIN_STYLE, dur: Number($('pinDur').value || 0), by: HANDLE }).then(r => r.json()).then(j => {
     if (!j.ok) { $('pinErr').textContent = j.error || 'refuse'; return; }
     if (j.team) state.data.team = j.team;
     $('pinModal').style.display = 'none';

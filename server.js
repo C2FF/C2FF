@@ -102,7 +102,8 @@ function teamCfg() {
     members,
     blocked: Array.isArray(c.blocked) ? c.blocked : [],
     welcome: String(c.welcome || '').slice(0, 200),
-    news: Array.isArray(c.news) ? c.news.filter(n => n && typeof n === 'object').slice(-3) : [],
+    // epingles expires : disparus des qu'ils sont lus (durée de l'evenement ecoulee)
+    news: Array.isArray(c.news) ? c.news.filter(n => n && typeof n === 'object' && (!n.exp || n.exp > Date.now())).slice(-3) : [],
   };
 }
 function saveTeamCfg(c) { try { fs.writeFileSync(TEAM_FILE, JSON.stringify(c, null, 1)); } catch (e) {} }
@@ -1045,10 +1046,12 @@ const MAIN = (req, res) => {
           if (rankOf(req, by) < 4) return sendJson(res, { ok: false, error: 'admin only' });
           const text = String(body.text || '').trim().slice(0, 200);
           const prog = String(body.prog || '').slice(0, 40);
+          const style = ['accent', 'urgence', 'info', 'or'].includes(body.style) ? body.style : 'accent';
+          const dur = Number(body.dur) > 0 ? Math.min(Number(body.dur), 2592000) : 0; // 0 = toujours, max 30 j
           if (!text && !prog) return sendJson(res, { ok: false, error: 'rien a epingler' });
           const cur = teamCfg();
           const news = (cur.news || [])
-            .concat([{ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), t: Date.now(), text, prog }])
+            .concat([{ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), t: Date.now(), text, prog, style, exp: dur ? Date.now() + dur * 1000 : 0 }])
             .slice(-3); // max 3 : le bandeau reste discret
           saveTeamCfg({ ...cur, news });
           return sendJson(res, { ok: true, team: teamState(req, by) });
