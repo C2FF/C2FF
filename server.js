@@ -89,7 +89,7 @@ const AI_ANALYST_PROMPT = "Tu es analyste bug bounty dans le framework C2FF. On 
   "ou infirmer. Pas de blabla, pas de speculations sans preuve.";
 
 // ---------- mode team : sessions de groupe a distance ----------
-const RANKS = { viewer: 0, member: 1, hunter: 2, coadmin: 3, admin: 4 };
+const RANKS = { viewer: 0, member: 1, hunter: 2, coadmin: 3, admin: 4, owner: 5 };
 function teamCfg() {
   const c = readJson(TEAM_FILE, null) || {};
   const members = (c.members && typeof c.members === 'object') ? c.members : {};
@@ -101,6 +101,8 @@ function teamCfg() {
     roles: (c.roles && typeof c.roles === 'object') ? c.roles : {},
     members,
     blocked: Array.isArray(c.blocked) ? c.blocked : [],
+    welcome: String(c.welcome || '').slice(0, 200),
+    news: Array.isArray(c.news) ? c.news.filter(n => n && typeof n === 'object').slice(-3) : [],
   };
 }
 function saveTeamCfg(c) { try { fs.writeFileSync(TEAM_FILE, JSON.stringify(c, null, 1)); } catch (e) {} }
@@ -114,7 +116,7 @@ const reqHandle = req => cleanHandle(req.headers['x-c2ff-handle']);
 // role effectif : le poste local est owner ; sinon le membre approuve (members),
 // fallback legacy roles{h:'admin'} ; un inconnu (ou en attente) = viewer
 const roleOf = (req, h) => {
-  if (isLoopback(req)) return 'admin';
+  if (isLoopback(req)) return 'owner'; // le proprietaire : grade ultime, sans equivalent
   const t = teamCfg();
   const m = t.members[h];
   if (m && m.status === 'approved') return RANKS[m.role] !== undefined ? m.role : 'member';
@@ -125,7 +127,7 @@ const rankOf = (req, h) => RANKS[roleOf(req, h)] || 0;
 // membre valide de la salle (hors loopback). '' = inconnu ou en attente de validation.
 // salle desactivee : usage solo, tout est permis.
 const memberRole = (req, h) => {
-  if (!teamCfg().enabled || isLoopback(req)) return 'admin';
+  if (!teamCfg().enabled || isLoopback(req)) return 'owner';
   const m = teamCfg().members[h];
   return (m && m.status === 'approved') ? m.role : '';
 };
@@ -172,6 +174,7 @@ function teamState(req, h) {
   return {
     enabled: t.enabled, room: t.room, protected: t.enabled,
     roles: t.roles, blocked: t.blocked,
+    welcome: t.welcome || '', news: t.news || [],
     bind: BIND === '0.0.0.0' ? 'lan' : 'local', lan: lanAddr(),
     tunnel: TUNNEL ? (TUNNEL.ready && TUNNEL.url ? TUNNEL.url : (TUNNEL.err ? 'err:' + TUNNEL.err : 'starting')) : '',
     chat: (() => {
@@ -1026,6 +1029,36 @@ const MAIN = (req, res) => {
           RTCMAP.set(from + ':' + body.typ + ':' + (body.to || '') + ':' + Date.now(),
             { from, to: cleanHandle(body.to) || '', typ: String(body.typ || '').slice(0, 8), data: String(body.data || '').slice(0, 8000), t: Date.now() });
           return sendJson(res, { ok: true });
+        }
+        // welcome / pin / unpin : message de bienvenue + epinglage d'actu ou de
+        // programme prioritaire, affiches dans le bandeau visible sur TOUS les
+        // onglets. decision admin uniquement (le proprietaire, grade ultime, passe).
+        if (body.op === 'welcome') {
+          const by = cleanHandle(body.by || body.handle);
+          if (rankOf(req, by) < 4) return sendJson(res, { ok: false, error: 'admin only' });
+          const cur = teamCfg();
+          saveTeamCfg({ ...cur, welcome: String(body.text || '').trim().slice(0, 200) });
+          return sendJson(res, { ok: true, team: teamState(req, by) });
+        }
+        if (body.op === 'pin') {
+          const by = cleanHandle(body.by || body.handle);
+          if (rankOf(req, by) < 4) return sendJson(res, { ok: false, error: 'admin only' });
+          const text = String(body.text || '').trim().slice(0, 200);
+          const prog = String(body.prog || '').slice(0, 40);
+          if (!text && !prog) return sendJson(res, { ok: false, error: 'rien a epingler' });
+          const cur = teamCfg();
+          const news = (cur.news || [])
+            .concat([{ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), t: Date.now(), text, prog }])
+            .slice(-3); // max 3 : le bandeau reste discret
+          saveTeamCfg({ ...cur, news });
+          return sendJson(res, { ok: true, team: teamState(req, by) });
+        }
+        if (body.op === 'unpin') {
+          const by = cleanHandle(body.by || body.handle);
+          if (rankOf(req, by) < 4) return sendJson(res, { ok: false, error: 'admin only' });
+          const cur = teamCfg();
+          saveTeamCfg({ ...cur, news: (cur.news || []).filter(n => n.id !== String(body.id || '')) });
+          return sendJson(res, { ok: true, team: teamState(req, by) });
         }
         // role.set : les 5 grades, decision admin uniquement (le poste local est admin)
         if (body.op === 'role.set') {

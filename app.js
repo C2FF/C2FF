@@ -8957,6 +8957,13 @@ function showJoin(wait, msg) {
   $('jmWait').hidden = !JOIN_WAIT;
   $('jmForm').hidden = JOIN_WAIT;
   $('jmErr').textContent = msg || '';
+  // message de bienvenue du proprietaire, affiche dans la modal d'entree
+  const jw = $('jmWelcome');
+  if (jw) {
+    const wl = ((state.data.team || {}).welcome || '').trim();
+    jw.textContent = wl;
+    jw.hidden = !wl;
+  }
   if (!JOIN_WAIT) setTimeout(() => { try { $('jmHandle').focus(); } catch (e) {} }, 50);
 }
 function hideJoin() {
@@ -8999,13 +9006,76 @@ document.addEventListener('keydown', e => {
 });
 
 // ---------- mode team : sessions de groupe a distance ----------
-const TRANK = { admin: 4, coadmin: 3, hunter: 2, member: 1, viewer: 0 };
-const TRLBL = { admin: 'admin', coadmin: 'co-admin', hunter: 'chasseur', member: 'membre', viewer: 'observateur' };
+const TRANK = { owner: 5, admin: 4, coadmin: 3, hunter: 2, member: 1, viewer: 0 };
+const TRLBL = { owner: 'propriétaire', admin: 'admin', coadmin: 'co-admin', hunter: 'chasseur', member: 'membre', viewer: 'observateur' };
 let SEEN_REQ = '';
 let TM_ARM = 0; // mousedown sur select grade -> fige la liste membres/demandes 6 s
 const tmArm = e => { if (e.target.closest && e.target.closest('select')) TM_ARM = Date.now() + 6000; };
 $('tmMembers').addEventListener('mousedown', tmArm);
 $('tmPending').addEventListener('mousedown', tmArm);
+// bandeau EPINGLÉ / BIENVENUE : visible sur TOUS les onglets (entre le menu et
+// les stats), deco accent du theme. max 3 epingles cote serveur - discret.
+let drawn_pin = '';
+function drawPin() {
+  const el = $('sessPin');
+  if (!el) return;
+  const tm = state.data.team || {};
+  const news = tm.news || [];
+  const wel = (tm.welcome || '').trim();
+  if (!tm.enabled || (!news.length && !wel)) { el.hidden = true; drawn_pin = ''; return; }
+  const canEdit = (TRANK[tm.meRole || tm.you] || 0) >= 4;
+  const sig = JSON.stringify([news, wel, canEdit]);
+  if (sig === drawn_pin && !forceDraw) return;
+  drawn_pin = sig;
+  const progs = state.data.programs || [];
+  let html = '';
+  for (const n of news) {
+    const p = n.prog ? progs.find(x => x.id === n.prog) : null;
+    html += '<div class="sn-item"><span class="sn-tag">EPINGLÉ</span>' +
+      (p ? '<b>' + esc(p.name || p.id) + '</b>' : '') +
+      (n.text ? '<span>' + esc(n.text) + '</span>' : '') +
+      (p ? '<button class="go sn-join" data-prog="' + esc(p.id) + '">rejoindre ›</button>' : '') +
+      (canEdit ? '<button class="ghost sn-del" data-id="' + esc(n.id) + '" title="retirer l\'epingle">✕</button>' : '') +
+      '</div>';
+  }
+  if (wel) html += '<div class="sn-item sn-welcome"><span class="sn-tag sn-tag-w">BIENVENUE</span><span>' + esc(wel) + '</span></div>';
+  el.innerHTML = html;
+  el.hidden = false;
+}
+$('sessPin').addEventListener('click', e => {
+  const jn = e.target.closest('button.sn-join');
+  if (jn) {
+    setProg(jn.dataset.prog);
+    setTab('programs');
+    toast('PROGRAMME', 'programme prioritaire : ' + jn.dataset.prog, 'HIT');
+    return;
+  }
+  const del = e.target.closest('button.sn-del');
+  if (!del) return;
+  jpost('/api/team', { op: 'unpin', id: del.dataset.id, by: HANDLE }).then(r => r.json()).then(j => {
+    if (j.team) state.data.team = j.team;
+    drawn_pin = '';
+    if (!j.ok) toast('TEAM', j.error || 'refuse', 'P2');
+  }).catch(() => {});
+});
+// config epinglage/bienvenue (onglet team, admin et proprietaire)
+$('tmPinAdd').addEventListener('click', () => {
+  const text = String($('tmPinText').value || '').trim();
+  const prog = String($('tmPinProg').value || '');
+  if (!text && !prog) { toast('TEAM', 'mets un texte ou un programme a epingler', 'P2'); return; }
+  jpost('/api/team', { op: 'pin', text, prog, by: HANDLE }).then(r => r.json()).then(j => {
+    if (j.team) state.data.team = j.team;
+    toast('TEAM', j.ok ? 'epingle : visible de tous' : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2');
+    if (j.ok) $('tmPinText').value = '';
+  }).catch(() => {});
+});
+$('tmWelcomeSave').addEventListener('click', () => {
+  jpost('/api/team', { op: 'welcome', text: String($('tmWelcome').value || ''), by: HANDLE }).then(r => r.json()).then(j => {
+    if (j.team) state.data.team = j.team;
+    drawn_pin = '';
+    toast('TEAM', j.ok ? 'message de bienvenue enregistre' : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2');
+  }).catch(() => {});
+});
 function drawTeam() {
   const tm = state.data.team || {};
   const remote = tm.bind === 'lan';
@@ -9047,6 +9117,15 @@ function drawTeam() {
     set('tmHandleEl', HANDLE ? HANDLE : '');
     set('tmRoomEl', tm.room || '');
     set('tmOn', tm.enabled ? 'on' : 'off');
+    set('tmWelcome', tm.welcome || '');
+  }
+  // epinglage : select des programmes (non-demo), preselectionne le pin en cours
+  const pinSel = $('tmPinProg');
+  if (pinSel && !focusInside('#tmPinProg')) {
+    const progs = (state.data.programs || []).filter(p => !p.demo);
+    const cur = (tm.news || []).map(n => n.prog).filter(Boolean);
+    pinSel.innerHTML = '<option value="">programme prioritaire...</option>' +
+      progs.map(p => '<option value="' + esc(p.id) + '"' + (cur.includes(p.id) ? ' data-pinned' : '') + '>' + esc(p.name || p.id) + (cur.includes(p.id) ? ' (epingle)' : '') + '</option>').join('');
   }
   const pendEl = $('tmPending');
   if (pendEl) {
@@ -9068,7 +9147,7 @@ function drawTeam() {
   $('tmMembers').innerHTML = (tm.members || []).map(m =>
     '<div class="tm-m"><span class="dot ' + (m.active ? 'run' : '') + '" style="' + (m.active ? 'color:var(--green)' : 'color:var(--faint)') + '"></span>' +
     '<b style="color:' + (m.h === HANDLE ? 'var(--green)' : 'var(--text)') + '">' + esc(m.h) + (m.h === HANDLE ? ' <small style="color:var(--faint)">' + T('tm_you') + '</small>' : '') + '</b>' +
-    '<span class="pill ' + (m.role === 'admin' ? 'p-prog' : 'p-done') + '">' + (m.st === 'pending' ? 'en attente' : (TRLBL[m.role] || m.role || 'membre')) + '</span>' +
+    '<span class="pill ' + (m.role === 'owner' ? 'p-owner' : m.role === 'admin' ? 'p-prog' : 'p-done') + '">' + (m.st === 'pending' ? 'en attente' : (TRLBL[m.role] || m.role || 'membre')) + '</span>' +
     '<span class="pill ' + (m.active ? 'p-live' : 'p-done') + '">' + (m.active ? T('tm_here') : Math.round(m.ms / 60000) + ' min') + '</span>' +
     (amAdmin && m.h !== HANDLE ?
       '<select class="tmrole" data-h="' + esc(m.h) + '">' + ['viewer', 'member', 'hunter', 'coadmin', 'admin'].map(r =>
@@ -9887,7 +9966,7 @@ async function refresh() {
       popNotify('SESSION · ' + (ttop.name || '?'), ttop.text || '', '');
     }
     if (ttop) NOTIF.lastTeamT = ttop.t;
-    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawUrls(); drawMods(); drawAuth(); drawAdv(); drawChat(); drawFleet(); drawAI(); drawTeam(); drawArsenal(); drawFast();
+    drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawUrls(); drawMods(); drawAuth(); drawAdv(); drawChat(); drawFleet(); drawAI(); drawPin(); drawTeam(); drawArsenal(); drawFast();
     const _rk = TRANK[d.team.meRole || d.team.you] || 0;
     if (document.body.dataset.rank !== String(_rk)) document.body.dataset.rank = String(_rk);
     // programmes crees/supprimes : le bandeau pipeline suit (sinon message

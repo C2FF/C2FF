@@ -307,6 +307,23 @@ header,nav{border-bottom-color:transparent;
   <button class="navbtn" data-tab="team"><span data-i="navt">Team</span></button>
   <button class="navbtn" data-tab="chat"><span data-i="navc">Coordination</span> <small id="nChat"></small></button>
 </nav>
+<div id="sessPin" hidden></div>
+<style>
+  #sessPin{margin:0 0 10px;display:flex;flex-direction:column;gap:6px}
+  #sessPin .sn-item{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-radius:8px;
+    border:1px solid hsl(var(--hue) 70% 40% / .55);border-left:4px solid hsl(var(--hue) 85% 55%);
+    background:linear-gradient(90deg, hsl(var(--hue) 65% 16% / .75), hsl(var(--hue) 40% 8% / .35) 70%, transparent);
+    box-shadow:0 0 14px hsl(var(--hue) 80% 30% / .25);font-size:12px}
+  #sessPin .sn-tag{flex:none;font-size:9.5px;letter-spacing:.14em;color:hsl(var(--hue) 90% 70%);
+    border:1px solid hsl(var(--hue) 70% 45% / .6);border-radius:4px;padding:2px 7px;background:hsl(var(--hue) 70% 20% / .5)}
+  #sessPin .sn-item b{color:hsl(var(--hue) 90% 72%)}
+  #sessPin .sn-item span{color:var(--text)}
+  #sessPin .sn-join{flex:none;padding:3px 12px;font-size:11px}
+  #sessPin .sn-del{flex:none;padding:2px 8px;font-size:10px;color:var(--faint)}
+  #sessPin .sn-welcome{border-left-style:dashed;box-shadow:none}
+  #sessPin .sn-tag-w{color:var(--green);border-color:hsl(150 60% 40% / .6);background:hsl(150 60% 15% / .5)}
+  .p-owner{color:hsl(45 90% 60%);border-color:hsl(45 80% 45% / .6);background:hsl(45 80% 20% / .25)}
+</style>
 <div class="stats">
   <div class="stat"><div class="k" data-i="st_runs">Runs</div><div class="v" id="sRuns">0</div></div>
   <div class="stat"><div class="k" data-i="st_beacons">Beacons actifs</div><div class="v" id="sAct">0</div></div>
@@ -464,6 +481,18 @@ header,nav{border-bottom-color:transparent;
       <button class="go" id="tmCopy" data-i="tm_copy" style="flex:none;padding:5px 12px;font-size:11.5px">Copier</button>
     </div>
     <div id="tmInviteNote" class="need-admin" hidden style="font-size:11px;color:var(--faint);margin:-4px 0 10px">l'URL seule suffit : pseudo et pin se choisissent a l'arrivee (modal de connexion)</div>
+    <div class="need-admin" style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0 12px;background:var(--panel2)">
+      <div style="font-size:11px;letter-spacing:.1em;color:hsl(var(--hue) 90% 70%);margin-bottom:8px">EPINGLAGE + BIENVENUE - visible de tous sur tous les onglets (max 3)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+        <input type="text" id="tmPinText" maxlength="200" placeholder="actu de la session a epingler (optionnel)" style="flex:1;min-width:220px">
+        <select id="tmPinProg" style="max-width:200px"><option value="">programme prioritaire...</option></select>
+        <button class="go" id="tmPinAdd">Epingler</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="tmWelcome" maxlength="200" placeholder="message de bienvenue de la session" style="flex:1;min-width:220px">
+        <button class="go" id="tmWelcomeSave">Enregistrer</button>
+      </div>
+    </div>
     <h2 style="margin:14px 0 6px" data-i="tm_members">Membres</h2>
     <div id="tmPending" style="font-size:12px;margin-bottom:10px"></div>
     <div id="tmMembers" style="font-size:12px"></div>
@@ -546,6 +575,7 @@ header,nav{border-bottom-color:transparent;
       <div style="font-size:13px;color:var(--green);margin-bottom:10px">⏳ en attente de validation par l'admin...</div>
       <button class="ghost" id="jmEdit" style="font-size:11.5px">changer de pseudo</button>
     </div>
+    <div id="jmWelcome" hidden style="margin-top:12px;padding:9px 12px;border-left:3px solid hsl(var(--hue) 85% 55%);border-radius:6px;background:hsl(var(--hue) 50% 14% / .5);font-size:12px;color:var(--text)"></div>
   </div>
 </div>
 <script src="/app.js"></script>
