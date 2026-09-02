@@ -21561,7 +21561,9 @@ function rtcTick() {
       } else if (msg.typ === 'psdp') {
         const d = JSON.parse(msg.data);
         if (d.type === 'offer') {
-          if (PMC_PEER && PMC_PEER !== msg.from) {
+          if (PMC_PEER === msg.from || PMC_IN === msg.from) {
+            // doublon : l'appel est deja en cours (ou deja sonne) avec ce pair
+          } else if (PMC_PEER || PMC_IN) {
             // deja en ligne privee avec quelqu'un d'autre : refus auto
             jpost('/api/team', { op: 'rtc', from: HANDLE, to: msg.from, typ: 'pend', data: 'refuse' }).catch(() => {});
           } else { PMC_IN = msg.from; PMC_OFFER = d; forceDraw = true; drawChats(); }
@@ -21710,7 +21712,7 @@ $('alertOk').addEventListener('click', () => { $('alertModal').hidden = true; })
 // ---------- vocal prive 1:1 (en plus du mesh de session) :
 // meme relais op rtc, types prefixes 'p' pour ne pas croiser le mesh
 const PCS2 = new Map();
-let PMC_PEER = '', PMC_IN = '', PMC_OFFER = null;
+let PMC_PEER = '', PMC_IN = '', PMC_OFFER = null, PMC_AT = 0;
 function newPCP(h) {
   const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
   if (PMC_MIC) PMC_MIC.getTracks().forEach(t => pc.addTrack(t, PMC_MIC));
@@ -21727,9 +21729,12 @@ let PMC_MIC = null;
 async function pmStart(h) {
   if (!HANDLE) return toast('SESSION', T('tm_no_handle'), 'P2');
   if (PMC_PEER) return toast('WISPE', 'un appel prive est deja en cours avec ' + PMC_PEER, 'P2');
+  if (PMC_IN) return toast('WISPE', 'un appel entre : reponds ou refuse d\'abord', 'P2');
+  // PMC_PEER pose AVANT l'attente du micro : un double-clic ne doit pas
+  // creer deux PC et deux offres (l'ancien PC devenait orphelin, micro leak)
+  PMC_PEER = h; PMC_AT = Date.now();
   try { PMC_MIC = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS); }
-  catch (e) { return toast('WISPE', T('tm_mic_denied'), 'P2'); }
-  PMC_PEER = h;
+  catch (e) { PMC_PEER = ''; forceDraw = true; drawChats(); return toast('WISPE', T('tm_mic_denied'), 'P2'); }
   const pc = newPCP(h);
   try {
     const o = await pc.createOffer();
@@ -21772,8 +21777,13 @@ $('pmCall').addEventListener('click', () => {
   if (!CHAT_SEL || CHAT_SEL.indexOf('pm-') !== 0) return;
   const peer = CHAT_SEL.slice(3).split('--').find(x => x !== HANDLE);
   if (!peer) return;
-  if (PMC_PEER === peer) pmEnd();
-  else pmStart(peer);
+  if (PMC_PEER === peer) {
+    // garde anti double-clic : le 2e clic arrive < 800 ms apres le depart,
+    // ce n'est pas un raccrocher vole
+    if (Date.now() - PMC_AT > 800) pmEnd();
+    return;
+  }
+  pmStart(peer);
 });
 $('pmBar').addEventListener('click', e => {
   if (e.target.closest('.pm-ok')) pmAccept();

@@ -105,12 +105,21 @@ function teamCfg() {
   // chats de session multiples : [{id, name, min (grade requis), event (newsId)}]
   // 'session' est le canal par defaut, indestructible ; les chats d'event sont
   // purges avec leur epingle (le chat du challenge meurt avec le challenge)
-  const chats = (Array.isArray(c.chats) ? c.chats : []).filter(x => x && typeof x === 'object'
-    && x.id && x.id !== 'session' && (!x.event || news.some(n => n.id === x.event)))
+  const persos = (Array.isArray(c.chats) ? c.chats : []).filter(x => x && typeof x === 'object'
+    && x.id && x.id !== 'session' && (x.id || '').indexOf('pm-') !== 0
+    && (!x.event || news.some(n => n.id === x.event)))
     .map(x => ({ id: String(x.id).slice(0, 32), name: String(x.name || 'chat').slice(0, 24),
       min: Math.max(0, Math.min(4, Math.floor(Number(x.min) || 0))), event: String(x.event || '') }))
     .slice(0, 7);
-  chats.unshift({ id: 'session', name: 'session', min: 0, event: '' });
+  // wispe (chats prives 1:1) : HORS cap des 7 chats persos (sinon chaque wispe
+  // ejecte un chat perso puis se fait tronquer lui-meme = recree en boucle),
+  // dedoublonnes par id, cap 24 - les plus anciens ferment (op wsp)
+  const seenpm = new Set();
+  const pms = (Array.isArray(c.chats) ? c.chats : []).filter(x => x && typeof x === 'object'
+    && (x.id || '').indexOf('pm-') === 0 && !seenpm.has(x.id) && seenpm.add(x.id))
+    .map(x => ({ id: String(x.id).slice(0, 48), name: 'prive', min: 0, event: '' }))
+    .slice(-24);
+  const chats = [{ id: 'session', name: 'session', min: 0, event: '' }, ...persos, ...pms];
   return {
     enabled: !!c.enabled, room: String(c.room || ''), key: String(c.key || ''), live: !!c.live,
     roles: (c.roles && typeof c.roles === 'object') ? c.roles : {},
@@ -1253,7 +1262,7 @@ const MAIN = (req, res) => {
           if (name.length < 2) return sendJson(res, { ok: false, error: 'nom trop court (2 caracteres min)' });
           const min = Math.max(0, Math.min(4, Math.floor(Number(body.min) || 0)));
           const cur = teamCfg();
-          if ((cur.chats || []).filter(c => c.id !== 'session' && !c.event).length >= 6)
+          if ((cur.chats || []).filter(c => c.id !== 'session' && !c.event && (c.id || '').indexOf('pm-') !== 0).length >= 6)
             return sendJson(res, { ok: false, error: 'maximum 6 chats personnels' });
           const cid = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
           saveTeamCfg({ ...cur, chats: (cur.chats || []).concat([{ id: cid, name, min, event: '' }]) });
