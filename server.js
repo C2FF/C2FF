@@ -129,6 +129,20 @@ function chatOk(c, h, rk) {
   if (c.event) return rk >= 4 || !!(h && c._parts && c._parts[h]);
   return rk >= (c.min || 0);
 }
+// porte limite d'un event (challenge OU epingle avec chat dedie) : participation
+// requise, limite par participant enforcee, increment atomique. retourne
+// { err } si l'envoi est refuse, { cur2 } (config a sauver) si il passe.
+function chalGate(cur, nid, h) {
+  const n = (cur.news || []).find(x => x.id === nid);
+  const c = n && (cur.chal || {})[n.id];
+  if (!n || !c) return { ok: true }; // pas un event limite : libre
+  if (!c.parts[h]) return { err: 'rejoins l\'event (bouton participer du bandeau) pour envoyer tes findings' };
+  if ((c.limit || 0) > 0 && c.parts[h].finds >= c.limit)
+    return { err: 'limite de l\'event atteinte : ' + c.parts[h].finds + '/' + c.limit + ' findings deja envoyes' };
+  const chal2 = { ...cur.chal };
+  chal2[nid] = { ...c, parts: { ...c.parts, [h]: { ...c.parts[h], finds: c.parts[h].finds + 1 } } };
+  return { ok: true, cur2: { ...cur, chal: chal2 } };
+}
 function saveTeamCfg(c) { try { fs.writeFileSync(TEAM_FILE, JSON.stringify(c, null, 1)); } catch (e) {} }
 function genKey() { return 'c2ff-' + crypto.randomBytes(12).toString('hex'); }
 const loadVotes = () => { const v = readJson(VOTES_FILE, null); return (v && typeof v === 'object') ? v : {}; };
@@ -199,7 +213,7 @@ function teamState(req, h) {
     enabled: t.enabled, room: t.room, protected: t.enabled,
     roles: t.roles, blocked: t.blocked,
     welcome: t.welcome || '',
-    news: (t.news || []).map(n => n.kind === 'challenge' ? (() => {
+    news: (t.news || []).map(n => (t.chal || {})[n.id] ? (() => {
       const c = (t.chal || {})[n.id] || {};
       return { ...n, limit: c.limit || 0, nparts: Object.keys(c.parts || {}).length,
         me: (h && (c.parts || {})[h]) || null };
@@ -1095,16 +1109,15 @@ const MAIN = (req, res) => {
           const news = (cur.news || [])
             .concat([{ id: nid, t: Date.now(), text, prog, style, kind, exp: dur ? Date.now() + dur * 1000 : 0 }])
             .slice(-3); // max 3 : le bandeau reste discret
-          // challenge : registre de participation + limite de findings par participant
+          // registre de participation + limite de findings par participant :
+          // challenge, ou epingle simple avec chat dedie (la limite cadre le chat)
           const chal = { ...(cur.chal || {}) };
-          if (kind === 'challenge') {
-            const lim = Math.max(0, Math.min(20, Math.floor(Number(body.lim) || 0))); // 0 = illimite
-            chal[nid] = { limit: lim, parts: {} };
-          }
-          // option "chat dedie a l'event" : un chat reserve aux participants du
-          // challenge, ouverts a l'epingle et ferme avec elle
+          const lim = Math.max(0, Math.min(20, Math.floor(Number(body.lim) || 0))); // 0 = illimite
+          if (kind === 'challenge' || body.evchat) chal[nid] = { limit: lim, parts: {} };
+          // option "chat dedie a l'event" : un chat reserve aux participants,
+          // ouvert a l'epingle et ferme avec elle (challenge ou epingle simple)
           let chats = [...(cur.chats || [])];
-          if (kind === 'challenge' && body.evchat) {
+          if (body.evchat) {
             chats = chats.filter(c => c && c.id !== 'ev-' + nid)
               .concat([{ id: 'ev-' + nid, name: 'event ' + (prog || '').slice(0, 12), min: 0, event: nid }]).slice(-8);
           }
@@ -1119,7 +1132,7 @@ const MAIN = (req, res) => {
           if (!h) return sendJson(res, { ok: false, error: 'identite manquante' });
           if (rankOf(req, h) < 1) return sendJson(res, { ok: false, error: 'membre requis pour participer' });
           const cur = teamCfg();
-          const n = (cur.news || []).find(x => x.id === String(body.id || '') && x.kind === 'challenge');
+          const n = (cur.news || []).find(x => x.id === String(body.id || '') && (x.kind === 'challenge' || (cur.chal || {})[x.id]));
           if (!n) return sendJson(res, { ok: false, error: 'challenge introuvable ou termine' });
           const chal = { ...(cur.chal || {}) };
           const c = { limit: 0, parts: {}, ...(chal[n.id] || {}) };
@@ -1320,17 +1333,24 @@ const MAIN = (req, res) => {
           if (body.op === 'share') {
             const card = GROUPCARDS.find(x => x.id === String(body.id || ''));
             if (!card) return sendJson(res, { ok: false, error: 'carte introuvable' });
-            // un participant d'un challenge actif partage dans le chat de SON
+            // un participant d'un event actif partage dans le chat de SON
             // event (la commande + sa sortie vont aux autres participants) ;
-            // sinon le partage part dans le chat session comme avant
+            // sinon le partage part dans le chat session comme avant.
+            // le partage est un envoi comme un autre : il compte contre la
+            // limite du participant (sinon contournement de la limite).
             let chid = 'session';
             const cur = teamCfg();
             const now = Date.now();
-            const mine = (cur.news || []).filter(n => n.kind === 'challenge' && (!n.exp || n.exp > now)
+            const mine = (cur.news || []).filter(n => (!n.exp || n.exp > now)
               && (cur.chal || {})[n.id] && ((cur.chal[n.id].parts || {})[h] || rankOf(req, h) >= 4));
             const evn = mine[mine.length - 1];
             const evc = evn && (cur.chats || []).find(c => c.event === evn.id);
             if (evc) chid = evc.id;
+            if (evc && rankOf(req, h) < 4) {
+              const g = chalGate(cur, evn.id, h);
+              if (g.err) return sendJson(res, { ok: false, error: g.err });
+              if (g.cur2) saveTeamCfg(g.cur2);
+            }
             const txt = 'terminal ▸ ' + card.cmd + (card.out ? '\n' + card.out.slice(0, 800) : '') + (card.run ? '\n(en cours)' : '');
             appendJsonl(CHAT_FILE, {
               t: Date.now(), id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), from: 'me',
@@ -1431,29 +1451,23 @@ const MAIN = (req, res) => {
           _cid = cc.id;
         }
         // limite de findings par participant, avec le marqueur de participation
-        // (op chaljoin), sans contournement possible - deux portes verrouillees :
-        // 1) TOUT message poste dans le chat de l'event compte (le chat du
-        //    challenge est la zone de jeu : limite 1 = un seul envoi, point)
-        // 2) un finding partage avec le programme du challenge compte, meme
-        //    poste dans un autre chat. Identite = header PRIME (changer le nom
-        //    dans la requete est inoperant), increment atomique avec le
-        //    message ; l'admin et le proprietaire ne sont jamais limites.
+        // (op chaljoin), sans contournement possible - trois portes verrouillees :
+        // 1) TOUT message poste dans le chat de l'event compte (la zone de jeu :
+        //    limite 1 = un seul envoi, point)
+        // 2) un finding partage avec le programme d'un event compte, meme poste
+        //    dans un autre chat. Identite = header PRIME (changer le nom dans la
+        //    requete est inoperant), increment atomique avec le message ;
+        //    l'admin et le proprietaire ne sont jamais limites.
         if (_cur && rankOf(req, _ch) < 4) {
           const evc = (_cur.chats || []).find(c => c.id === _cid && c.event);
           const nid = evc ? evc.event
             : (body.kind === 'finding' && body.prog
-              ? ((_cur.news || []).find(x => x.kind === 'challenge' && x.prog === String(body.prog).slice(0, 40)) || {}).id
+              ? ((_cur.news || []).find(x => (_cur.chal || {})[x.id] && x.prog === String(body.prog).slice(0, 40)) || {}).id
               : null);
-          const n = nid && (_cur.news || []).find(x => x.id === nid);
-          if (n) {
-            const c = (_cur.chal || {})[n.id];
-            if (!c || !c.parts[_ch]) return sendJson(res, { ok: false, error: 'rejoins le challenge (bouton participer du bandeau) pour envoyer tes findings' });
-            if ((c.limit || 0) > 0 && c.parts[_ch].finds >= c.limit) {
-              return sendJson(res, { ok: false, error: 'limite du challenge atteinte : ' + c.parts[_ch].finds + '/' + c.limit + ' findings deja envoyes' });
-            }
-            const chal2 = { ..._cur.chal };
-            chal2[n.id] = { ...c, parts: { ...c.parts, [_ch]: { ...c.parts[_ch], finds: c.parts[_ch].finds + 1 } } };
-            saveTeamCfg({ ..._cur, chal: chal2 });
+          if (nid) {
+            const g = chalGate(_cur, nid, _ch);
+            if (g.err) return sendJson(res, { ok: false, error: g.err });
+            if (g.cur2) saveTeamCfg(g.cur2);
           }
         }
         const msg = {

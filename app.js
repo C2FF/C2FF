@@ -19931,7 +19931,8 @@ function drawPrograms() {
     $('pinKind').value = 'pin';
     $('pinDur').value = '86400';
     if ($('pinDurCustomRow')) $('pinDurCustomRow').hidden = true;
-    $('pinLimRow').style.display = 'none';
+    if ($('pinEv')) $('pinEv').checked = true;
+    updPinRows();
     setPinStyle('accent');
     $('pinModal').style.display = 'grid';
     $('pinModal').dataset.prog = p.id;
@@ -21000,6 +21001,8 @@ function drawPin() {
   if (expand) {
     const p = expand.prog ? progs.find(x => x.id === expand.prog) : null;
     const chal = expand.kind === 'challenge';
+    // event limite : challenge, ou epingle avec chat dedie (registre present)
+    const gated = chal || expand.limit !== undefined;
     const st = snStyle(expand);
     const d = chal ? '' : snDur(expand);
     const myRk = TRANK[tm.meRole || tm.you] || 0;
@@ -21012,10 +21015,10 @@ function drawPin() {
       (p ? '<b>' + esc(p.name || p.id) + '</b>' : '') +
       (expand.text ? '<span>' + esc(expand.text) + '</span>' : '') +
       (chal && expand.exp ? '<span class="sn-clock">⏱ ' + snClock(expand) + '</span>' : (d ? '<span class="sn-dur">⏳ ' + d + '</span>' : '')) +
-      (chal && expand.nparts ? '<span class="sn-dur">' + expand.nparts + ' participant' + (expand.nparts > 1 ? 's' : '') + '</span>' : '') +
-      (chal && joined ? '<span class="pill ' + (lim && cnt >= lim ? 'p-warn' : 'p-live') + '">' + (lim ? cnt + '/' + lim + ' findings' : cnt + ' envoyé' + (cnt > 1 ? 's' : '')) + '</span>' : '') +
+      (gated && expand.nparts ? '<span class="sn-dur">' + expand.nparts + ' participant' + (expand.nparts > 1 ? 's' : '') + '</span>' : '') +
+      (gated && joined ? '<span class="pill ' + (lim && cnt >= lim ? 'p-warn' : 'p-live') + '">' + (lim ? cnt + '/' + lim + ' findings' : cnt + ' envoyé' + (cnt > 1 ? 's' : '')) + '</span>' : '') +
       (p ? '<button class="go sn-join" data-prog="' + esc(p.id) + '">rejoindre ›</button>' : '') +
-      (chal && !joined && myRk >= 1 ? '<button class="go sn-part" data-id="' + esc(expand.id) + '">participer ›</button>' : '') +
+      (gated && !joined && myRk >= 1 ? '<button class="go sn-part" data-id="' + esc(expand.id) + '">participer ›</button>' : '') +
       (canEdit ? '<button class="ghost sn-del" data-id="' + esc(expand.id) + '" title="retirer l\'epingle">✕</button>' : '') +
       '</div>';
   }
@@ -21073,16 +21076,22 @@ $('pinProgSel').addEventListener('change', () => {
   const p = (state.data.programs || []).find(x => x.id === $('pinProgSel').value);
   $('pinProgName').textContent = p ? (p.name || p.id) : $('pinProgSel').value;
 });
+// la ligne limite suit le type et l'encoche chat (elle cadre le chat dedie)
+function updPinRows() {
+  const chal = $('pinKind').value === 'challenge';
+  const ev = $('pinEv') ? $('pinEv').checked : false;
+  $('pinLimRow').style.display = (chal || ev) ? '' : 'none';
+}
 // challenge choisi : 20 min par defaut, style urgence + limite de findings visibles
 $('pinKind').addEventListener('change', () => {
   const chal = $('pinKind').value === 'challenge';
-  $('pinLimRow').style.display = chal ? '' : 'none';
-  if ($('pinEvRow')) $('pinEvRow').hidden = !chal; // chat dedie : option challenge uniquement
+  updPinRows();
   if (chal) {
     $('pinDur').value = '1200';
     setPinStyle('urgence');
   }
 });
+if ($('pinEv')) $('pinEv').addEventListener('change', updPinRows);
 // duree libre : l'option "personnalise..." ouvre le reglage fin (nombre + unite)
 function pinDurSeconds() {
   if ($('pinDur').value !== 'custom') return Number($('pinDur').value || 0);
@@ -21220,6 +21229,7 @@ function drawTeam() {
 // reserves a un grade (member, hunter, co-admin, admin) ; un challenge peut
 // ouvrir son chat 'event', reserve aux participants (isolation serveur incluse).
 let CHAT_SEL = 'session';
+let CHAT_DRAWN = ''; // dernier canal rendu (pour le stick du scroll)
 const CHMIN = { 0: '', 1: 'member', 2: 'hunter', 3: 'co-admin', 4: 'admin' };
 function drawChats() {
   const tm = state.data.team || {};
@@ -21248,6 +21258,11 @@ function drawChats() {
   const blog = $('tmChatlog');
   if (!blog) return;
   blog.hidden = !tm.enabled;
+  // stick : on colle en bas seulement si on y etait deja (ou changement de
+  // canal) - sinon le re-render periodique ramene le fil au debut
+  const stick = CHAT_SEL !== CHAT_DRAWN ||
+    blog.scrollHeight - blog.scrollTop - blog.clientHeight < 60;
+  CHAT_DRAWN = CHAT_SEL;
   const cur = list.find(c => c.id === CHAT_SEL);
   if (!cur || !cur.ok) {
     blog.innerHTML = '<div class="msg claude">🔒 ' + T('chs_locked') + '</div>';
@@ -21270,7 +21285,7 @@ function drawChats() {
       : '';
     return '<div class="' + cls + '"><div class="who">' + esc(m.name || '?') + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + sev + votes + join + '</div>' + esc(m.text || '') + '</div>';
   }).join('') || '<div class="msg claude">' + T('tm_chat_empty') + '</div>';
-  blog.scrollTop = blog.scrollHeight;
+  if (stick) requestAnimationFrame(() => { blog.scrollTop = blog.scrollHeight; });
 }
 $('chatTabs').addEventListener('click', e => {
   const del = e.target.closest('button.cht-del');
