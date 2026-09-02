@@ -7963,10 +7963,13 @@ function drawPrograms() {
   drawn.prog = sig;
   $('nProg').textContent = String(state.data.programs.length);
   const modes = state.data.modes || [];
+  const _tm = state.data.team || {};
+  const _rk = TRANK[_tm.meRole || _tm.you] || 0;
+  const ACC = [[1, 'acces : tous'], [2, 'acces : hunter+'], [3, 'acces : co-admin+'], [4, 'acces : admin']];
   const list = [...state.data.programs].sort((a, b) => (a.demo ? 1 : 0) - (b.demo ? 1 : 0));
   $('progList').innerHTML = list.map(p =>
     '<div class="card"><h3>' + esc(p.name) + (p.demo ? ' <small style="color:var(--warn)">[DEMO]</small>' : '') + (p.veille ? ' <small style="color:var(--amber)">(veille)</small>' : '') + '</h3>' +
-    '<div class="subtle" style="color:var(--dim);font-size:10.5px">' + esc(p.platform || '') + '</div>' +
+    '<div class="subtle" style="color:var(--dim);font-size:10.5px">' + esc(p.platform || '') + (p.owner ? ' - cree par ' + esc(p.owner) : '') + '</div>' +
     '<div class="scope">' + esc((p.scope || []).join(' · ')) + '</div>' +
     (p.header ? '<div class="hdr">⧉ ' + esc(p.header) + '</div>' : '') +
     (p.regle ? '<div class="hdr">⌦ regle : ' + esc(p.regle) + '</div>' : '') +
@@ -7974,10 +7977,30 @@ function drawPrograms() {
     '<select class="mode" data-p="' + esc(p.id) + '">' + modes.map(m => '<option value="' + esc(m.key) + '">' + esc(m.label) + ' · CWE ' + esc(m.cwes) + '</option>').join('') + '</select>' +
     '<button class="go launch" data-p="' + esc(p.id) + '">GO ›</button>' +
     '<button class="ghost huntgo" data-p="' + esc(p.id) + '" style="padding:6px 14px;font-size:11px">' + T('navh') + ' ›</button>' +
+    (p.demo ? '' : '<button class="ghost need-member progchat" data-p="' + esc(p.id) + '" title="partager sur le chat de session : les membres pourront le rejoindre" style="padding:6px 12px;font-size:11px">chat</button>') +
+    (!p.demo && _rk >= 3
+      ? '<select class="acc" data-p="' + esc(p.id) + '" title="qui peut voir ce programme (decision admin/co-admin)">' + ACC.map(a => '<option value="' + a[0] + '"' + ((p.access || 1) === a[0] ? ' selected' : '') + '>' + a[1] + '</option>').join('') + '</select>' : '') +
     (p.demo ? '' : '<button class="ghost need-coadmin progd" data-p="' + esc(p.id) + '" style="padding:6px 12px;font-size:11px;color:var(--danger)">✕</button>') + '</div>' +
     '<div class="subtle" style="color:var(--dim);font-size:10.5px" id="mdesc-' + esc(p.id) + '"></div>' +
     '</div>'
   ).join('');
+  // partage chat : le message porte le programme, un bouton rejoindre apparait chez tous
+  document.querySelectorAll('.progchat').forEach(b => b.addEventListener('click', () => {
+    const p = state.data.programs.find(x => x.id === b.dataset.p);
+    if (!p) return;
+    jpost('/api/chat', { kind: 'team', name: HANDLE, text: 'programme partage : ' + p.name, prog: p.id }).catch(() => {});
+    toast('PROGRAMME', 'partage sur le chat de session : ' + p.name, 'HIT');
+    setTab('team');
+    setTimeout(refresh, 300);
+  }));
+  // visibilite : admin/co-admin ouvrent ou ferment l'acces d'un programme
+  document.querySelectorAll('.prog .acc').forEach(sel => sel.addEventListener('change', () => {
+    jpost('/api/programs', { op: 'access', name: sel.dataset.p, access: Number(sel.value), by: HANDLE })
+      .then(r => r.json()).then(j => {
+        toast('PROGRAMME', j.ok ? 'acces mis a jour' : (j.error || 'echec'), j.ok ? 'HIT' : 'P2');
+        setTimeout(refresh, 300);
+      }).catch(() => {});
+  }));
   document.querySelectorAll('.prog .mode').forEach(sel => {
     const upd = () => { const m = modes.find(x => x.key === sel.value); const d = $('mdesc-' + sel.dataset.p); if (d && m) d.textContent = '▸ CWE ' + m.cwes + ' - ' + m.desc + ' (' + m.n + ' module(s), 100% local)'; };
     sel.addEventListener('change', upd); upd();
@@ -8806,20 +8829,21 @@ function drawAuth() {
   });
 }
 
-// nouveau programme
+// nouveau programme : tout membre valide peut creer (op create) - son programme
+// n'est visible que du staff jusqu'a ce qu'un admin/co-admin ouvre l'acces
 $('progForm').addEventListener('submit', e => {
   e.preventDefault();
-  let id = $('npName').value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  const name = $('npName').value.trim();
+  if (!name) return;
+  let id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
   if (!id) return;
-  const list = state.data.programs.slice();
-  list.push({
-    id, name: $('npName').value.trim(), platform: 'manuel', header: $('npHeader').value.trim(),
-    scope: $('npScope').value.split(',').map(s => s.trim()).filter(Boolean),
-    creds: '', runs: [],
-  });
-  jpost('/api/programs', { programs: list }).then(refresh);
+  jpost('/api/programs', { op: 'create', name, header: $('npHeader').value.trim(),
+    scope: $('npScope').value.split(',').map(s => s.trim()).filter(Boolean), by: HANDLE })
+    .then(r => r.json()).then(j => { if (!j.ok) toast('PROGRAMME', j.error || 'echec', 'P2'); })
+    .catch(() => {});
   setProg(id);   // le nouveau programme devient actif : HUNT/bandeau le suivent
   $('progForm').reset();
+  setTimeout(refresh, 300);
 });
 
 // nouveau finding
@@ -9076,12 +9100,24 @@ function drawTeam() {
         ? '<span class="tmv" data-id="' + esc(m.id) + '" data-v="up" style="cursor:pointer;margin-left:10px;color:' + (vt.me === 1 ? 'var(--green)' : 'var(--faint)') + '">👍 ' + vt.up + '</span>' +
           '<span class="tmv" data-id="' + esc(m.id) + '" data-v="down" style="cursor:pointer;margin-left:6px;color:' + (vt.me === -1 ? 'var(--danger)' : 'var(--faint)') + '">👎 ' + vt.down + '</span>'
         : '';
-      return '<div class="' + cls + '"><div class="who">' + esc(m.name || '?') + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + sev + votes + '</div>' + esc(m.text || '') + '</div>';
+      const join = m.prog
+        ? '<button class="ghost tmjoin" data-prog="' + esc(m.prog) + '" style="margin-left:10px;padding:2px 10px;font-size:10px">rejoindre le programme ›</button>'
+        : '';
+      return '<div class="' + cls + '"><div class="who">' + esc(m.name || '?') + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + sev + votes + join + '</div>' + esc(m.text || '') + '</div>';
     }).join('') || '<div class="msg claude">' + T('tm_chat_empty') + '</div>';
     blog.scrollTop = blog.scrollHeight;
   }
 }
 $('tmChatlog').addEventListener('click', e => {
+  const jn = e.target.closest('button.tmjoin');
+  if (jn) {
+    // rejoindre : le programme devient actif (HUNT/bandeau le suivent) et on
+    // bascule dessus ; si le staff n'a pas ouvert l'acces, il n'apparait pas
+    setProg(jn.dataset.prog);
+    setTab('programs');
+    toast('PROGRAMME', 'programme actif : ' + jn.dataset.prog, 'HIT');
+    return;
+  }
   const v = e.target.closest('.tmv');
   if (!v) return;
   jpost('/api/team', { op: 'vote', id: v.dataset.id, v: v.dataset.v, by: HANDLE }).then(r => r.json()).then(j => {

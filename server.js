@@ -711,8 +711,15 @@ function apiState(res, req) {
     return { id: r.id, label: r.label, program: r.program, n: agents.length, done, list: agents };
   }).sort((a, b) => (b.n - b.done) - (a.n - a.done) || b.n - a.n);
   const ai = aiCfg();
+  // programmes : un membre ne voit que les siens + ceux ouvertes a son grade
+  // (access = rang minimum requis ; owner et staff voient toujours)
+  const programs = isLoopback(req) ? loadPrograms() : (() => {
+    const rk = RANKS[memberRole(req, th)] || 0;
+    return loadPrograms().filter(pr => !pr.access || pr.access <= 1
+      || (pr.owner && pr.owner === th) || rk >= pr.access);
+  })();
   sendJson(res, {
-    now: new Date().toISOString(), runs, findings: state.findings, programs: loadPrograms(), chat: lastChat(80),
+    now: new Date().toISOString(), runs, findings: state.findings, programs, chat: lastChat(80),
     fleet: fleet.state(), modes: fleet.catalog(), team: teamState(req, th),
     ai: { enabled: ai.enabled, protocol: ai.protocol, baseURL: ai.baseURL, model: ai.model, ready: !!(ai.baseURL && ai.model) },
   });
@@ -845,7 +852,9 @@ const MAIN = (req, res) => {
         '/api/fleet': 1, '/api/arsenal': 1, '/api/ai': 1,
       };
       if (p !== '/api/team' && p !== '/api/term' && teamCfg().enabled && !isLoopback(req)) {
-        const _r = memberRole(req, cleanHandle(body.handle || body.by || body.name || ''));
+        // identite : le header x-c2ff-handle prime ; fallback body (name peut etre
+        // un nom de PROGRAMME sur certains endpoints - ne jamais s'y fier en premier)
+        const _r = memberRole(req, reqHandle(req) || cleanHandle(body.handle || body.by || body.name || ''));
         if (!_r) return sendJson(res, { ok: false, error: 'acces en attente de validation' });
         if ((RANKS[_r] || 0) < (MINW[p] === undefined ? 1 : MINW[p])) {
           return sendJson(res, { ok: false, error: _r === 'viewer' ? 'lecture seule (observateur)' : 'grade insuffisant pour cette action' });
@@ -1136,6 +1145,7 @@ const MAIN = (req, res) => {
           text: trunc(body.text || '', 4000),
         };
         if (body.fkey) msg.fkey = String(body.fkey).slice(0, 100);
+        if (body.prog) msg.prog = String(body.prog).slice(0, 40); // programme partage : bouton rejoindre sur le chat
         if (['P1', 'P2', 'P3', 'HIT', 'SIG'].includes(body.sev)) msg.sev = body.sev;
         appendJsonl(CHAT_FILE, msg);
         return sendJson(res, { ok: true });
@@ -1442,16 +1452,32 @@ const MAIN = (req, res) => {
           persistFindings();
           return sendJson(res, { ok: true, removed: before - state.findings.length });
         }
-        // creation rapide (depuis FAST) : nom + scope minimal
+        // creation : tout membre valide peut creer. Un programme cree par un
+        // membre de session n'est visible que du staff (access 3) jusqu'a ce
+        // qu'un admin ou co-admin l'ouvre : access = rang minimum requis
+        // (1 = tous, 2 = hunter+, 3 = co-admin+, 4 = admin). Le createur et le
+        // staff le voient toujours ; le poste local (admin) cree en ouvert (1).
         if (body.op === 'create' && body.name) {
+          const by = cleanHandle(body.by || body.handle || req.headers['x-c2ff-handle'] || '');
           const id = String(body.name).toLowerCase().replace(/[^a-z0-9_\-]/g, '').slice(0, 24) || ('prog' + Date.now());
           const progs = loadPrograms();
           const ex = progs.find(x => x.id === id);
           if (ex) return sendJson(res, { ok: true, id, existed: true });
           const scope = String(body.scope || '').split(/[,\s]+/).map(s => s.trim()).filter(Boolean).slice(0, 20);
-          progs.push({ id, name: String(body.name).slice(0, 60), scope, header: String(body.header || '') });
+          const access = [1, 2, 3, 4].includes(Number(body.access)) ? Number(body.access) : (isLoopback(req) ? 1 : 3);
+          progs.push({ id, name: String(body.name).slice(0, 60), scope, header: String(body.header || ''), owner: by || undefined, access, t: Date.now() });
           try { fs.writeFileSync(PROGRAMS_FILE, JSON.stringify(progs, null, 1)); } catch (e) { return sendJson(res, { ok: false }); }
           return sendJson(res, { ok: true, id });
+        }
+        // visibilite d'un programme : decision admin/co-admin uniquement
+        if (body.op === 'access' && body.name) {
+          if (rankOf(req, cleanHandle(body.by || body.handle || '')) < 3) return sendJson(res, { ok: false, error: 'admin ou co-admin requis' });
+          const progs = loadPrograms();
+          const pr = progs.find(x => x.id === String(body.name));
+          if (!pr) return sendJson(res, { ok: false, error: 'programme introuvable' });
+          pr.access = [1, 2, 3, 4].includes(Number(body.access)) ? Number(body.access) : 1;
+          try { fs.writeFileSync(PROGRAMS_FILE, JSON.stringify(progs, null, 1)); } catch (e) { return sendJson(res, { ok: false }); }
+          return sendJson(res, { ok: true });
         }
         if (Array.isArray(body.programs)) {
           if (rankOf(req, cleanHandle(body.by || body.handle || '')) < 4) return sendJson(res, { ok: false, error: 'admin only' });
@@ -1481,6 +1507,8 @@ const MAIN = (req, res) => {
         const progs = (() => { try { return JSON.parse(fs.readFileSync(PROGRAMS_FILE, 'utf8')); } catch (e) { return []; } })();
         const prog = progs.find(x => x.id === name) || progs.find(x => String(x.name || '').toLowerCase() === name);
         if (!prog) return sendJson(res, { ok: false, err: 'programme introuvable' });
+        if (!isLoopback(req) && (prog.access || 1) > 1 && prog.owner !== reqHandle(req)
+          && rankOf(req, reqHandle(req)) < (prog.access || 1)) return sendJson(res, { ok: false, err: 'programme prive : demande au staff' });
         if (isDemo(prog)) return sendJson(res, { ok: false, demo: true, err: 'programme de demonstration : cree ton programme avec ton vrai scope' });
         // header programme optionnel (X-Bug-Bounty etc), envoye a chaque requete
         let hh = AUTH.hdrsFor(prog);
