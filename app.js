@@ -20155,6 +20155,9 @@ const PL_ST = () => [['', '▶ ' + T('st_do')], ['test', '⟳ ' + T('st_test')],
 function renderPlan() {
   const box = $('huntPlan');
   if (!huntSel) { box.innerHTML = ''; return; }
+  // statut ouvert dans un select du plan : ne pas reconstruire (menu refermerait)
+  const ae = document.activeElement;
+  if (ae && ae.classList && ae.classList.contains('plstat')) return;
   if (!PLAN_ITEMS) { box.innerHTML = '<div class="card" style="margin-top:12px"><div class="subtle" style="color:var(--faint);font-size:11px">⟳ ' + T('pl_title') + '…</div></div>'; return; }
   if (!PLAN_ITEMS.length) { box.innerHTML = '<div class="card" style="margin-top:12px"><div class="subtle" style="color:var(--faint);font-size:11px">' + T('pl_empty') + '</div></div>'; return; }
   box.innerHTML =
@@ -20243,6 +20246,9 @@ const PIP_STEP = {
 function drawPipeline() {
   const el = $('pip');
   if (!el) return;
+  // selecteur de programme ouvert : ne pas reconstruire le bandeau (le menu
+  // refermerait tout seul a chaque changement de la liste des programmes)
+  if (document.activeElement && document.activeElement.id === 'pipProg') return;
   // selecteur = LE bandeau : un seul endroit ou choisir le programme actif
   const progs = state.data.programs || [];
   const cur = (PIP && PIP.program || {}).id || '';
@@ -21781,6 +21787,10 @@ function renderLive() {
   const bar = $('liveBar');
   if (!bar) return;
   const tm = state.data.team || {};
+  // menu deroulant ouvert (select concentre) : NE PAS reconstruire la pilule -
+  // innerHTML detruirait le select et refermerait le menu a chaque poll
+  const ae = document.activeElement;
+  if (ae && ae.classList && ae.classList.contains('lv-sel')) return;
   if (LIVE.ringing) {
     if (LIVE.rang !== LIVE.ringing) { LIVE.rang = LIVE.ringing; liveRing(); }
     bar.hidden = false; bar.className = 'ring';
@@ -21826,6 +21836,10 @@ $('liveBar').addEventListener('change', e => {
   const sel = e.target.closest('select.lv-sel');
   if (!sel || !sel.value || sel.value === LIVE.ch) return;
   liveJoin(sel.value);
+});
+$('liveBar').addEventListener('focusout', e => {
+  // menu referme : rattraper les changements ignores pendant l'ouverture
+  if (e.target && e.target.classList && e.target.classList.contains('lv-sel')) setTimeout(renderLive, 60);
 });
 $('liveBar').addEventListener('click', e => {
   if (e.target.closest('.lv-mute')) return liveMute();
