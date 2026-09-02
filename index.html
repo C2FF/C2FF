@@ -254,6 +254,61 @@ audio.c2ffAudio{display:none}
 #chatinput{flex:1}
 #chatinput::placeholder{color:var(--faint)}
 
+/* ── rail chats lateral deroulant ── */
+/* le chat quitte les onglets : un rail fixe a gauche, replie en strip 46px
+   (poignee 💬 + pastille non-lus), depliable en panneau 480px qui pousse le
+   contenu (margin-left transitionne). Deux colonnes : canaux + chat actif. */
+#chatRail{position:fixed;left:0;top:0;bottom:0;width:46px;z-index:70;display:flex;
+  background:linear-gradient(180deg,hsl(var(--hue) 20% 6.5%),hsl(var(--hue) 14% 5%));
+  border-right:1px solid var(--line);box-shadow:1px 0 18px hsl(var(--hue) 40% 20% / .12);
+  transition:width .26s ease}
+body.rail-open #chatRail{width:478px}
+#railStrip{width:46px;flex:none;display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:8px}
+#railTab{position:relative;width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:15px;
+  border:1px solid var(--line-hi);background:var(--panel2);color:var(--text);transition:all .18s}
+#railTab:hover{border-color:hsl(var(--hue) 61% 48%);box-shadow:0 0 12px hsl(var(--hue) 50% 40% / .35);transform:translateY(-1px)}
+#railDot{position:absolute;top:-4px;right:-4px;width:9px;height:9px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 7px hsl(var(--hue) 60% 48% / .8)}
+#railBody{flex:1;display:none;min-width:0}
+body.rail-open #railBody{display:flex}
+.cr-chans{width:158px;flex:none;display:flex;flex-direction:column;border-right:1px solid var(--line);background:hsl(var(--hue) 16% 6% / .6)}
+.cr-brand{display:flex;align-items:center;gap:6px;padding:10px 8px 8px;font-size:12px;font-weight:700;letter-spacing:.08em;color:hsl(var(--hue) 61% 60%)}
+.cr-brand button{margin-left:auto}
+#chatTabs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;padding:2px 6px 8px}
+#chatTabs .cht{display:flex;gap:6px;align-items:center;font-size:11.5px;padding:7px 8px;border-radius:6px;cursor:pointer;
+  border:1px solid transparent;background:none;color:var(--muted);min-width:0}
+#chatTabs .cht:hover{background:hsl(var(--hue) 40% 14% / .5);color:var(--text)}
+#chatTabs .cht.on{border-color:hsl(var(--hue) 50% 34% / .5);border-left:2px solid hsl(var(--hue) 61% 48%);
+  color:hsl(var(--hue) 65% 69%);background:hsl(var(--hue) 43% 17% / .4)}
+#chatTabs .cht .cnm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#chatTabs .cht .cg,#chatTabs .cht .cev{flex:none;font-size:8.5px;letter-spacing:.08em;border-radius:4px;padding:1px 4px}
+#chatTabs .cht .cg{color:var(--muted);border:1px solid var(--line)}
+#chatTabs .cht .cev{color:hsl(30 95% 65%);border:1px solid hsl(30 90% 55% / .7)}
+#chatTabs .cht.locked{opacity:.45}
+#chatTabs .cht-del{color:var(--faint);font-size:11px;padding:0 2px;border:none;background:none;flex:none}
+#chatTabs .cht-add{border:1px dashed var(--line-hi)!important;color:hsl(var(--hue) 61% 60%);justify-content:center}
+.cr-foot{flex:none;padding:8px;font-size:9px;letter-spacing:.14em;color:var(--faint);text-align:center;border-top:1px solid var(--line)}
+.cr-chat{flex:1;display:flex;flex-direction:column;min-width:0}
+.cr-chead{flex:none;display:flex;gap:8px;align-items:center;justify-content:space-between;
+  padding:9px 12px;border-bottom:1px solid var(--line);background:hsl(var(--hue) 18% 7% / .8)}
+.cr-chead .go,.cr-chead .ghost{padding:3px 10px;font-size:11px}
+#tmChatlog{flex:1;overflow-y:auto;padding:12px;background:var(--panel2);min-height:0}
+#tmMsgForm{flex:none;display:flex;gap:7px;padding:9px 10px;border-top:1px solid var(--line);background:var(--panel)}
+/* la pilule LIVE ne chevauche plus le rail quand il est ouvert */
+body.rail-open #liveBar{left:492px}
+body.rail-open .wrap{margin-left:478px}
+.wrap{margin-left:46px;transition:margin-left .26s ease}
+@media (max-width:900px){
+  #chatRail{top:8px;bottom:auto;width:42px;border:1px solid var(--line);border-radius:10px;
+    box-shadow:0 4px 16px hsl(var(--hue) 40% 18% / .3);overflow:hidden}
+  #railStrip{padding:5px 0}
+  #railTab{width:30px;height:30px}
+  body.rail-open #chatRail{width:100vw;height:100vh;top:0;border-radius:0}
+  body.rail-open .wrap{margin-left:0}
+  body.rail-open #liveBar{left:14px}
+  .cr-chans{width:128px}
+}
+
 /* ── toasts ── */
 #toasts{position:fixed;right:16px;top:16px;z-index:20;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .toast{pointer-events:auto;min-width:290px;max-width:400px;background:var(--panel2);border:1px solid var(--line);
@@ -597,63 +652,68 @@ header,nav{border-bottom-color:transparent;
   </div>
 </section>
 
-<section class="view" id="v-chats">
-  <h2 data-i="chs_h2">Chats de session</h2>
-  <div class="card" style="max-width:980px">
-    <p style="margin:0 0 10px;font-size:12px;color:hsl(var(--hue) 43% 75%)" data-i="chs_p">Un canal par sujet : le chat session est ouvert a tous, le proprietaire cree des chats reserves a un grade, et chaque challenge peut ouvrir son chat dedie - reserve aux participants.</p>
-    <style>
-      #chatTabs .cht{display:inline-flex;gap:7px;align-items:center;font-size:11.5px;padding:5px 12px;border-radius:7px;cursor:pointer;border:1px solid var(--line-hi);background:var(--panel2);color:var(--text)}
-      #chatTabs .cht.on{border-color:hsl(var(--hue) 61% 48%);color:hsl(var(--hue) 65% 69%);background:hsl(var(--hue) 43% 17% / .35)}
-      #chatTabs .cht .cg{font-size:9px;letter-spacing:.08em;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
-      #chatTabs .cht .cev{font-size:9px;letter-spacing:.08em;color:hsl(30 95% 65%);border:1px solid hsl(30 90% 55% / .7);border-radius:4px;padding:1px 5px}
-      #chatTabs .cht.locked{opacity:.45}
-      #chatTabs .cht-del{color:var(--faint);font-size:11px;padding:0 2px}
-      #chatTabs .cht-add{border-style:dashed;color:hsl(var(--hue) 61% 60%)}
-    </style>
-    <div id="chatTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
-    <form id="chatAddForm" hidden style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;border:1px dashed var(--line-hi);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:var(--panel2)">
-      <input type="text" id="chatAddName" maxlength="24" data-ip="chs_name_ph" placeholder="nom du chat" style="flex:1;min-width:160px">
-      <select id="chatAddMin" style="min-width:150px">
-        <option value="0" data-i="chs_min_all">tous les membres</option>
-        <option value="1" data-i="chs_min_1">member et +</option>
-        <option value="2" data-i="chs_min_2">hunter et +</option>
-        <option value="3" data-i="chs_min_3">co-admin et +</option>
-        <option value="4" data-i="chs_min_4">admin et +</option>
-      </select>
-      <button class="go" type="submit" data-i="chs_create">creer</button>
-      <button class="ghost" type="button" id="chatAddCancel" data-i="chs_cancel">annuler</button>
-    </form>
-    <div id="wizzAsk" hidden style="position:fixed;inset:0;z-index:120;background:hsl(var(--hue) 22% 3% / .85);display:grid;place-items:center">
-      <div style="background:var(--panel);border:1px solid hsl(var(--hue) 58% 42% / .6);border-radius:10px;padding:22px 26px;max-width:420px">
-        <h3 style="margin:0 0 8px;font-size:15px">⚡ Premier wizz reçu</h3>
-        <p style="font-size:12px;color:var(--muted);margin:0 0 14px">Un wizz secoue ta console pour attirer ton attention. Tu préfères désactiver la réception des wizz, ou continuer d'être averti ? (ce choix est définitif, tu ne peux le faire qu'une fois)</p>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-          <button class="ghost wizz-off" style="color:var(--danger)">Désactiver les wizz</button>
-          <button class="go wizz-keep">Continuer d'être averti</button>
+<aside id="chatRail">
+  <div id="railStrip">
+    <button id="railTab" title="chats de session">💬<i id="railDot" hidden></i></button>
+  </div>
+  <div id="railBody">
+    <div class="cr-chans">
+      <div class="cr-brand">💬 <span data-i="navchs">Chats</span><button class="ghost" id="crClose" title="replier le rail" style="border:none;padding:2px 7px;font-size:13px">«</button></div>
+      <div id="chatTabs"></div>
+      <form id="chatAddForm" hidden style="display:flex;flex-direction:column;gap:7px;margin:8px;padding:9px;border:1px dashed var(--line-hi);border-radius:8px;background:var(--panel2)">
+        <input type="text" id="chatAddName" maxlength="24" data-ip="chs_name_ph" placeholder="nom du chat" style="width:100%">
+        <select id="chatAddMin" style="width:100%">
+          <option value="0" data-i="chs_min_all">tous les membres</option>
+          <option value="1" data-i="chs_min_1">member et +</option>
+          <option value="2" data-i="chs_min_2">hunter et +</option>
+          <option value="3" data-i="chs_min_3">co-admin et +</option>
+          <option value="4" data-i="chs_min_4">admin et +</option>
+        </select>
+        <div style="display:flex;gap:7px">
+          <button class="go" type="submit" data-i="chs_create" style="flex:1">creer</button>
+          <button class="ghost" type="button" id="chatAddCancel" data-i="chs_cancel">annuler</button>
+        </div>
+      </form>
+      <div class="cr-foot">C2FF · canaux live</div>
+    </div>
+    <div class="cr-chat">
+      <div class="cr-chead">
+        <div style="min-width:0">
+          <div id="crTitle" style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+          <div id="crSub" style="font-size:10px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none">
+          <button class="go need-member" id="liveBtn">🎙 LIVE</button>
+          <button class="ghost need-member" id="tmWizz" title="attirer l'attention de ce canal - 1 wizz par minute">⚡</button>
         </div>
       </div>
+      <div id="tmChatlog" style="height:auto"></div>
+      <form id="tmMsgForm" class="need-member"><input type="text" id="tmMsg" data-ip="tm_msg_ph" autocomplete="off" style="flex:1"><button class="go" type="submit" data-i="ch_send">Envoyer</button></form>
     </div>
-    <div id="liveBar" hidden></div>
-    <div id="alertModal" hidden style="position:fixed;inset:0;z-index:140;display:grid;place-items:center;background:hsl(0 90% 5% / .45)">
-      <div class="acard" style="background:hsl(0 60% 10%);border:2px solid hsl(0 95% 55%);border-radius:12px;padding:28px 34px;max-width:480px;text-align:center;box-shadow:0 0 60px hsl(0 95% 40% / .7);animation:alertcard .8s ease-in-out infinite">
-        <div style="font-size:34px;line-height:1;margin-bottom:10px">🚨</div>
-        <h2 style="margin:0 0 10px;font-size:19px;letter-spacing:.12em;color:hsl(0 95% 78%)">ALERTE GÉNÉRALE</h2>
-        <p id="alertMsgTx" style="font-size:15px;font-weight:700;color:hsl(0 20% 96%);margin:0 0 10px"></p>
-        <p id="alertBy" style="font-size:11px;color:hsl(0 60% 75%);margin:0 0 16px"></p>
-        <button class="go" id="alertOk" style="background:hsl(0 80% 40%);border-color:hsl(0 80% 40%)">J'AI COMPRIS</button>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-      <button class="go need-member" id="liveBtn">🎙 LIVE</button>
-      <button class="ghost need-member" id="tmWizz" title="attirer l'attention de ce canal - 1 wizz par minute">⚡ WIZZ</button>
-    </div>
-    <div id="tmChatlog" style="height:44vh;overflow-y:auto;border:1px solid var(--line);border-radius:7px;padding:12px;background:var(--panel2)"></div>
-    <form id="tmMsgForm" class="need-member" style="display:flex;gap:8px;margin-top:8px">
-      <input type="text" id="tmMsg" data-ip="tm_msg_ph" autocomplete="off" style="flex:1">
-      <button class="go" type="submit" data-i="ch_send">Envoyer</button>
-    </form>
   </div>
-</section>
+</aside>
+
+<div id="liveBar" hidden></div>
+
+<div id="wizzAsk" hidden style="position:fixed;inset:0;z-index:120;background:hsl(var(--hue) 22% 3% / .85);display:grid;place-items:center">
+  <div style="background:var(--panel);border:1px solid hsl(var(--hue) 58% 42% / .6);border-radius:10px;padding:22px 26px;max-width:420px">
+    <h3 style="margin:0 0 8px;font-size:15px">⚡ Premier wizz reçu</h3>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 14px">Un wizz secoue ta console pour attirer ton attention. Tu préfères désactiver la réception des wizz, ou continuer d'être averti ? (ce choix est définitif, tu ne peux le faire qu'une fois)</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="ghost wizz-off" style="color:var(--danger)">Désactiver les wizz</button>
+      <button class="go wizz-keep">Continuer d'être averti</button>
+    </div>
+  </div>
+</div>
+<div id="alertModal" hidden style="position:fixed;inset:0;z-index:140;display:grid;place-items:center;background:hsl(0 90% 5% / .45)">
+  <div class="acard" style="background:hsl(0 60% 10%);border:2px solid hsl(0 95% 55%);border-radius:12px;padding:28px 34px;max-width:480px;text-align:center;box-shadow:0 0 60px hsl(0 95% 40% / .7);animation:alertcard .8s ease-in-out infinite">
+    <div style="font-size:34px;line-height:1;margin-bottom:10px">🚨</div>
+    <h2 style="margin:0 0 10px;font-size:19px;letter-spacing:.12em;color:hsl(0 95% 78%)">ALERTE GÉNÉRALE</h2>
+    <p id="alertMsgTx" style="font-size:15px;font-weight:700;color:hsl(0 20% 96%);margin:0 0 10px"></p>
+    <p id="alertBy" style="font-size:11px;color:hsl(0 60% 75%);margin:0 0 16px"></p>
+    <button class="go" id="alertOk" style="background:hsl(0 80% 40%);border-color:hsl(0 80% 40%)">J'AI COMPRIS</button>
+  </div>
+</div>
 
 <section class="view" id="v-chat">
   <h2 data-i="h2c">Coordination - canal privé</h2>

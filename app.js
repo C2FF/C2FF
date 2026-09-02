@@ -19703,7 +19703,36 @@ function jpost(url, body) { return fetch(url, { method: 'POST', headers: { 'cont
 const expanded = new Set();
 let forceDraw = true; // premier paint integral, puis re-rendu differentiel
 
+// ---------- rail chats lateral ----------
+// le chat n'est plus un onglet : rail fixe a gauche, replie par defaut,
+// depliable depuis n'importe quel onglet (etat persiste, pastille non-lus)
+let RAIL_SEEN = 0; // dernier message d'equipe vu rail ouvert
+function railMarkSeen() {
+  const _rc = (state.data.team || {}).chat || [];
+  if (_rc.length) RAIL_SEEN = _rc[_rc.length - 1].t || RAIL_SEEN;
+  try { localStorage.setItem('c2ff-rail-seen', String(RAIL_SEEN)); } catch (e) {}
+}
+function chatRailOpen() {
+  document.body.classList.add('rail-open');
+  try { localStorage.setItem('c2ff-rail', '1'); } catch (e) {}
+  const d = $('railDot'); if (d) d.hidden = true;
+  railMarkSeen();
+}
+function chatRailClose() {
+  document.body.classList.remove('rail-open');
+  try { localStorage.setItem('c2ff-rail', '0'); } catch (e) {}
+  railMarkSeen(); // fermer = tout ce qui etait affiche est lu
+}
+function chatRailToggle() {
+  if (document.body.classList.contains('rail-open')) chatRailClose(); else chatRailOpen();
+}
+try {
+  if (localStorage.getItem('c2ff-rail') === '1') chatRailOpen();
+  RAIL_SEEN = Number(localStorage.getItem('c2ff-rail-seen')) || 0;
+} catch (e) {}
+
 function setTab(t) {
+  if (t === 'chats') { chatRailToggle(); return; } // plus un onglet : la poignee bascule le rail
   if (t !== state.tab) sndPlay('tab');
   state.tab = t;
   document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
@@ -21272,16 +21301,37 @@ function drawChats() {
     tabs.innerHTML = list.map(c => {
       const ispm = (c.id || '').indexOf('pm-') === 0;
       const peer = ispm ? (c.id.slice(3).split('--').find(x => x !== HANDLE) || '?') : '';
-      const label = ispm ? 'privé · ' + peer : c.name;
+      const label = ispm ? peer : c.name;
+      const icon = ispm ? '👤' : '#';
       return '<span class="cht' + (c.id === CHAT_SEL ? ' on' : '') + (c.ok ? '' : ' locked') + '" data-cid="' + esc(c.id) + '">' +
-      esc(label) +
-      (ispm ? ' <span class="cg">PRIVÉ</span>' :
+      '<span class="cnm"><b style="color:inherit;opacity:.55;font-weight:400">' + icon + '</b> ' + esc(label) + '</span>' +
+      (ispm ? ' <span class="cg">privé</span>' :
         c.event ? ' <span class="cev">EVENT</span>' : ((c.min || 0) > 0 ? ' <span class="cg">' + esc(CHMIN[c.min] || '') + '</span>' : '')) +
       (c.ok ? '' : ' <span class="cg">🔒</span>') +
       (rk >= 5 && c.id !== 'session' ? '<button class="ghost cht-del" data-cid="' + esc(c.id) + '" title="fermer ce chat" style="padding:0 3px;border:none">✕</button>' : '') +
       '</span>';
     }).join('') +
-      (rk >= 5 && tm.enabled ? '<span class="cht cht-add" id="chatAddBtn" style="border-style:dashed;color:hsl(var(--hue) 61% 60%)">+ chat</span>' : '');
+      (rk >= 5 && tm.enabled ? '<span class="cht cht-add" id="chatAddBtn">+ chat</span>' : '');
+  }
+  // en-tete du chat actif : nom + badges + sous-titre (grade requis / event)
+  const curH = list.find(c => c.id === CHAT_SEL) || list[0] || {};
+  const crT = $('crTitle'), crS = $('crSub');
+  if (crT) {
+    const ispmH = (curH.id || '').indexOf('pm-') === 0;
+    crT.textContent = tm.enabled
+      ? (ispmH ? 'wispe · ' + (curH.id.slice(3).split('--').find(x => x !== HANDLE) || '?') : '# ' + (curH.name || 'session'))
+      : 'chats desactives';
+    crS.textContent = tm.enabled
+      ? (ispmH ? 'conversation vocale + messages prives' : curH.event ? 'chat event - participants uniquement'
+        : (curH.min || 0) > 0 ? 'acces : ' + (CHMIN[curH.min] || 'membres') + ' et +' : 'canal ouvert a tous')
+      : 'active l\'equipe dans l\'onglet TEAM';
+  }
+  // pastille non-lus : rail replie + messages plus recents que la derniere ouverture
+  const _dot = $('railDot');
+  if (_dot) {
+    const _rc = tm.chat || [];
+    _dot.hidden = document.body.classList.contains('rail-open') ||
+      !_rc.length || _rc[_rc.length - 1].t <= RAIL_SEEN;
   }
   // LIVE : petit bouton contextuel - il rejoint le live vocal du canal affiche
   // (session = mesh, wispe = live prive 1:1). L'etat complet vit dans la
@@ -21374,6 +21424,8 @@ function drawChats() {
   }).join('') || '<div class="msg claude">' + T('tm_chat_empty') + '</div>';
   if (stick) requestAnimationFrame(() => { blog.scrollTop = blog.scrollHeight; });
 }
+$('railTab').addEventListener('click', () => chatRailToggle());
+$('crClose').addEventListener('click', () => chatRailClose());
 $('chatTabs').addEventListener('click', e => {
   const del = e.target.closest('button.cht-del');
   if (del) {
@@ -21927,7 +21979,7 @@ $('tmMembers').addEventListener('click', e => {
       // de la liste encore affichee et le fallback repasse sur 'session'
       if (j.team) state.data.team = j.team;
       CHAT_SEL = j.ch; CHAT_DRAWN = '';
-      setTab('chs');
+      chatRailOpen();
       forceDraw = true; drawChats(); refresh();
       toast('WISPE', 'conversation privee avec ' + wsp.dataset.h + ' - seuls vous deux la voient', 'HIT');
     }).catch(() => {});
