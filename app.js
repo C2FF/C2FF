@@ -249,6 +249,16 @@ const I18N = {
     'ai_ok': 'OK - reponse : ',
     'ai_fail': 'ECHEC : ',
     'ai_note': 'config stockee localement dans data/ai.json - jamais envoyee ailleurs que vers l\'endpoint que tu y mets',
+    'ai_prov': 'fournisseur',
+    'ai_conn_lbl': 'connexion',
+    'ai_model_lbl': 'modele',
+    'ai_auth_lbl': 'authentification',
+    'ai_adv_lbl': 'analyse - prompt systeme (avance)',
+    'ai_sys_ph': 'prompt systeme personnalise (vide = prompt analyste integre)',
+    'ai_models': 'Lister les modeles',
+    'ai_listing': 'liste des modeles en cours…',
+    'ai_models_ok': '{n} modeles disponibles - clique dans le champ modele pour en choisir un',
+    'ai_models_none': 'aucun modele expose par cet endpoint',
     'ch_ph': 'root@c2ff:~# message vers l\'agent d\'analyse…',
     'ch_send': 'Envoyer',
     'ch_empty': 'Le canal est ouvert. Tape ici, le monitor me revele a l instant.',
@@ -488,6 +498,16 @@ const I18N = {
     'ai_ok': 'OK - reply: ',
     'ai_fail': 'FAILED: ',
     'ai_note': 'config stored locally in data/ai.json - never sent anywhere but the endpoint you set',
+    'ai_prov': 'provider',
+    'ai_conn_lbl': 'connection',
+    'ai_model_lbl': 'model',
+    'ai_auth_lbl': 'authentication',
+    'ai_adv_lbl': 'analysis - system prompt (advanced)',
+    'ai_sys_ph': 'custom system prompt (empty = built-in analyst prompt)',
+    'ai_models': 'List models',
+    'ai_listing': 'listing models…',
+    'ai_models_ok': '{n} models available - click the model field to pick one',
+    'ai_models_none': 'no models exposed by this endpoint',
     'ch_ph': 'root@c2ff:~# message to the analysis agent…',
     'ch_send': 'Send',
     'ch_empty': 'Channel is open. Type here, the monitor wakes me instantly.',
@@ -20924,6 +20944,45 @@ $('chatform').addEventListener('submit', e => {
 });
 
 // ---------- agent IA (optionnel) ----------
+// catalogue de fournisseurs compatibles : chaque entree pre-remplit le
+// protocole, la base URL et un modele de depart. 3 groupes : cloud, local, custom.
+const AI_PROVIDERS = [
+  { g: 'api cloud', id: 'openai', name: 'OpenAI (GPT)', proto: 'openai', url: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+  { g: 'api cloud', id: 'anthropic', name: 'Anthropic Claude', proto: 'anthropic', url: 'https://api.anthropic.com', model: 'claude-sonnet-5' },
+  { g: 'api cloud', id: 'gemini', name: 'Google Gemini', proto: 'openai', url: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-2.5-flash' },
+  { g: 'api cloud', id: 'mistral', name: 'Mistral AI', proto: 'openai', url: 'https://api.mistral.ai/v1', model: 'mistral-large-latest' },
+  { g: 'api cloud', id: 'groq', name: 'Groq', proto: 'openai', url: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile' },
+  { g: 'api cloud', id: 'openrouter', name: 'OpenRouter (400+ modeles)', proto: 'openai', url: 'https://openrouter.ai/api/v1', model: '' },
+  { g: 'api cloud', id: 'deepseek', name: 'DeepSeek', proto: 'openai', url: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
+  { g: 'api cloud', id: 'xai', name: 'xAI Grok', proto: 'openai', url: 'https://api.x.ai/v1', model: 'grok-4-fast' },
+  { g: 'api cloud', id: 'together', name: 'Together AI', proto: 'openai', url: 'https://api.together.xyz/v1', model: '' },
+  { g: 'api cloud', id: 'fireworks', name: 'Fireworks AI', proto: 'openai', url: 'https://api.fireworks.ai/inference/v1', model: '' },
+  { g: 'api cloud', id: 'cerebras', name: 'Cerebras', proto: 'openai', url: 'https://api.cerebras.ai/v1', model: '' },
+  { g: 'api cloud', id: 'perplexity', name: 'Perplexity', proto: 'openai', url: 'https://api.perplexity.ai', model: 'sonar' },
+  { g: 'api cloud', id: 'cohere', name: 'Cohere', proto: 'openai', url: 'https://api.cohere.ai/compatibility/v1', model: 'command-r-plus' },
+  { g: 'api cloud', id: 'hf', name: 'Hugging Face Router', proto: 'openai', url: 'https://router.huggingface.co/v1', model: '' },
+  { g: 'serveurs locaux', id: 'ollama', name: 'Ollama (local)', proto: 'ollama', url: 'http://localhost:11434', model: 'llama3.1:8b' },
+  { g: 'serveurs locaux', id: 'lmstudio', name: 'LM Studio (local)', proto: 'openai', url: 'http://localhost:1234/v1', model: '' },
+  { g: 'serveurs locaux', id: 'vllm', name: 'vLLM (local)', proto: 'openai', url: 'http://localhost:8000/v1', model: '' },
+  { g: 'serveurs locaux', id: 'llamacpp', name: 'llama.cpp server (local)', proto: 'openai', url: 'http://localhost:8080/v1', model: '' },
+  { g: 'autre', id: 'custom', name: 'Personnalise - autre endpoint', proto: 'openai', url: '', model: '' },
+];
+// le fournisseur sauvegarde : par id, sinon par URL, sinon custom si une URL
+// inconnue est posee, sinon le premier du catalogue
+function aiProviderOf(ai) {
+  const p = ai || {};
+  return AI_PROVIDERS.find(x => x.id === p.provider) ||
+    AI_PROVIDERS.find(x => x.url && x.url === p.baseURL) ||
+    (p.baseURL ? AI_PROVIDERS.find(x => x.id === 'custom') : AI_PROVIDERS[0]);
+}
+function aiProviderFill() {
+  const sel = $('aiProvider');
+  if (!sel || sel.options.length) return;
+  const groups = [...new Set(AI_PROVIDERS.map(p => p.g))];
+  sel.innerHTML = groups.map(g => '<optgroup label="' + esc(g) + '">' +
+    AI_PROVIDERS.filter(p => p.g === g).map(p => '<option value="' + p.id + '">' + esc(p.name) + '</option>').join('') +
+    '</optgroup>').join('');
+}
 function drawAI() {
   const ai = state.data.ai || {};
   const sig = JSON.stringify(ai);
@@ -20934,19 +20993,35 @@ function drawAI() {
     : T('ai_st_off');
   $('aiStatus').className = 'pill ' + (ai.enabled && ai.ready ? 'p-live' : 'p-done');
   // sync des champs seulement hors interaction (jamais pendant la saisie)
+  aiProviderFill();
   if (!focusInside('v-ai')) {
     const set = (id, v) => { const el = $(id); if (el) el.value = v; };
+    const pv = aiProviderOf(ai);
+    if (pv && $('aiProvider').value !== pv.id) $('aiProvider').value = pv.id;
     set('aiProtocol', ai.protocol || 'openai');
     set('aiBaseURL', ai.baseURL || '');
     set('aiModel', ai.model || '');
+    set('aiSys', ai.sysPrompt || '');
     set('aiEnabled', ai.enabled ? 'on' : 'off');
     if (document.activeElement !== $('aiKey')) $('aiKey').value = ''; // jamais de re-echo de la cle
   }
 }
+// changement de fournisseur : pre-remplit protocole + URL (+ modele type) -
+// champs editables apres coup, le catalogue ne verrouille rien
+$('aiProvider').addEventListener('change', () => {
+  const p = AI_PROVIDERS.find(x => x.id === $('aiProvider').value);
+  if (!p) return;
+  $('aiProtocol').value = p.proto;
+  if (p.url) $('aiBaseURL').value = p.url;
+  if (p.model) $('aiModel').value = p.model;
+  $('aiModelList').innerHTML = ''; // la liste de l'ancien endpoint n'est plus valable
+});
 $('aiSave').addEventListener('click', () => {
   jpost('/api/ai', {
     enabled: $('aiEnabled').value === 'on', protocol: $('aiProtocol').value,
     baseURL: $('aiBaseURL').value.trim(), model: $('aiModel').value.trim(),
+    provider: $('aiProvider').value || 'custom',
+    sysPrompt: $('aiSys').value.trim() || undefined,
     apiKey: $('aiKey').value.trim() || undefined,
   }).then(r => r.json()).then(j => {
     toast('AGENT IA', j.ok ? T('to_ai_ok') : T('to_ai_no'), j.ok ? 'HIT' : 'P2');
@@ -20963,6 +21038,25 @@ $('aiTest').addEventListener('click', () => {
     $('aiTest').disabled = false;
     $('aiTestOut').textContent = j.ok ? T('ai_ok') + j.reply : T('ai_fail') + (j.error || '?');
   }).catch(e => { $('aiTest').disabled = false; $('aiTestOut').textContent = T('ai_fail') + e.message; });
+});
+
+$('aiModels').addEventListener('click', () => {
+  const b = $('aiModels');
+  b.disabled = true;
+  $('aiTestOut').textContent = T('ai_listing');
+  jpost('/api/ai', {
+    op: 'models', protocol: $('aiProtocol').value,
+    baseURL: $('aiBaseURL').value.trim(),
+    apiKey: $('aiKey').value.trim() || undefined,
+  }).then(r => r.json()).then(j => {
+    b.disabled = false;
+    if (!j.ok || !(j.models || []).length) {
+      $('aiTestOut').textContent = T('ai_fail') + (j.error || T('ai_models_none'));
+      return;
+    }
+    $('aiModelList').innerHTML = j.models.map(m => '<option value="' + esc(m) + '">').join('');
+    $('aiTestOut').textContent = TF('ai_models_ok', { n: j.models.length });
+  }).catch(e => { b.disabled = false; $('aiTestOut').textContent = T('ai_fail') + e.message; });
 });
 
 // ---------- connexion a la session : pseudo + pin, validation par l'admin ----------

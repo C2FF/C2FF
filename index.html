@@ -422,6 +422,9 @@ body.srail-open .wrap{margin-right:430px}
 #srPanel .tm-m b{max-width:calc(100% - 12px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #srPanel .tm-m select{flex:none;max-width:130px}
 #srPanel .tm-m small:last-child{margin-left:auto}
+/* onglet IA : champs empiles avec label au-dessus, fluides sur tout ecran */
+.ai-fld{margin-bottom:12px;min-width:0}
+.ai-lbl{display:block;font-size:10.5px;letter-spacing:.08em;color:var(--muted);margin-bottom:5px;text-transform:uppercase}
 /* header du rail session : les pills passent a la ligne au lieu de tronquer */
 #srBody .cr-chead{flex-wrap:wrap}
 .cr-hacts{flex:none;display:flex;gap:6px;align-items:center}
@@ -663,24 +666,45 @@ header,nav{border-bottom-color:transparent;
       <span class="pill" id="aiStatus">?</span>
     </div>
     <div class="need-admin">
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <select id="aiEnabled" style="width:150px"><option value="off" data-i="ai_off">desactivee</option><option value="on" data-i="ai_on">activee</option></select>
-      <select id="aiProtocol" style="width:220px">
-        <option value="openai">OpenAI-compatible (/chat/completions)</option>
-        <option value="ollama">Ollama (/api/chat)</option>
-        <option value="anthropic">Anthropic (/v1/messages)</option>
-      </select>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-      <input type="text" id="aiBaseURL" data-ip="ai_url_ph" placeholder="base URL - ex: http://localhost:11434 ou https://api.MonIA.tld/v1" style="flex:1;min-width:290px">
-      <input type="text" id="aiModel" data-ip="ai_model_ph" placeholder="model - ex: llama3.1:8b" style="width:240px">
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
-      <input type="password" id="aiKey" data-ip="ai_key_ph" placeholder="cle API (laisser vide si serveur local)" style="width:290px">
-      <button class="go" id="aiSave" data-i="ai_save">Enregistrer</button>
-      <button class="ghost" id="aiTest" data-i="ai_test">Tester la connexion</button>
-    </div>
-    <div id="aiTestOut" class="subtle" style="color:var(--muted);font-size:11.5px;margin-top:8px;white-space:pre-wrap"></div>
+      <div class="ai-fld">
+        <span class="ai-lbl" data-i="ai_prov">fournisseur</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select id="aiProvider" style="flex:1 1 260px;min-width:0"></select>
+          <select id="aiEnabled" style="flex:none"><option value="off" data-i="ai_off">desactivee</option><option value="on" data-i="ai_on">activee</option></select>
+        </div>
+      </div>
+      <div class="ai-fld">
+        <span class="ai-lbl" data-i="ai_conn_lbl">connexion</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="aiProtocol" style="flex:1 1 210px;min-width:0">
+            <option value="openai">OpenAI-compatible (/chat/completions)</option>
+            <option value="ollama">Ollama (/api/chat)</option>
+            <option value="anthropic">Anthropic (/v1/messages)</option>
+          </select>
+          <input type="text" id="aiBaseURL" data-ip="ai_url_ph" placeholder="base URL - ex: http://localhost:11434 ou https://api.MonIA.tld/v1" style="flex:1 1 240px;min-width:0">
+        </div>
+      </div>
+      <div class="ai-fld">
+        <span class="ai-lbl" data-i="ai_model_lbl">modele</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input type="text" id="aiModel" data-ip="ai_model_ph" placeholder="model - ex: llama3.1:8b" list="aiModelList" style="flex:1 1 220px;min-width:0">
+          <datalist id="aiModelList"></datalist>
+          <button class="ghost" id="aiModels" data-i="ai_models">Lister les modeles</button>
+        </div>
+      </div>
+      <div class="ai-fld">
+        <span class="ai-lbl" data-i="ai_auth_lbl">authentification</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input type="password" id="aiKey" data-ip="ai_key_ph" placeholder="cle API (laisser vide si serveur local)" style="flex:1 1 240px;min-width:0">
+          <button class="go" id="aiSave" data-i="ai_save">Enregistrer</button>
+          <button class="ghost" id="aiTest" data-i="ai_test">Tester la connexion</button>
+        </div>
+      </div>
+      <div class="ai-fld">
+        <span class="ai-lbl" data-i="ai_adv_lbl">analyse - prompt systeme (avance)</span>
+        <textarea id="aiSys" rows="2" data-ip="ai_sys_ph" placeholder="prompt systeme personnalise (vide = prompt analyste integre)" style="width:100%;resize:vertical;min-height:38px"></textarea>
+      </div>
+      <div id="aiTestOut" class="subtle" style="color:var(--muted);font-size:11.5px;margin-top:4px;white-space:pre-wrap"></div>
     </div>
     <div class="subtle" style="color:var(--faint);font-size:10.5px;margin-top:10px" data-i="ai_note"></div>
   </div>

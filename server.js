@@ -50,6 +50,7 @@ function aiCfg() {
   return {
     enabled: !!c.enabled, protocol: ['ollama', 'anthropic', 'openai'].includes(c.protocol) ? c.protocol : 'openai',
     baseURL: String(c.baseURL || ''), model: String(c.model || ''), apiKey: String(c.apiKey || ''),
+    provider: String(c.provider || ''), sysPrompt: String(c.sysPrompt || ''),
   };
 }
 function saveAiCfg(c) { try { fs.writeFileSync(AI_FILE, JSON.stringify(c, null, 1)); } catch (e) {} }
@@ -75,13 +76,42 @@ async function aiChat(messages, cfgOverride) {
     extract = j => ((((j.choices || [])[0] || {}).message || {}).content || '');
   }
   let r;
-  try { r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) }); }
-  catch (e) { throw new Error('inaccessible : ' + e.message); }
+  try { r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload), signal: AbortSignal.timeout(120000) }); }
+  catch (e) { throw new Error('inaccessible : ' + (e.name === 'TimeoutError' ? 'pas de reponse en 120 s' : e.message)); }
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + trunc(JSON.stringify(j), 160));
   const text = extract(j);
   if (!text) throw new Error('reponse vide : ' + trunc(JSON.stringify(j), 160));
   return text;
+}
+
+// liste des modeles exposes par l'endpoint : /models (OpenAI-compat),
+// /api/tags (Ollama), /v1/models (Anthropic). Timeout court : un endpoint
+// muet ne doit pas bloquer l'onglet.
+async function aiListModels(c) {
+  if (!c.baseURL) throw new Error('baseURL non configuree');
+  const base = c.baseURL.replace(/\/+$/, '');
+  let url, headers = {}, extract;
+  if (c.protocol === 'ollama') {
+    url = base + '/api/tags';
+    extract = j => (j.models || []).map(m => m.name || m.model).filter(Boolean);
+  } else if (c.protocol === 'anthropic') {
+    url = base.replace(/\/v1$/, '') + '/v1/models';
+    headers = { 'x-api-key': c.apiKey, 'anthropic-version': '2023-06-01' };
+    extract = j => (j.data || []).map(m => m.id).filter(Boolean);
+  } else {
+    url = base.replace(/\/chat\/completions$/, '') + '/models';
+    if (c.apiKey) headers.authorization = 'Bearer ' + c.apiKey;
+    extract = j => (j.data || []).map(m => m.id).filter(Boolean);
+  }
+  let r;
+  try { r = await fetch(url, { headers, signal: AbortSignal.timeout(8000) }); }
+  catch (e) { throw new Error('inaccessible : ' + (e.name === 'TimeoutError' ? 'pas de reponse en 8 s' : e.message)); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + trunc(JSON.stringify(j), 160));
+  const ids = extract(j);
+  if (!Array.isArray(ids) || !ids.length) throw new Error('aucun modele expose : ' + trunc(JSON.stringify(j), 120));
+  return [...new Set(ids)].sort();
 }
 const AI_ANALYST_PROMPT = "Tu es analyste bug bounty dans le framework C2FF. On te passe un signal brut " +
   "(probe deterministe locale). Reponds en 6 lignes max, structure : VERDICT defendable (SIG / P3 / P2 / P1) ; " +
@@ -795,7 +825,7 @@ function apiState(res, req) {
     const me = t.members[th];
     return sendJson(res, {
       now: new Date().toISOString(), runs: [], findings: [], programs: [], chat: [], fleet: null, modes: [],
-      ai: { enabled: false, protocol: '', baseURL: '', model: '', ready: false },
+      ai: { enabled: false, protocol: '', baseURL: '', model: '', provider: '', sysPrompt: '', ready: false },
       team: { enabled: true, room: t.room, bind: 'lan', you: 'pending', meRole: '', requests: [], members: [], online: 0, chat: [] },
       pendingMe: !!(me && me.status === 'pending'),
     });
@@ -823,7 +853,7 @@ function apiState(res, req) {
   sendJson(res, {
     now: new Date().toISOString(), runs, findings: state.findings, programs, chat: lastChat(80),
     fleet: fleet.state(), modes: fleet.catalog(), team: teamState(req, th),
-    ai: { enabled: ai.enabled, protocol: ai.protocol, baseURL: ai.baseURL, model: ai.model, ready: !!(ai.baseURL && ai.model) },
+    ai: { enabled: ai.enabled, protocol: ai.protocol, baseURL: ai.baseURL, model: ai.model, provider: ai.provider, sysPrompt: ai.sysPrompt, ready: !!(ai.baseURL && ai.model) },
   });
 }
 
@@ -2158,12 +2188,23 @@ const MAIN = (req, res) => {
             return sendJson(res, { ok: true, reply: trunc(reply, 200) });
           } catch (e) { return sendJson(res, { ok: false, error: trunc(e.message, 200) }); }
         }
+        if (body.op === 'models') {
+          // liste les modeles de l'endpoint du formulaire (ou de la config sauvee)
+          const cur = aiCfg();
+          const cfg = {
+            protocol: ['ollama', 'anthropic', 'openai'].includes(body.protocol) ? body.protocol : cur.protocol,
+            baseURL: body.baseURL || cur.baseURL,
+            apiKey: typeof body.apiKey === 'string' && body.apiKey ? body.apiKey : cur.apiKey,
+          };
+          try { return sendJson(res, { ok: true, models: (await aiListModels(cfg)).slice(0, 300) }); }
+          catch (e) { return sendJson(res, { ok: false, error: trunc(e.message, 200) }); }
+        }
         if (body.op === 'analyse') {
           const text = trunc(body.text || '', 2000);
           if (!text) return sendJson(res, { ok: false, error: 'texte vide' });
           try {
             const reply = await aiChat([
-              { role: 'system', content: AI_ANALYST_PROMPT },
+              { role: 'system', content: aiCfg().sysPrompt || AI_ANALYST_PROMPT },
               { role: 'user', content: text },
             ]);
             appendJsonl(CHAT_FILE, { t: Date.now(), from: 'ia', kind: 'chat', text: trunc(reply, 4000) });
@@ -2180,6 +2221,8 @@ const MAIN = (req, res) => {
             baseURL: typeof body.baseURL === 'string' ? body.baseURL.trim() : cur.baseURL,
             model: typeof body.model === 'string' ? body.model.trim() : cur.model,
             apiKey: typeof body.apiKey === 'string' ? body.apiKey.trim() : cur.apiKey,
+            provider: typeof body.provider === 'string' ? body.provider.slice(0, 24) : cur.provider,
+            sysPrompt: typeof body.sysPrompt === 'string' ? body.sysPrompt.slice(0, 2000) : cur.sysPrompt,
           };
           saveAiCfg(next);
           return sendJson(res, { ok: true });
