@@ -21579,12 +21579,25 @@ function rtcTick() {
 $('tmMic').addEventListener('click', micToggle);
 // ---------- wizz (nudge a la MSN) : secousse de la page + son, anti-flood
 let WIZZ_LAST = 0, WIZZ_INIT = false;
-function wizzSound() {
+// deblocage audio : les navigateurs suspendent l'AudioContext tant que
+// l'utilisateur n'a pas interagi avec la page - sans ca, les invites
+// n'entendent ni le wizz ni la sirene (meme code correct cote serveur)
+function audioCtx() {
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    wizzSound.ctx = wizzSound.ctx || new AC();
-    const ctx = wizzSound.ctx, now = ctx.currentTime;
+    if (!AC) return null;
+    audioCtx.c = audioCtx.c || new AC();
+    if (audioCtx.c.state === 'suspended') audioCtx.c.resume().catch(() => {});
+    return audioCtx.c;
+  } catch (e) { return null; }
+}
+document.addEventListener('pointerdown', audioCtx, true);
+document.addEventListener('keydown', audioCtx, true);
+function wizzSound() {
+  try {
+    const ctx = audioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime;
     [0, 0.18].forEach((dt, i) => {
       const o = ctx.createOscillator(), g = ctx.createGain();
       o.type = 'square';
@@ -21619,10 +21632,9 @@ let ALERT_SEEN = 0;
 try { ALERT_SEEN = Number(localStorage.getItem('c2ff-alert-seen')) || 0; } catch (e) {}
 function alertSound() {
   try {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    alertSound.ctx = alertSound.ctx || new AC();
-    const ctx = alertSound.ctx, now = ctx.currentTime;
+    const ctx = audioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime;
     // sirene : 3 montees-descentes en sawtooth, bien plus agressive que le wizz
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.type = 'sawtooth';
@@ -21644,19 +21656,31 @@ function alertSound() {
 function alertCheck() {
   const al = (state.data.team || {}).alert;
   if (!al || !al.t) return;
-  document.body.classList.toggle('c2alert', !!al.on);
   if (al.t <= ALERT_SEEN) return;
   ALERT_SEEN = al.t;
   try { localStorage.setItem('c2ff-alert-seen', String(al.t)); } catch (e) {}
   if (!al.on) return;
-  // nouveau declenchement : plein milieu + son (le theme rouge, lui, reste
-  // pose via body.c2alert tant que l'alerte n'est pas levee cote serveur)
-  alertSound();
+  fireAlert(al);
+}
+// pop d'alerte : 5 secondes qui s'effacent progressivement (animations CSS
+// alertfade sur l'overlay et la vignette), puis tout retombe - pas d'etat
+// rouge permanent
+let ALERT_TIMER = null;
+function fireAlert(al) {
   const am = $('alertModal');
   if (!am) return;
   $('alertMsgTx').textContent = al.msg || 'ALERTE GENERALE';
-  $('alertBy').textContent = 'alerte generale declenchee par ' + (al.by || 'le proprietaire') + ' - session en mode alerte';
+  $('alertBy').textContent = 'alerte generale declenchee par ' + (al.by || 'le proprietaire');
   am.hidden = false;
+  document.body.classList.remove('c2alert');
+  void document.body.offsetWidth; // restart des animations (re-declenchement apres 30 min)
+  document.body.classList.add('c2alert');
+  alertSound();
+  clearTimeout(ALERT_TIMER);
+  ALERT_TIMER = setTimeout(() => {
+    am.hidden = true;
+    document.body.classList.remove('c2alert');
+  }, 5000);
 }
 // bouton proprietaire (onglet team) : declencher avec le message predefini,
 // ou lever l'alerte si elle est active

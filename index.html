@@ -49,14 +49,16 @@ body[data-rank="3"] .need-admin { display:none !important }
 #tmChatlog .msg.wizzline{border-left:3px solid hsl(45 95% 55%);background:hsl(45 80% 18% / .35);text-align:center;font-size:11.5px}
 @keyframes c2wizz{0%,100%{transform:translate(0,0)}10%{transform:translate(-9px,3px)}20%{transform:translate(8px,-5px)}30%{transform:translate(-7px,4px)}40%{transform:translate(6px,5px)}50%{transform:translate(-6px,-4px)}60%{transform:translate(5px,3px)}70%{transform:translate(-4px,-3px)}80%{transform:translate(3px,2px)}90%{transform:translate(-2px,-1px)}}
 body.wizzing{animation:c2wizz .55s ease-in-out}
-/* ALERTE GENERALE : tout le theme C2FF bascule en rouge (teinte 0 forcee sur
-   tout l'arbre), vignette d'urgence pulsante sur tout l'ecran - etat pose par
-   app.js depuis teamState.alert, impossible a retirer cote client tant que
-   l'alerte n'est pas levee par le proprietaire */
+/* ALERTE GENERALE : pop de 5 secondes - tout le theme C2FF bascule en rouge
+   (teinte 0 forcee sur tout l'arbre), vignette d'urgence sur tout l'ecran et
+   message au milieu, le tout s'efface progressivement jusqu'a opacite 0.
+   pose par app.js (fireAlert) puis retire apres 5 s : pas d'etat permanent */
 body.c2alert{--hue:0}
-@keyframes c2alertvig{0%,100%{box-shadow:inset 0 0 140px hsl(0 90% 30% / .55)}50%{box-shadow:inset 0 0 240px hsl(0 95% 45% / .85)}}
-body.c2alert::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:135;animation:c2alertvig 1s ease-in-out infinite}
+@keyframes c2alertvig{0%{opacity:0;box-shadow:inset 0 0 140px hsl(0 90% 30% / .55)}8%{opacity:1;box-shadow:inset 0 0 240px hsl(0 95% 45% / .85)}70%{opacity:.75;box-shadow:inset 0 0 240px hsl(0 95% 45% / .85)}100%{opacity:0;box-shadow:inset 0 0 240px hsl(0 95% 45% / .85)}}
+body.c2alert::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:135;animation:c2alertvig 5s ease-out forwards}
 @keyframes alertcard{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes alertfade{0%{opacity:0}6%{opacity:1}70%{opacity:1}100%{opacity:0}}
+#alertModal{animation:alertfade 5s ease-out forwards}
 #tmChatlog .msg.galertline{border-left:3px solid hsl(0 95% 55%);background:hsl(0 80% 16% / .4);text-align:center;font-size:11.5px;color:hsl(0 95% 80%)}
 #tmChatlog .cfold{color:hsl(var(--hue) 85% 68%);cursor:pointer;font-size:10px;margin-left:8px}
 
