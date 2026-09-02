@@ -573,14 +573,14 @@ header,nav{border-bottom-color:transparent;
     <form id="chatAddForm" hidden style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;border:1px dashed var(--line-hi);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:var(--panel2)">
       <input type="text" id="chatAddName" maxlength="24" data-ip="chs_name_ph" placeholder="nom du chat" style="flex:1;min-width:160px">
       <select id="chatAddMin" style="min-width:150px">
-        <option value="0">tous les membres</option>
-        <option value="1">member et +</option>
-        <option value="2">hunter et +</option>
-        <option value="3">co-admin et +</option>
-        <option value="4">admin et +</option>
+        <option value="0" data-i="chs_min_all">tous les membres</option>
+        <option value="1" data-i="chs_min_1">member et +</option>
+        <option value="2" data-i="chs_min_2">hunter et +</option>
+        <option value="3" data-i="chs_min_3">co-admin et +</option>
+        <option value="4" data-i="chs_min_4">admin et +</option>
       </select>
-      <button class="go" type="submit">creer</button>
-      <button class="ghost" type="button" id="chatAddCancel">annuler</button>
+      <button class="go" type="submit" data-i="chs_create">creer</button>
+      <button class="ghost" type="button" id="chatAddCancel" data-i="chs_cancel">annuler</button>
     </form>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
       <button class="go need-member" id="tmMic">ACTIVER LE MICRO</button>
@@ -608,74 +608,74 @@ header,nav{border-bottom-color:transparent;
 
 <div id="pinModal" style="position:fixed;inset:0;z-index:110;background:hsl(var(--hue) 30% 3% / .85);display:none;place-items:center">
   <div class="card" style="width:min(430px,92vw);padding:22px;margin:12px">
-    <h2 style="margin:0 0 4px">EPINGLER LE PROGRAMME</h2>
-    <p style="margin:0 0 12px;font-size:12px;color:var(--muted)">visible de tous les membres sur tous les onglets : <b id="pinProgName" style="color:hsl(var(--hue) 90% 72%)"></b></p>
+    <h2 style="margin:0 0 4px" data-i="pin_h2">EPINGLER LE PROGRAMME</h2>
+    <p style="margin:0 0 12px;font-size:12px;color:var(--muted)"><span data-i="pin_vis"></span> <b id="pinProgName" style="color:hsl(var(--hue) 90% 72%)"></b></p>
     <form id="pinForm">
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-        <span style="font-size:11px;color:var(--muted);flex:none">scope</span>
+        <span style="font-size:11px;color:var(--muted);flex:none" data-i="pin_scope">scope</span>
         <select id="pinProgSel" style="flex:1;min-width:180px"></select>
       </div>
-      <input type="text" id="pinMsg" maxlength="200" placeholder="message aux invites - ex : programme a faire en urgence par tous les hunter +" autocomplete="off" style="width:100%">
+      <input type="text" id="pinMsg" maxlength="200" data-ip="pin_msg_ph" placeholder="message aux invites - ex : programme a faire en urgence par tous les hunter +" autocomplete="off" style="width:100%">
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
-        <span style="font-size:11px;color:var(--muted);flex:none">type</span>
+        <span style="font-size:11px;color:var(--muted);flex:none" data-i="pin_type">type</span>
         <select id="pinKind" style="flex:1;min-width:130px">
-          <option value="pin">épingle</option>
-          <option value="challenge">challenge (épreuve chronométrée)</option>
+          <option value="pin" data-i="pin_kind_pin">épingle</option>
+          <option value="challenge" data-i="pin_kind_chal">challenge (épreuve chronométrée)</option>
         </select>
-        <span style="font-size:11px;color:var(--muted);flex:none">durée</span>
+        <span style="font-size:11px;color:var(--muted);flex:none" data-i="pin_dur">durée</span>
         <select id="pinDur" style="flex:1;min-width:130px">
-          <option value="0">toujours épinglé</option>
-          <option value="300">5 minutes</option>
-          <option value="600">10 minutes</option>
-          <option value="1200" selected>20 minutes</option>
-          <option value="1800">30 minutes</option>
-          <option value="3600">1 heure</option>
-          <option value="86400">24 heures</option>
-          <option value="604800">7 jours</option>
-          <option value="custom">personnalisé…</option>
+          <option value="0" data-i="pin_d_always">toujours épinglé</option>
+          <option value="300" data-i="pin_d300">5 minutes</option>
+          <option value="600" data-i="pin_d600">10 minutes</option>
+          <option value="1200" selected data-i="pin_d1200">20 minutes</option>
+          <option value="1800" data-i="pin_d1800">30 minutes</option>
+          <option value="3600" data-i="pin_d3600">1 heure</option>
+          <option value="86400" data-i="pin_d86400">24 heures</option>
+          <option value="604800" data-i="pin_d604800">7 jours</option>
+          <option value="custom" data-i="pin_custom">personnalisé…</option>
         </select>
       </div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center" id="pinDurCustomRow" hidden>
-        <span style="font-size:11px;color:var(--muted);flex:none">durée libre</span>
+        <span style="font-size:11px;color:var(--muted);flex:none" data-i="pin_free">durée libre</span>
         <input type="number" id="pinDurNum" min="1" max="99999" value="1" style="width:90px">
         <select id="pinDurUnit" style="flex:1;min-width:110px">
-          <option value="60" selected>minutes</option>
-          <option value="1">secondes</option>
-          <option value="3600">heures</option>
-          <option value="86400">jours</option>
+          <option value="60" selected data-i="pin_unit_min">minutes</option>
+          <option value="1" data-i="pin_unit_s">secondes</option>
+          <option value="3600" data-i="pin_unit_h">heures</option>
+          <option value="86400" data-i="pin_unit_d">jours</option>
         </select>
-        <small style="color:var(--faint);font-size:10.5px">max 30 jours</small>
+        <small style="color:var(--faint);font-size:10.5px" data-i="pin_max30">max 30 jours</small>
       </div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center" id="pinLimRow">
-        <span style="font-size:11px;color:var(--muted);flex:none">limite de findings / participant</span>
+        <span style="font-size:11px;color:var(--muted);flex:none" data-i="pin_lim">limite de findings / participant</span>
         <select id="pinLim" style="flex:1;min-width:110px">
-          <option value="0">illimité</option>
-          <option value="1">1 finding</option>
-          <option value="2">2 findings</option>
-          <option value="3" selected>3 findings</option>
-          <option value="5">5 findings</option>
-          <option value="10">10 findings</option>
+          <option value="0" data-i="pin_lim0">illimité</option>
+          <option value="1" data-i="pin_lim1">1 finding</option>
+          <option value="2" data-i="pin_lim2">2 findings</option>
+          <option value="3" selected data-i="pin_lim3">3 findings</option>
+          <option value="5" data-i="pin_lim5">5 findings</option>
+          <option value="10" data-i="pin_lim10">10 findings</option>
         </select>
       </div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center" id="pinEvRow" hidden>
         <label style="display:flex;gap:8px;align-items:center;cursor:pointer;font-size:11.5px;color:var(--text)">
           <input type="checkbox" id="pinEv" checked style="accent-color:hsl(30 90% 55%)">
-          ouvrir un chat dedie a l'event - reserve aux participants du challenge
+          <span data-i="pin_evchat">ouvrir un chat dedie a l'event - reserve aux participants du challenge</span>
         </label>
       </div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">
-        <span style="font-size:11px;color:var(--muted);flex:none">apparence</span>
+        <span style="font-size:11px;color:var(--muted);flex:none" data-i="pin_app">apparence</span>
         <div id="pinStyle" style="display:flex;gap:6px;flex-wrap:wrap">
-          <button type="button" class="ghost pinstyle sel" data-s="accent" style="padding:4px 10px;font-size:11px">accent</button>
-          <button type="button" class="ghost pinstyle" data-s="urgence" style="padding:4px 10px;font-size:11px;color:hsl(0 85% 68%)">urgence</button>
-          <button type="button" class="ghost pinstyle" data-s="info" style="padding:4px 10px;font-size:11px;color:hsl(200 85% 68%)">info</button>
-          <button type="button" class="ghost pinstyle" data-s="or" style="padding:4px 10px;font-size:11px;color:hsl(45 90% 65%)">or</button>
+          <button type="button" class="ghost pinstyle sel" data-s="accent" style="padding:4px 10px;font-size:11px" data-i="pin_st_accent">accent</button>
+          <button type="button" class="ghost pinstyle" data-s="urgence" style="padding:4px 10px;font-size:11px;color:hsl(0 85% 68%)" data-i="pin_st_urgence">urgence</button>
+          <button type="button" class="ghost pinstyle" data-s="info" style="padding:4px 10px;font-size:11px;color:hsl(200 85% 68%)" data-i="pin_st_info">info</button>
+          <button type="button" class="ghost pinstyle" data-s="or" style="padding:4px 10px;font-size:11px;color:hsl(45 90% 65%)" data-i="pin_st_or">or</button>
         </div>
       </div>
       <div id="pinErr" style="color:var(--danger);font-size:11.5px;min-height:14px;margin-top:6px"></div>
       <div style="display:flex;gap:8px;margin-top:8px">
-        <button class="go" type="submit" id="pinGo" style="flex:1">EPINGLER ›</button>
-        <button class="ghost" type="button" id="pinCancel" style="flex:1">Annuler</button>
+        <button class="go" type="submit" id="pinGo" style="flex:1" data-i="pin_go">EPINGLER ›</button>
+        <button class="ghost" type="button" id="pinCancel" style="flex:1" data-i="pin_cancel">Annuler</button>
       </div>
     </form>
   </div>
