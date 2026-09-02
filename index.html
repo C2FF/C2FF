@@ -767,6 +767,18 @@ header,nav{border-bottom-color:transparent;
   </div>
 </form>
 
+<form id="termShare" hidden>
+  <div class="cr-modal">
+    <h3 style="margin:0 0 12px;font-size:14px;letter-spacing:.08em">PARTAGER L'EXECUTION</h3>
+    <label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">destination : un canal accessible, ou un wispe prive</label>
+    <select id="tsDest" style="width:100%"></select>
+    <div class="cr-modal-acts">
+      <button class="ghost" type="button" id="tsCancel">annuler</button>
+      <button class="go" type="submit">envoyer ›</button>
+    </div>
+  </div>
+</form>
+
 <div id="liveBar" hidden></div>
 
 <div id="wizzAsk" hidden style="position:fixed;inset:0;z-index:120;background:hsl(var(--hue) 22% 3% / .85);display:grid;place-items:center">

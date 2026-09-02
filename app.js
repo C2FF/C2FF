@@ -21349,6 +21349,7 @@ let CHAT_MSIG = '';  // signature du fil rendu (evite le re-render destructeur c
 let TAB_ARM = 0, TAB_SIG = ''; // gel de la liste canaux (mousedown) + derniere signature
 let LIVE_SIG = ''; // derniere signature de la pilule live (pas de rebuild inutile)
 const FINDS_OPEN = new Set(); // ids des findings deplies dans le chat
+let FOLD_VER = 0; // verrou du repli : chaque deroulement/re-enroulement l'avance
 const CHMIN = { 0: '', 1: 'member', 2: 'hunter', 3: 'co-admin', 4: 'admin' };
 function drawChats() {
   const tm = state.data.team || {};
@@ -21431,7 +21432,7 @@ function drawChats() {
   const bc = (tm.chat || []).filter(m => (m.ch || 'session') === CHAT_SEL);
   // signature du fil : re-render SEULEMENT si un message/vote change - sans
   // elle, la selection de texte et le scroll manuel sont detruits chaque poll
-  const msig = CHAT_SEL + ':' + bc.length + ':' + (bc.length ? bc[bc.length - 1].t + '|' + bc.map(m => m.v ? m.v.up + '/' + m.v.down : '').join('') : '');
+  const msig = CHAT_SEL + ':' + bc.length + ':' + FOLD_VER + ':' + (bc.length ? bc[bc.length - 1].t + '|' + bc.map(m => m.v ? m.v.up + '/' + m.v.down : '').join('') : '');
   if (msig === CHAT_MSIG && !forceDraw) { CHAT_DRAWN = CHAT_SEL; return; }
   CHAT_MSIG = msig;
   if (String(getSelection())) return; // copie en cours : on ne touche a rien
@@ -21553,6 +21554,7 @@ $('tmChatlog').addEventListener('click', e => {
   if (fm && fm.dataset.fid && !e.target.closest('.tmv') && !e.target.closest('button')) {
     if (FINDS_OPEN.has(fm.dataset.fid)) FINDS_OPEN.delete(fm.dataset.fid);
     else FINDS_OPEN.add(fm.dataset.fid);
+    FOLD_VER++;
     drawChats();
     return;
   }
@@ -22460,7 +22462,7 @@ function termRender() {
       + (k.sbx === 'docker' ? '<span class="pill p-prog">sandbox</span>' : '<span class="pill p-warn">hote</span>')
       + (k.run ? '<span class="pill">en cours…</span>'
         : '<span class="pill ' + (k.exit === 0 ? 'p-live' : 'p-warn') + '">' + (k.exit === 0 ? 'ok' : (k.exit == null ? 'coupé' : 'exit ' + k.exit)) + '</span>')
-      + '<button class="ghost tshare" data-id="' + k.id + '" title="partager cette execution sur le chat de session" style="padding:2px 8px;font-size:10px">chat ▸</button>'
+      + '<button class="ghost tshare" data-id="' + k.id + '" title="partager cette execution : canal au choix ou wispe prive" style="padding:2px 8px;font-size:10px">chat ▸</button>'
       + '</div>';
     let body = '';
     if (k.run) body = '<div class="tcard-out" style="color:var(--faint)">en cours…</div>';
@@ -22621,19 +22623,51 @@ $('termForm').addEventListener('submit', e => {
   }
   jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'write', data: v + '\n' }).catch(() => {});
 });
+// ---------- partage d'execution terminal : fenetre de destination ----------
+// un partage part vers le canal accessible choisi (ou reste en session), ou
+// vers un membre en wispe (conversation privee). Fenetre plutot qu'un select
+// dans la carte : termRender se re-render au poll et ecraserait le choix.
+function termShareOpen(id) {
+  const tm = state.data.team || {};
+  const list = (tm.chats || []).filter(c => c.ok);
+  const chans = list.filter(c => (c.id || '').indexOf('pm-') !== 0);
+  const pms = list.filter(c => (c.id || '').indexOf('pm-') === 0);
+  const members = (tm.members || []).filter(m => m.h !== HANDLE && m.st !== 'pending' && m.active);
+  const sel = $('tsDest');
+  sel.innerHTML = '<optgroup label="canaux">' +
+    chans.map(c => '<option value="c:' + esc(c.id) + '"' + (c.id === 'session' ? ' selected' : '') + '>' + esc(c.name || c.id) + '</option>').join('') +
+    '</optgroup>' +
+    (pms.length ? '<optgroup label="conversations privees">' + pms.map(c => {
+      const other = c.id.slice(3).split('--').find(x => x !== HANDLE) || '?';
+      return '<option value="c:' + esc(c.id) + '">prive avec ' + esc(other) + '</option>';
+    }).join('') + '</optgroup>' : '') +
+    (members.length ? '<optgroup label="wispe - prive entre vous deux">' + members.map(m =>
+      '<option value="m:' + esc(m.h) + '">wispe : ' + esc(m.h) + '</option>').join('') + '</optgroup>' : '');
+  const f = $('termShare');
+  f.dataset.id = id;
+  f.hidden = false;
+}
+$('tsCancel').addEventListener('click', () => { $('termShare').hidden = true; });
+$('termShare').addEventListener('click', e => { if (e.target === $('termShare')) $('termShare').hidden = true; });
+$('termShare').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = ($('tsDest').value || '').split(':');
+  const body = { handle: termHandle(), term: 'group', op: 'share', id: $('termShare').dataset.id };
+  if (v[0] === 'm') body.to = v.slice(1).join(':');
+  else if (v[0] === 'c' && v[1] !== 'session') body.ch = v.slice(1).join(':');
+  $('termShare').hidden = true;
+  jpost('/api/term', body)
+    .then(r => r.json())
+    .then(j => toast('SESSION', j.ok ? 'execution envoyee' : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2'))
+    .catch(() => toast('SESSION', 'serveur injoignable', 'P2'));
+});
 $('termOut').addEventListener('click', e => {
   if (TERM.mode !== 'group') return;
   const close = e.target.closest('.tclose');
   if (close) { TERM.open[close.dataset.id] = 0; termRender(); return; }
   // partager l'execution sur le chat de session (commande + sortie)
   const sh = e.target.closest('.tshare');
-  if (sh) {
-    jpost('/api/term', { handle: termHandle(), term: 'group', op: 'share', id: sh.dataset.id })
-      .then(r => r.json())
-      .then(j => toast('SESSION', j.ok ? 'execution envoyee sur le chat' : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2'))
-      .catch(() => toast('SESSION', 'serveur injoignable', 'P2'));
-    return;
-  }
+  if (sh) { termShareOpen(sh.dataset.id); return; }
   const see = e.target.closest('.tsee'), more = e.target.closest('.tmore');
   if (!see && !more) return;
   const id = (see || more).dataset.id;

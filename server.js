@@ -1458,7 +1458,28 @@ const MAIN = (req, res) => {
             const evn = mine[mine.length - 1];
             const evc = evn && (cur.chats || []).find(c => c.event === evn.id);
             if (evc) chid = evc.id;
-            if (evc && rankOf(req, h) < 4) {
+            const rkShare = rankOf(req, h);
+            // destination explicite (fenetre de partage du terminal) : un canal
+            // accessible au choix, ou un wispe (conversation privee avec un membre)
+            if (body.to) {
+              const to = cleanHandle(body.to || '');
+              if (!to || to === h) return sendJson(res, { ok: false, error: 'destinataire invalide' });
+              if (!(cur.members || {})[to]) return sendJson(res, { ok: false, error: 'membre inconnu : ' + to });
+              const pid = 'pm-' + [h, to].sort().join('--');
+              if (!(cur.chats || []).find(c => c.id === pid)) {
+                const pmKeep = (cur.chats || []).filter(c => (c.id || '').indexOf('pm-') === 0 && c.id !== pid).slice(-23);
+                saveTeamCfg({ ...cur, chats: [...(cur.chats || []).filter(c => (c.id || '').indexOf('pm-') !== 0), ...pmKeep, { id: pid, name: 'prive', min: 0, pm: [h, to].sort() }] });
+              }
+              chid = pid;
+            } else if (body.ch && body.ch !== 'session' && body.ch !== (evc || {}).id) {
+              const cc = (cur.chats || []).find(c => c.id === body.ch);
+              const ccp = cc && cc.event ? { ...cc, _parts: ((cur.chal || {})[cc.event] || {}).parts || {} } : cc;
+              if (!cc || !chatOk(ccp, h, rkShare)) return sendJson(res, { ok: false, error: 'canal inaccessible' });
+              chid = cc.id;
+            }
+            // la limite du challenge s'applique des que le partage arrive dans
+            // le chat de l'event (destination auto OU choisie)
+            if (evc && chid === evc.id && rkShare < 4) {
               const g = chalGate(cur, evn.id, h);
               if (g.err) return sendJson(res, { ok: false, error: g.err });
               if (g.cur2) saveTeamCfg(g.cur2);
