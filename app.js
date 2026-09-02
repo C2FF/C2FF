@@ -19897,9 +19897,12 @@ function drawPrograms() {
     (p.demo ? '' : '<button class="ghost need-member progchat" data-p="' + esc(p.id) + '" title="partager sur le chat de session : les membres pourront le rejoindre" style="padding:6px 12px;font-size:11px">chat</button>') +
     (_rk >= 4 && !p.demo
       ? (_pinnedProgs.includes(p.id)
-        ? '<button class="ghost pinun" data-p="' + esc(p.id) + '" title="retirer du bandeau epinglé" style="padding:6px 12px;font-size:11px;color:hsl(var(--hue) 90% 72%)">' + T('pin_done') + '</button>'
+        ? '<button class="ghost pinun" data-p="' + esc(p.id) + '" title="supprimer l\'event pour tous : epingle, challenge et chat partent" style="padding:6px 12px;font-size:11px;color:hsl(var(--hue) 90% 72%)">' + T('pin_done') + '</button>'
         : '<button class="ghost pinbtn" data-p="' + esc(p.id) + '" title="epinger : visible de tous sur tous les onglets" style="padding:6px 12px;font-size:11px">' + T('pin_btn') + '</button>')
-      : '') +
+      : (!_pinnedProgs.includes(p.id) || _rk >= 4 ? '' :
+        (p.owner && p.owner === HANDLE
+          ? '<button class="ghost pinun" data-p="' + esc(p.id) + '" title="supprimer l\'event pour tous : epingle, challenge et chat partent" style="padding:6px 12px;font-size:11px;color:hsl(var(--hue) 90% 72%)">' + T('pin_done') + '</button>'
+          : ''))) +
     (canCfg
       ? '<select class="pubsel" data-p="' + esc(p.id) + '" title="visible de tous ou reserve"><option value="1"' + (p.pub ? ' selected' : '') + '>public</option><option value="0"' + (!p.pub ? ' selected' : '') + '>prive</option></select>' +
         '<select class="acc" data-p="' + esc(p.id) + '" title="grade requis pour rejoindre">' + ACC.map(a => '<option value="' + a[0] + '"' + ((p.access || 1) === a[0] ? ' selected' : '') + '>' + a[1] + '</option>').join('') + '</select>' : '') +
@@ -19939,10 +19942,11 @@ function drawPrograms() {
     setTimeout(() => { try { $('pinMsg').focus(); } catch (e) {} }, 60);
   }));
   document.querySelectorAll('.pinun').forEach(b => b.addEventListener('click', () => {
-    jpost('/api/team', { op: 'unpin', prog: b.dataset.p, by: HANDLE }).then(r => r.json()).then(j => {
+    if (!confirm('Supprimer l\'event de ce programme ? epingle, challenge et chat de l\'event partent pour tous les membres')) return;
+    jpost('/api/team', { op: 'eventdel', prog: b.dataset.p, by: HANDLE }).then(r => r.json()).then(j => {
       if (j.team) state.data.team = j.team;
       drawn_pin = '';
-      toast('TEAM', j.ok ? 'epingle retire' : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2');
+      toast('TEAM', j.ok ? 'event supprime pour tous' : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2');
       forceDraw = true; refresh();
     }).catch(() => {});
   }));
@@ -20924,7 +20928,7 @@ function tryJoin() {
   const p1 = String($('jmPin').value || '').trim(), p2 = String($('jmPin2').value || '').trim();
   const err = t => { $('jmErr').textContent = t; };
   if (h.length < 2) return err('pseudo : 2 caracteres min');
-  if (!/^\d{4,8}$/.test(p1)) return err('pin : 4 a 8 chiffres');
+  if (!/^\S{4,32}$/.test(p1)) return err('pin : 4 a 32 caracteres (chiffres, lettres, symboles - espaces interdits)');
   if (JOIN_MODE === 'signup' && p1 !== p2) return err('les deux pins different');
   $('jmGo').disabled = true;
   jpost('/api/team', { op: 'join', handle: h, pin: p1 }).then(r => r.json()).then(j => {
@@ -20991,7 +20995,9 @@ function drawPin() {
   // seconde sur les challenges) detruit le bouton sous le curseur sinon
   if (Date.now() < SN_ARM) { drawn_pin = ''; return; }
   const tm = state.data.team || {};
-  const news = tm.news || [];
+  // le bandeau n'affiche que les events epires : un event de-epingle (croix)
+  // reste vivant en arriere-plan (chrono, chat) mais n'est plus affiche ici
+  const news = (tm.news || []).filter(n => n.pinned !== false);
   const wel = (tm.welcome || '').trim();
   if (!tm.enabled || (!news.length && !wel)) { el.hidden = true; drawn_pin = ''; return; }
   const canEdit = (TRANK[tm.meRole || tm.you] || 0) >= 4;
@@ -21026,7 +21032,7 @@ function drawPin() {
       (gated && joined ? '<span class="pill ' + (lim && cnt >= lim ? 'p-warn' : 'p-live') + '">' + (lim ? cnt + '/' + lim + ' findings' : cnt + ' envoyé' + (cnt > 1 ? 's' : '')) + '</span>' : '') +
       (p ? '<button class="go sn-join" data-prog="' + esc(p.id) + '" title="ouvrir la fiche du programme (HUNT)">ouvrir ›</button>' : '') +
       (gated && !joined && myRk >= 1 ? '<button class="ghost sn-part" data-id="' + esc(expand.id) + '" title="marquer ta participation : tes findings partiront dans le chat de l\'event" style="padding:2px 10px">participer ›</button>' : '') +
-      (canEdit ? '<button class="ghost sn-del" data-id="' + esc(expand.id) + '" title="retirer l\'epingle">✕</button>' : '') +
+      (canEdit ? '<button class="ghost sn-del" data-id="' + esc(expand.id) + '" title="retirer du bandeau - l\'event reste vivant (chrono, chat)">✕</button>' : '') +
       '</div>';
   }
   if (rest.length) {

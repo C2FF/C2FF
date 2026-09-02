@@ -690,12 +690,12 @@ header,nav{border-bottom-color:transparent;
       <button type="button" class="go" id="jmSignup" style="flex:1;font-size:11px">PREMIERE VISITE</button>
       <button type="button" class="ghost" id="jmSignin" style="flex:1;font-size:11px">DEJA MEMBRE</button>
     </div>
-    <p style="margin:0 0 12px;font-size:12px;color:var(--muted)" id="jmIntro">choisis un pseudo (unique dans la session) et un pin d'acces - l'admin valide ton entree</p>
+    <p style="margin:0 0 12px;font-size:12px;color:var(--muted)" id="jmIntro">choisis un pseudo (unique dans la session) et un pin libre (4 a 32 caracteres, chiffres lettres symboles) - l'admin valide ton entree</p>
     <form id="jmForm">
       <input type="text" id="jmHandle" maxlength="16" placeholder="pseudo" autocomplete="off" style="width:100%">
       <div style="display:flex;gap:8px;margin-top:8px">
-        <input type="password" id="jmPin" inputmode="numeric" maxlength="8" placeholder="pin (4 a 8 chiffres)" style="flex:1;min-width:0">
-        <input type="password" id="jmPin2" inputmode="numeric" maxlength="8" placeholder="confirme le pin" style="flex:1;min-width:0">
+        <input type="password" id="jmPin" maxlength="32" placeholder="pin (4 a 32 caracteres, libre)" style="flex:1;min-width:0">
+        <input type="password" id="jmPin2" maxlength="32" placeholder="confirme le pin" style="flex:1;min-width:0">
       </div>
       <div id="jmErr" style="color:var(--danger);font-size:11.5px;min-height:16px;margin-top:6px"></div>
       <button class="go" type="submit" id="jmGo" style="width:100%;margin-top:2px">DEMANDER L'ENTREE ›</button>

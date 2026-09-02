@@ -929,7 +929,7 @@ const MAIN = (req, res) => {
         }
       }
       if (p === '/api/team') {
-        // join : signup (pseudo libre + pin 4-8 chiffres) ou signin (pseudo connu + pin).
+        // join : signup (pseudo libre + pin libre 4-32 caracteres) ou signin (pseudo connu + pin).
         // toute nouvelle entree passe en status pending : un admin/co-admin doit l'accepter.
         if (body.op === 'join') {
           const t = teamCfg();
@@ -938,7 +938,9 @@ const MAIN = (req, res) => {
           const pin = String(body.pin || '');
           if (h.length < 2) return sendJson(res, { ok: false, error: 'pseudo requis (2 caracteres min)' });
           if (t.blocked.includes(h)) return sendJson(res, { ok: false, error: 'pseudo refuse' });
-          if (!/^\d{4,8}$/.test(pin)) return sendJson(res, { ok: false, error: 'pin : 4 a 8 chiffres' });
+          // pin libre : 4 a 32 caracteres, sans espace (resiste au brute-force
+          // meme si le pseudo est connu - chiffres seuls = 10^8 max, libre = astral)
+          if (!/^\S{4,32}$/.test(pin)) return sendJson(res, { ok: false, error: 'pin : 4 a 32 caracteres, espaces interdits' });
           const m = t.members[h];
           // unicite stricte : un pseudo ACTIF dans la salle (beat < 25 s) ne peut
           // pas etre pris par quelqu'un d'autre - uniquement pour un pseudo encore
@@ -1146,14 +1148,32 @@ const MAIN = (req, res) => {
           if (rankOf(req, by) < 4) return sendJson(res, { ok: false, error: 'admin only' });
           const cur = teamCfg();
           const id = String(body.id || '');
+          // la croix du bandeau : on DE-EPINGLE seulement (le news quitte le
+          // bandeau mais l'event reste vivant : chrono, participation, chat)
+          saveTeamCfg({
+            ...cur,
+            news: (cur.news || []).map(n => n.id === id ? { ...n, pinned: false } : n),
+          });
+          return sendJson(res, { ok: true, team: teamState(req, by) });
+        }
+        // eventdel : suppression COMPLETE de l'event chez tout le monde (par id
+        // ou par programme) - epingle, challenge, chat de l'event. Le createur
+        // du programme passe aussi, meme sans grade admin.
+        if (body.op === 'eventdel') {
+          const by = cleanHandle(body.by || body.handle);
+          const id = String(body.id || '');
           const prog = String(body.prog || '').slice(0, 40);
-          // detach par id (croix du bandeau) ou par programme (bouton detacher de la fiche)
-          // les chats d'event attaches suivent leur epingle a la porte
-          const dead = (cur.news || []).filter(n => n.id === id || n.prog === prog).map(n => 'ev-' + n.id);
+          const cur = teamCfg();
+          const pr = loadPrograms().find(x => x.id === prog);
+          const owner = pr && pr.owner === by;
+          if (rankOf(req, by) < 4 && !owner) return sendJson(res, { ok: false, error: 'admin ou createur du programme requis' });
+          const dead = (cur.news || []).filter(n => n.id === id || n.prog === prog).map(n => n.id);
+          if (!dead.length) return sendJson(res, { ok: false, error: 'aucun event a supprimer' });
           saveTeamCfg({
             ...cur,
             news: (cur.news || []).filter(n => n.id !== id && n.prog !== prog),
-            chats: (cur.chats || []).filter(c => !dead.includes(c.id) && !c.event),
+            chal: Object.fromEntries(Object.entries(cur.chal || {}).filter(([k]) => !dead.includes(k))),
+            chats: (cur.chats || []).filter(c => !c.event || !dead.includes(c.event)),
           });
           return sendJson(res, { ok: true, team: teamState(req, by) });
         }
