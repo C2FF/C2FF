@@ -259,6 +259,65 @@ setInterval(() => {
   }
 }, 60000);
 
+// ---------- terminal groupe : cartes de commandes ----------
+// pas de PTY partage brut : chaque commande est une carte signee du pseudo,
+// type + description auto-detectes, sortie masquee par defaut chez les autres.
+// Un seul point d'execution (cwd dedie) -> tout le monde recoit la meme carte,
+// la transparence reste l'anti-triche ; les cartes sont l'anti-flood.
+const GROUPCARDS = [];        // {id, by, cmd, type, desc, out, trunc, exit, run, t, ms}
+const GROUPCLIENTS = new Set();
+const GROUPRATE = new Map();  // handle -> { last, running }
+const GROUPPROCS = new Map(); // card id -> child process (kill possible)
+const GROUP_WORKDIR = path.join(DATA, 'groupws');
+const GROUP_MAX_CARDS = 60, GROUP_OUT_MAX = 16000, GROUP_TIMEOUT = 60000, GROUP_COOLDOWN = 1500;
+let groupRunning = 0;
+try { fs.mkdirSync(GROUP_WORKDIR, { recursive: true }); } catch (e) {}
+const CMD_DESC = {
+  curl: 'requete HTTP', wget: 'telechargement HTTP', httpx: 'sonde HTTP', nc: 'connexion reseau brute', ncat: 'connexion reseau brute', socat: 'connexion reseau brute',
+  nmap: 'scan de ports', masscan: 'scan de ports', rustscan: 'scan de ports', naabu: 'scan de ports',
+  ffuf: 'fuzzing web', gobuster: 'fuzzing web', dirsearch: 'fuzzing web', feroxbuster: 'fuzzing web', wfuzz: 'fuzzing web',
+  subfinder: 'enum sous-domaines', amass: 'enum sous-domaines', assetfinder: 'enum sous-domaines', findomain: 'enum sous-domaines',
+  nuclei: 'scan de vulnerabilites', nikto: 'scan de vulnerabilites', dalfox: 'scan XSS', sqlmap: 'test injection SQL',
+  dig: 'requete DNS', host: 'requete DNS', nslookup: 'requete DNS', whois: 'whois',
+  hydra: 'attaque login', john: 'casse de hash', hashcat: 'casse de hash',
+  ssh: 'shell distant', ping: 'diagnostic reseau', traceroute: 'diagnostic reseau', mtr: 'diagnostic reseau',
+  ls: 'liste de fichiers', cat: 'lecture de fichier', head: 'lecture de fichier', tail: 'lecture de fichier', less: 'lecture de fichier', wc: 'comptage',
+  grep: 'filtre de texte', rg: 'filtre de texte', awk: 'filtre de texte', sed: 'transformation de texte', cut: 'filtre de texte', sort: 'tri', uniq: 'dedoublonnage', tr: 'transformation de texte',
+  find: 'recherche de fichiers', locate: 'recherche de fichiers', fd: 'recherche de fichiers',
+  ps: 'processus', top: 'processus', htop: 'processus', ss: 'sockets reseau', netstat: 'sockets reseau', lsof: 'fichiers ouverts',
+  python: 'script python', python3: 'script python', node: 'script node', php: 'script php', ruby: 'script ruby', perl: 'script perl', bash: 'script shell', sh: 'script shell',
+  git: 'git', mkdir: 'creation de dossier', touch: 'creation de fichier', rm: 'suppression', mv: 'deplacement', cp: 'copie', ln: 'lien',
+  chmod: 'permissions', chown: 'permissions', tar: 'archive', gzip: 'archive', gunzip: 'archive', unzip: 'archive', zip: 'archive',
+  jq: 'traitement JSON', base64: 'encodage', openssl: 'crypto', xxd: 'hexdump', md5sum: 'hash', sha256sum: 'hash',
+  docker: 'docker', npm: 'paquets node', pip: 'paquets python', pip3: 'paquets python', go: 'toolchain go', cargo: 'paquets rust',
+  echo: 'affichage', printf: 'affichage', cd: 'navigation', pwd: 'navigation', history: 'historique', sudo: 'privileges root', env: 'variables d env', date: 'horloge',
+};
+const CMD_SKIP = new Set(['sudo', 'env', 'nohup', 'time', 'nice', 'command', 'xargs', 'stdbuf', 'timeout', 'watch']);
+function cmdClass(cmd) {
+  const toks = String(cmd).trim().split(/\s+/);
+  let base = '';
+  for (const w of toks) {
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w)) continue; // VAR=x cmd
+    const k = w.split('/').pop();
+    if (CMD_SKIP.has(k)) continue;
+    base = k; break;
+  }
+  const type = CMD_DESC[base] || ('commande ' + (base || '?'));
+  let target = '';
+  const url = cmd.match(/https?:\/\/[^\s'"]+/);
+  if (url) target = url[0];
+  else {
+    const i = toks.indexOf(base);
+    for (let j = i + 1; j < toks.length; j++) {
+      if (toks[j].startsWith('-')) continue;
+      target = toks[j].replace(/^['"]|['"]$/g, ''); break;
+    }
+  }
+  return { type, desc: type + (target ? ' : ' + target.slice(0, 60) : '') };
+}
+function groupSend(c, payload) { try { c.res.write('data: ' + JSON.stringify(payload) + '\n\n'); } catch (e) {} }
+function groupBroadcast(payload) { for (const c of GROUPCLIENTS) groupSend(c, payload); }
+
 // ---------- programmes ----------
 const DEFAULT_PROGRAMS = [
   { id: 'exemple', name: 'Exemple Program', platform: 'Bugcrowd', header: 'X-Bug-Bounty: <ton-handle>', scope: ['*.exemple.com'], creds: '', runs: [], demo: true },
@@ -902,7 +961,66 @@ const MAIN = (req, res) => {
         const h = cleanHandle(body.handle || '');
         const group = body.term === 'group';
         if (!termTermAllowed(req, h, group)) return sendJson(res, { ok: false, error: group ? 'terminal de groupe : membre valide requis' : 'terminal reserve : localhost ou admin' });
-        const id = group ? 'group' : termId(req, h);
+        if (group) {
+          // groupe = cartes : pas de PTY brut, une commande par requete
+          if (body.op === 'kill') {
+            for (const [cid, pr] of GROUPPROCS) {
+              const k = GROUPCARDS.find(x => x.id === cid);
+              if (k && k.by === (h || 'host')) { try { pr.kill('SIGKILL'); } catch (e) {} }
+            }
+            return sendJson(res, { ok: true });
+          }
+          if (body.op === 'run') {
+            const cmd = String(body.cmd || '').replace(/\x00/g, '').slice(0, 2000).trim();
+            if (!cmd) return sendJson(res, { ok: false, error: 'commande vide' });
+            const now = Date.now();
+            const rt = GROUPRATE.get(h) || { last: 0, running: 0 };
+            if (rt.running) return sendJson(res, { ok: false, error: 'ta commande precedente tourne encore - Ctrl+C pour la couper' });
+            if (now - rt.last < GROUP_COOLDOWN) return sendJson(res, { ok: false, error: 'anti-flood : patiente une seconde entre deux commandes' });
+            if (groupRunning >= 3) return sendJson(res, { ok: false, error: '3 commandes deja en cours sur le groupe - attends une fin' });
+            const cl = cmdClass(cmd);
+            const card = { id: now.toString(36) + Math.random().toString(36).slice(2, 6), by: h || 'host', cmd, type: cl.type, desc: cl.desc, out: '', trunc: false, exit: null, run: true, t: now, ms: 0 };
+            GROUPCARDS.push(card);
+            while (GROUPCARDS.length > GROUP_MAX_CARDS) GROUPCARDS.shift();
+            GROUPRATE.set(h, { last: now, running: 1 });
+            groupRunning++;
+            groupBroadcast({ card });
+            let out = '';
+            let proc;
+            try { proc = require('child_process').spawn('/bin/bash', ['-c', cmd], { cwd: GROUP_WORKDIR, env: { ...process.env, TERM: 'dumb', HOME: GROUP_WORKDIR } }); }
+            catch (e) {
+              card.run = false; card.out = 'impossible de lancer la commande'; card.exit = -1;
+              groupRunning = Math.max(0, groupRunning - 1);
+              GROUPRATE.set(h, { last: now, running: 0 });
+              groupBroadcast({ card });
+              return sendJson(res, { ok: true, id: card.id });
+            }
+            GROUPPROCS.set(card.id, proc);
+            const killTimer = setTimeout(() => { try { proc.kill('SIGKILL'); } catch (e) {} }, GROUP_TIMEOUT);
+            const feed = d => {
+              if (out.length < GROUP_OUT_MAX) out += String(d);
+              else card.trunc = true;
+            };
+            proc.stdout.on('data', feed);
+            proc.stderr.on('data', feed);
+            proc.on('error', () => {});
+            proc.on('close', code => {
+              clearTimeout(killTimer);
+              GROUPPROCS.delete(card.id);
+              card.out = out.slice(0, GROUP_OUT_MAX);
+              card.exit = code;
+              card.run = false;
+              card.ms = Date.now() - now;
+              groupRunning = Math.max(0, groupRunning - 1);
+              const rt2 = GROUPRATE.get(h);
+              if (rt2) rt2.running = 0;
+              groupBroadcast({ card });
+            });
+            return sendJson(res, { ok: true, id: card.id });
+          }
+          return sendJson(res, { ok: false, error: 'op terminal groupe inconnu' });
+        }
+        const id = termId(req, h);
         if (body.op === 'start') {
           const ts = termSpawn(id);
           return sendJson(res, ts ? { ok: true } : { ok: false, error: 'cannot spawn shell' });
@@ -1473,14 +1591,22 @@ const MAIN = (req, res) => {
     return sendJson(res, { bases: ARSENAL.basesState(), syncing: ARSENAL.syncing(), log: ARSENAL.syncLog.slice(-8), stash });
   }
   if (p === '/api/term/stream') {
-    // SSE : replay du buffer puis output live. Groupe : membres valides ; solo : admin.
+    // SSE : replay du buffer puis output live. Groupe : cartes de commandes ; solo : PTY prive.
     const h = cleanHandle(url.searchParams.get('handle') || '');
     const group = url.searchParams.get('term') === 'group';
     if (!termTermAllowed(req, h, group)) return send(res, 403, 'text/plain', 'terminal reserved');
-    const id = group ? 'group' : termId(req, h);
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+    if (group) {
+      groupSend({ res }, { cards: GROUPCARDS });
+      const client = { res };
+      GROUPCLIENTS.add(client);
+      const beat = setInterval(() => { try { res.write(': ping\n\n'); } catch (e) {} }, 15000);
+      req.on('close', () => { clearInterval(beat); GROUPCLIENTS.delete(client); });
+      return;
+    }
+    const id = termId(req, h);
     const ts = TERMS.get(id) || termSpawn(id);
     if (!ts) return send(res, 500, 'text/plain', 'cannot spawn shell');
-    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
     if (ts.buf) res.write('data: ' + JSON.stringify(ts.buf) + '\n\n');
     const client = { res };
     ts.clients.add(client);

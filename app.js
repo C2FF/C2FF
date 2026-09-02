@@ -9460,12 +9460,15 @@ if ((() => { try { return localStorage.getItem('c2ff-full') === 'on'; } catch (e
 }
 
 // ---------- terminal de travail ----------
-// shell reel cote serveur (1 par identite), output en SSE, input en POST ligne par ligne.
-const TERM = { es: null, errs: 0, hi: 0, hist: [], mode: 'solo' };
+// solo : shell reel cote serveur (1 par identite), output en SSE, input en POST ligne par ligne.
+// groupe : cartes de commandes - pseudo + type affiches, sorties masquees par defaut, un seul
+// point d'execution (cwd dedie) : tout le monde recoit la meme carte, la triche est impossible.
+const TERM = { es: null, errs: 0, hi: 0, hist: [], mode: 'solo', cards: [], open: {} };
 function termSetMode(mode) {
   TERM.mode = mode === 'group' ? 'group' : 'solo';
   if (TERM.es) { try { TERM.es.close(); } catch (e) {} TERM.es = null; }
   TERM.errs = 0;
+  TERM.cards = []; TERM.open = {};
   $('termOut').textContent = '';
   const solo = $('termSolo'), grp = $('termGroup');
   if (solo) solo.className = TERM.mode === 'solo' ? 'go need-admin' : 'ghost need-admin';
@@ -9474,7 +9477,7 @@ function termSetMode(mode) {
   if (pill) { pill.textContent = TERM.mode === 'group' ? 'GROUPE' : 'SOLO'; pill.className = 'pill ' + (TERM.mode === 'group' ? 'p-prog' : 'p-live'); }
   const info = $('termModeInfo');
   if (info) info.textContent = TERM.mode === 'group'
-    ? "un seul shell partage : chaque frappe de chacun est visible de tous - impossible de tricher, tout est transparent"
+    ? 'cartes de commandes : pseudo + type affiches, sorties masquees par defaut (un clic pour reveler) - un seul point d execution, triche impossible'
     : 'shell prive (admin) - les autres ne voient rien';
   termConnect();
 }
@@ -9492,6 +9495,40 @@ function termAppend(t) {
   if (el.textContent.length > 60000) el.textContent = el.textContent.slice(-45000);
   el.scrollTop = el.scrollHeight;
 }
+// rendu cartes du mode groupe : pseudo + type + cible visibles, sortie masquee
+// sauf si c est la tienne ou si tu as clique voir (1 = apercu 4000 c, 2 = tout)
+function termRender() {
+  if (TERM.mode !== 'group') return;
+  const el = $('termOut');
+  if (!el) return;
+  const me = termHandle();
+  const stick = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  el.innerHTML = TERM.cards.length ? TERM.cards.map(k => {
+    const mine = k.by === me;
+    const lv = mine ? Math.max(1, TERM.open[k.id] || 0) : (TERM.open[k.id] || 0);
+    const head = '<div class="tcard-h"><b class="tcard-by">' + esc(k.by) + '$</b>'
+      + '<span class="tcard-cmd" title="' + esc(k.cmd) + '">' + esc(k.cmd.length > 90 ? k.cmd.slice(0, 90) + '…' : k.cmd) + '</span>'
+      + '<span class="pill p-prog">' + esc(k.type || '') + '</span>'
+      + (k.run ? '<span class="pill">en cours…</span>'
+        : '<span class="pill ' + (k.exit === 0 ? 'p-live' : 'p-warn') + '">' + (k.exit === 0 ? 'ok' : (k.exit == null ? 'coupé' : 'exit ' + k.exit)) + '</span>')
+      + '</div>';
+    let body = '';
+    if (k.run) body = '<div class="tcard-out" style="color:var(--faint)">en cours…</div>';
+    else {
+      const o = k.out || '';
+      if (!lv) body = '<button class="ghost tsee" data-id="' + k.id + '">voir la sortie (' + (o.length > 1024 ? Math.round(o.length / 1024) + ' Ko' : o.length + ' c') + ')</button>';
+      else {
+        const full = lv === 2;
+        const show = full ? o : o.slice(0, 4000);
+        const rest = o.length - show.length;
+        body = '<pre class="tcard-out">' + esc(show) + '</pre>'
+          + (rest > 0 ? '<button class="ghost tmore" data-id="' + k.id + '">+' + (rest > 1024 ? Math.round(rest / 1024) + ' Ko' : rest + ' c') + ' masques - tout derouler</button>' : '');
+      }
+    }
+    return '<div class="tcard' + (mine ? ' tcard-mine' : '') + (k.run ? ' tcard-run' : '') + '">' + head + body + '</div>';
+  }).join('') : '<div style="color:var(--faint);padding:20px;text-align:center">aucune commande - tape la premiere, tout le monde la verra signee de ton pseudo</div>';
+  if (stick) el.scrollTop = el.scrollHeight;
+}
 function termKBody(extra) {
   return Object.assign({ handle: termHandle() }, TEAMKEY ? { _k: TEAMKEY } : {}, extra || {});
 }
@@ -9508,8 +9545,19 @@ function termConnect() {
   TERM.es = new EventSource(q);
   TERM.es.onopen = () => { TERM.errs = 0; };
   TERM.es.onmessage = ev => {
-    let t;
-    try { t = termClean(JSON.parse(ev.data)); } catch (e) { return; }
+    let p;
+    try { p = JSON.parse(ev.data); } catch (e) { return; }
+    if (TERM.mode === 'group') {
+      if (p.cards) TERM.cards = p.cards;
+      else if (p.card) {
+        const i = TERM.cards.findIndex(x => x.id === p.card.id);
+        if (i >= 0) TERM.cards[i] = p.card; else TERM.cards.push(p.card);
+        if (TERM.cards.length > 80) TERM.cards = TERM.cards.slice(-60);
+      }
+      termRender();
+      return;
+    }
+    const t = termClean(p);
     if (!t) return;
     termAppend(t);
   };
@@ -9530,7 +9578,21 @@ $('termForm').addEventListener('submit', e => {
   TERM.hi = TERM.hist.length;
   try { localStorage.setItem('c2ff-term-hist', JSON.stringify(TERM.hist.slice(-100))); } catch (x) {}
   $('termIn').value = '';
+  if (TERM.mode === 'group') {
+    jpost('/api/term', { handle: termHandle(), term: 'group', op: 'run', cmd: v })
+      .then(r => { if (!r.ok) toast('TERM', r.error || 'refuse', 'P2'); })
+      .catch(() => {});
+    return;
+  }
   jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'write', data: v + '\n' }).catch(() => {});
+});
+$('termOut').addEventListener('click', e => {
+  if (TERM.mode !== 'group') return;
+  const see = e.target.closest('.tsee'), more = e.target.closest('.tmore');
+  if (!see && !more) return;
+  const id = (see || more).dataset.id;
+  TERM.open[id] = see ? 1 : 2;
+  termRender();
 });
 $('termIn').addEventListener('keydown', e => {
   const h = TERM.hist;
@@ -9541,13 +9603,18 @@ $('termIn').addEventListener('keydown', e => {
     $('termIn').value = TERM.hi === h.length ? '' : h[TERM.hi] || '';
     return;
   }
-  if (e.ctrlKey && e.key === 'c') { e.preventDefault(); jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'write', data: '\x03' }).catch(() => {}); }
-  if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); $('termOut').textContent = ''; }
-  if (e.ctrlKey && (e.key === 'd' || e.key === 'D')) { e.preventDefault(); jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'write', data: 'exit\n' }).catch(() => {}); }
+  if (e.ctrlKey && e.key === 'c') {
+    e.preventDefault();
+    if (TERM.mode === 'group') { jpost('/api/term', { handle: termHandle(), term: 'group', op: 'kill' }).catch(() => {}); return; }
+    jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'write', data: '\x03' }).catch(() => {});
+  }
+  if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); if (TERM.mode === 'group') { TERM.open = {}; termRender(); } else $('termOut').textContent = ''; }
+  if (e.ctrlKey && (e.key === 'd' || e.key === 'D')) { e.preventDefault(); if (TERM.mode !== 'group') jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'write', data: 'exit\n' }).catch(() => {}); }
 });
 $('termSolo').addEventListener('click', () => termSetMode('solo'));
 $('termGroup').addEventListener('click', () => termSetMode('group'));
 $('termRestart').addEventListener('click', () => {
+  if (TERM.mode === 'group') { TERM.cards = []; TERM.open = {}; TERM.errs = 0; if (TERM.es) { try { TERM.es.close(); } catch (e) {} TERM.es = null; } termConnect(); termRender(); return; }
   jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'exit' })
     .then(() => jpost('/api/term', { handle: termHandle(), term: TERM.mode, op: 'start' }))
     .catch(() => {});

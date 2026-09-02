@@ -178,7 +178,7 @@ Eight tabs, keys `1-8`:
 3. **FINDINGS** - signals arrive in real time; triage with the status selector, delete one with `✕`, add manual findings, ask the AI for a second opinion with the `AI »` button, export a PoC with `POC ⧉`
 4. **FAST** - recon-lite on any target without creating a program: paste a URL, press SCAN, get pages / APIs / params / tech inline; results are ephemeral (nothing persisted), admin-only, and the one-click `programme ›` button turns the scan into a real program
 5. **IA** - optional gateway config (OpenAI-compatible / Ollama / Anthropic), one-click connection test
-6. **TERM** - a real working terminal inside the console (local or admin-only in a shared room)
+6. **TERM** - two working modes: **SOLO** (private real shell, admin) and **GROUP** (shared command cards: every command is signed with its author's handle, auto-classified with a short type description - HTTP request, port scan, DNS enum... - outputs stay collapsed behind a *voir* button with a size hint, truncation caps both sides, anti-flood cooldown between commands, Ctrl+C kills your own running command; all commands execute in one dedicated working directory, so everyone receives the exact same card)
 7. **TEAM** - your handle, the room, the three access levels, members with roles, session chat and the audio mesh (detailed below)
 8. **COORDINATION** - private channel toward your wired agent
 
