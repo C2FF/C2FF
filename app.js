@@ -21182,7 +21182,19 @@ function drawTeam() {
     set('tmRoomEl', tm.room || '');
     set('tmOn', tm.enabled ? 'on' : 'off');
     set('tmWelcome', tm.welcome || '');
+    // message predefini de l'alerte generale : memorise localement, jamais
+    // ecrase pendant la saisie (garde focusInside ci-dessus)
+    if (!$('alertMsg').value) {
+      let am2 = '';
+      try { am2 = localStorage.getItem('c2ff-alert-msg') || ''; } catch (e) {}
+      set('alertMsg', am2 || (tm.alert && tm.alert.msg) || '');
+    }
   }
+  // rangee alerte generale : proprietaire uniquement (rang 5)
+  const alRow = $('alertRow');
+  if (alRow) alRow.hidden = !(tm.enabled && rk >= 5);
+  const alBtn = $('tmAlert');
+  if (alBtn) alBtn.textContent = (tm.alert && tm.alert.on) ? 'lever l\'alerte' : '🚨 ALERTE';
   const pendEl = $('tmPending');
   if (pendEl) {
     pendEl.hidden = !tm.enabled || !reqs.length;
@@ -21599,6 +21611,78 @@ $('tmWizz').addEventListener('click', () => {
     else toast('WIZZ', j.error || 'refuse', 'P2');
   }).catch(() => {});
 });
+// ---------- ALERTE GENERALE (privilege proprietaire) : etat d'urgence
+// distinct du wizz. Le serveur enforce le rang (5) et la fenetre de 30 min ;
+// le client rejoue l'effet depuis teamState.alert tant que on reste true -
+// ecran rouge persistant jusqu'a ce que le proprietaire leve l'alerte.
+let ALERT_SEEN = 0;
+try { ALERT_SEEN = Number(localStorage.getItem('c2ff-alert-seen')) || 0; } catch (e) {}
+function alertSound() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    alertSound.ctx = alertSound.ctx || new AC();
+    const ctx = alertSound.ctx, now = ctx.currentTime;
+    // sirene : 3 montees-descentes en sawtooth, bien plus agressive que le wizz
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sawtooth';
+    o.connect(g); g.connect(ctx.destination);
+    o.start(now);
+    for (let i = 0; i < 3; i++) {
+      const t0 = now + i * 1.2;
+      o.frequency.setValueAtTime(480, t0);
+      o.frequency.linearRampToValueAtTime(960, t0 + 0.6);
+      o.frequency.linearRampToValueAtTime(480, t0 + 1.2);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(0.2, t0 + 0.12);
+      g.gain.setValueAtTime(0.2, t0 + 1.0);
+      g.gain.linearRampToValueAtTime(0.0001, t0 + 1.19);
+    }
+    o.stop(now + 3.6);
+  } catch (e) {}
+}
+function alertCheck() {
+  const al = (state.data.team || {}).alert;
+  if (!al || !al.t) return;
+  document.body.classList.toggle('c2alert', !!al.on);
+  if (al.t <= ALERT_SEEN) return;
+  ALERT_SEEN = al.t;
+  try { localStorage.setItem('c2ff-alert-seen', String(al.t)); } catch (e) {}
+  if (!al.on) return;
+  // nouveau declenchement : plein milieu + son (le theme rouge, lui, reste
+  // pose via body.c2alert tant que l'alerte n'est pas levee cote serveur)
+  alertSound();
+  const am = $('alertModal');
+  if (!am) return;
+  $('alertMsgTx').textContent = al.msg || 'ALERTE GENERALE';
+  $('alertBy').textContent = 'alerte generale declenchee par ' + (al.by || 'le proprietaire') + ' - session en mode alerte';
+  am.hidden = false;
+}
+// bouton proprietaire (onglet team) : declencher avec le message predefini,
+// ou lever l'alerte si elle est active
+$('tmAlert').addEventListener('click', () => {
+  const al = (state.data.team || {}).alert;
+  if (al && al.on) {
+    jpost('/api/team', { op: 'alert', by: HANDLE }).then(r => r.json()).then(j => {
+      if (j.team) state.data.team = j.team;
+      alertCheck();
+      toast('ALERTE', j.ok ? 'alerte generale levee' : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2');
+    }).catch(() => {});
+    return;
+  }
+  const msg = String($('alertMsg').value || '').trim();
+  if (!msg) return toast('ALERTE', 'definis d abord le message predefini de l\'alerte', 'P2');
+  if (!confirm('ALERTE GENERALE\n\n"' + msg + '"\n\nPlein ecran chez tous les invites : sirene + ecran rouge. Une seule fois toutes les 30 minutes. Confirmer ?')) return;
+  try { localStorage.setItem('c2ff-alert-msg', msg); } catch (e) {}
+  jpost('/api/team', { op: 'alert', by: HANDLE, msg }).then(r => r.json()).then(j => {
+    if (j.team) state.data.team = j.team;
+    alertCheck();
+    toast('ALERTE', j.ok ? 'alerte generale declenchee : ecran rouge chez tous' : (j.error || 'refuse'), j.ok ? 'P1' : 'P2');
+  }).catch(() => {});
+});
+// fermer le panneau central : l'ecran reste en theme rouge tant que
+// l'alerte n'est pas levee par le proprietaire (etat serveur)
+$('alertOk').addEventListener('click', () => { $('alertModal').hidden = true; });
 // ---------- vocal prive 1:1 (en plus du mesh de session) :
 // meme relais op rtc, types prefixes 'p' pour ne pas croiser le mesh
 const PCS2 = new Map();
@@ -22356,6 +22440,7 @@ async function refresh() {
       popNotify('SESSION · ' + (ttop.name || '?'), ttop.text || '', '');
     }
     if (ttop) NOTIF.lastTeamT = ttop.t;
+    alertCheck(); // alerte generale proprietaire : tous les onglets, a chaque poll
     drawRuns(d.runs); drawFindings(); drawPrograms(); drawHunt(); drawJsi(); drawUrls(); drawMods(); drawAuth(); drawAdv(); drawChat(); drawFleet(); drawAI(); drawPin(); drawTeam(); drawArsenal(); drawFast();
     const _rk = TRANK[d.team.meRole || d.team.you] || 0;
     if (document.body.dataset.rank !== String(_rk)) document.body.dataset.rank = String(_rk);

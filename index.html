@@ -45,6 +45,15 @@ body[data-rank="3"] .need-admin { display:none !important }
 #tmChatlog .msg.wizzline{border-left:3px solid hsl(45 95% 55%);background:hsl(45 80% 18% / .35);text-align:center;font-size:11.5px}
 @keyframes c2wizz{0%,100%{transform:translate(0,0)}10%{transform:translate(-9px,3px)}20%{transform:translate(8px,-5px)}30%{transform:translate(-7px,4px)}40%{transform:translate(6px,5px)}50%{transform:translate(-6px,-4px)}60%{transform:translate(5px,3px)}70%{transform:translate(-4px,-3px)}80%{transform:translate(3px,2px)}90%{transform:translate(-2px,-1px)}}
 body.wizzing{animation:c2wizz .55s ease-in-out}
+/* ALERTE GENERALE : tout le theme C2FF bascule en rouge (teinte 0 forcee sur
+   tout l'arbre), vignette d'urgence pulsante sur tout l'ecran - etat pose par
+   app.js depuis teamState.alert, impossible a retirer cote client tant que
+   l'alerte n'est pas levee par le proprietaire */
+body.c2alert{--hue:0}
+@keyframes c2alertvig{0%,100%{box-shadow:inset 0 0 140px hsl(0 90% 30% / .55)}50%{box-shadow:inset 0 0 240px hsl(0 95% 45% / .85)}}
+body.c2alert::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:135;animation:c2alertvig 1s ease-in-out infinite}
+@keyframes alertcard{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+#tmChatlog .msg.galertline{border-left:3px solid hsl(0 95% 55%);background:hsl(0 80% 16% / .4);text-align:center;font-size:11.5px;color:hsl(0 95% 80%)}
 #tmChatlog .cfold{color:hsl(var(--hue) 85% 68%);cursor:pointer;font-size:10px;margin-left:8px}
 
 /* balayage CRT lent, la console vit */
@@ -522,6 +531,13 @@ header,nav{border-bottom-color:transparent;
         <button class="go" id="tmWelcomeSave">Enregistrer</button>
       </div>
     </div>
+    <div id="alertRow" hidden style="border:1px solid hsl(0 85% 45% / .55);border-radius:8px;padding:10px 12px;margin:0 0 12px;background:hsl(0 70% 14% / .35)">
+      <div style="font-size:11px;letter-spacing:.1em;color:hsl(0 95% 70%);margin-bottom:8px">ALERTE GÉNÉRALE - privilège du propriétaire : plein écran chez tous les invités, sirène + écran rouge. Une seule fois toutes les 30 minutes (bloqué côté serveur)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="alertMsg" maxlength="200" placeholder="message prédéfini de l'alerte (affiché en plein milieu)" style="flex:1;min-width:220px">
+        <button class="go" id="tmAlert" style="background:hsl(0 80% 40%);border-color:hsl(0 80% 40%)">🚨 ALERTE</button>
+      </div>
+    </div>
     <h2 style="margin:14px 0 6px" data-i="tm_members">Membres</h2>
     <div id="tmPending" style="font-size:12px;margin-bottom:10px"></div>
     <div id="tmMembers" style="font-size:12px"></div>
@@ -603,6 +619,15 @@ header,nav{border-bottom-color:transparent;
           <button class="ghost wizz-off" style="color:var(--danger)">Désactiver les wizz</button>
           <button class="go wizz-keep">Continuer d'être averti</button>
         </div>
+      </div>
+    </div>
+    <div id="alertModal" hidden style="position:fixed;inset:0;z-index:140;display:grid;place-items:center;background:hsl(0 90% 5% / .45)">
+      <div class="acard" style="background:hsl(0 60% 10%);border:2px solid hsl(0 95% 55%);border-radius:12px;padding:28px 34px;max-width:480px;text-align:center;box-shadow:0 0 60px hsl(0 95% 40% / .7);animation:alertcard .8s ease-in-out infinite">
+        <div style="font-size:34px;line-height:1;margin-bottom:10px">🚨</div>
+        <h2 style="margin:0 0 10px;font-size:19px;letter-spacing:.12em;color:hsl(0 95% 78%)">ALERTE GÉNÉRALE</h2>
+        <p id="alertMsgTx" style="font-size:15px;font-weight:700;color:hsl(0 20% 96%);margin:0 0 10px"></p>
+        <p id="alertBy" style="font-size:11px;color:hsl(0 60% 75%);margin:0 0 16px"></p>
+        <button class="go" id="alertOk" style="background:hsl(0 80% 40%);border-color:hsl(0 80% 40%)">J'AI COMPRIS</button>
       </div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">

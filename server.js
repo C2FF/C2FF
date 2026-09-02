@@ -120,6 +120,12 @@ function teamCfg() {
     news,
     chal,
     chats,
+    // alerte generale du proprietaire : { on, msg, t, by } - on reste true tant
+    // que le proprietaire n'a pas leve l'alerte (ecran rouge persistant)
+    alert: (c.alert && typeof c.alert === 'object')
+      ? { on: !!c.alert.on, msg: String(c.alert.msg || '').slice(0, 200),
+          t: Number(c.alert.t) || 0, by: String(c.alert.by || '').slice(0, 16) }
+      : null,
   };
 }
 // acces a un chat : grade >= min ; un chat d'event (challenge) est reserve aux
@@ -217,6 +223,7 @@ function teamState(req, h) {
     roles: t.roles, blocked: t.blocked,
     welcome: t.welcome || '',
     wizz: (() => { const mm = (h && (t.members || {})[h]) || null; return { mute: !!(mm && mm.wizz_mute), rcv: (mm && mm.wizz_rcv) || 0 }; })(),
+    alert: t.alert || null,
     news: (t.news || []).map(n => (t.chal || {})[n.id] ? (() => {
       const c = (t.chal || {})[n.id] || {};
       return { ...n, limit: c.limit || 0, nparts: Object.keys(c.parts || {}).length,
@@ -1122,6 +1129,29 @@ const MAIN = (req, res) => {
           if (!(mm.wizz_rcv > 0)) return sendJson(res, { ok: false, error: 'recois d abord un wizz avant de pouvoir desactiver' });
           const mem2 = { ...cur.members, [by]: { ...mm, wizz_mute: body.mute !== false } };
           saveTeamCfg({ ...cur, members: mem2 });
+          return sendJson(res, { ok: true, team: teamState(req, by) });
+        }
+        // ALERTE GENERALE : privilege du proprietaire uniquement (different du
+        // wizz : pas une secousse, un etat d'urgence plein ecran). Une seule
+        // fois toutes les 30 minutes, fenetre enforcee cote serveur - impossible
+        // a bypass. Le message est defini AVANT le declenchement. L'etat on
+        // reste actif dans la config tant que le proprietaire ne l'a pas levee :
+        // tous les clients le relisent depuis /api/state (ecran rouge persistant).
+        if (body.op === 'alert') {
+          const by = cleanHandle(body.by || body.handle);
+          if (rankOf(req, by) < 5) return sendJson(res, { ok: false, error: 'alerte generale : privilege du proprietaire uniquement' });
+          const cur = teamCfg();
+          if (cur.alert && cur.alert.on) {
+            // meme op pour lever l'alerte (proprietaire seulement, pas de cooldown pour lever)
+            saveTeamCfg({ ...cur, alert: { ...cur.alert, on: false } });
+            return sendJson(res, { ok: true, team: teamState(req, by) });
+          }
+          const nw = Date.now();
+          const last = (cur.alert || {}).t || 0;
+          if (nw - last < 1800000)
+            return sendJson(res, { ok: false, error: 'alerte generale : une fois toutes les 30 minutes (prochaine dans ' + Math.ceil((1800000 - (nw - last)) / 60000) + ' min)' });
+          const msg = String(body.msg || '').trim().slice(0, 200) || 'ALERTE GENERALE';
+          saveTeamCfg({ ...cur, alert: { on: true, msg, t: nw, by } });
           return sendJson(res, { ok: true, team: teamState(req, by) });
         }
         // welcome / pin / unpin : message de bienvenue + epinglage d'actu ou de
