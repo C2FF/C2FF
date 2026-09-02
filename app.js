@@ -22015,29 +22015,49 @@ function wizzSound() {
     const ctx = audioCtx();
     if (!ctx) return;
     const now = ctx.currentTime;
-    [0, 0.18].forEach((dt, i) => {
+    // double buzz vibrant : dents de scie avec vibrato serre (LFO carree) et
+    // descente de hauteur - l'esprit "bzzz" du nudge, bien plus vivant que
+    // l'ancien double blip
+    [0, 0.1].forEach((dt, i) => {
+      const t0 = now + dt;
       const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = 'square';
-      o.frequency.setValueAtTime(dt ? 620 : 880, now + dt);
-      g.gain.setValueAtTime(0.12, now + dt);
-      g.gain.exponentialRampToValueAtTime(0.001, now + dt + 0.15);
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(i ? 540 : 660, t0);
+      o.frequency.exponentialRampToValueAtTime(i ? 250 : 330, t0 + 0.22);
+      const lfo = ctx.createOscillator(), lg = ctx.createGain();
+      lfo.type = 'square';
+      lfo.frequency.value = 34;
+      lg.gain.value = 75;
+      lfo.connect(lg); lg.connect(o.frequency);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.14, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.24);
       o.connect(g); g.connect(ctx.destination);
-      o.start(now + dt); o.stop(now + dt + 0.16);
+      o.start(t0); o.stop(t0 + 0.26);
+      lfo.start(t0); lfo.stop(t0 + 0.26);
     });
   } catch (e) {}
 }
-function doWizz(from) {
-  wizzSound();
+function wizzShake() {
   document.body.classList.remove('wizzing');
   void document.body.offsetWidth; // restart de l'animation
   document.body.classList.add('wizzing');
   setTimeout(() => document.body.classList.remove('wizzing'), 600);
+}
+function doWizz(from) {
+  wizzSound();
+  wizzShake();
   toast('WIZZ', '⚡ ' + from + ' a fait trembler ta console', 'HIT');
 }
 $('tmWizz').addEventListener('click', () => {
   if (!HANDLE) return toast('SESSION', T('tm_no_handle'), 'P2');
   jpost('/api/chat', { kind: 'wizz', name: HANDLE, ch: CHAT_SEL, text: '⚡ wizz' }).then(r => r.json()).then(j => {
-    if (j.ok) { WIZZ_LAST = Date.now(); drawChats(); }
+    if (j.ok) {
+      WIZZ_LAST = Date.now(); // son propre wizz : pas de double effet au retour
+      wizzSound(); wizzShake();
+      toast('WIZZ', '⚡ wizz envoye - ta console tremble aussi', 'HIT');
+      drawChats();
+    }
     else toast('WIZZ', j.error || 'refuse', 'P2');
   }).catch(() => {});
 });
