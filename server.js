@@ -921,6 +921,17 @@ const MAIN = (req, res) => {
           saveVotes(votes);
           return sendJson(res, { ok: true });
         }
+        // leave : changer de pseudo = l'ancienne identite quitte la session.
+        // presence supprimee -> le pseudo sort de la liste instantanement (plus
+        // de fantome actif ni de doublon). Uniquement SA propre identite (header
+        // prime) ; l'inscription reste en base : connexion pseudo + pin pour revenir.
+        if (body.op === 'leave') {
+          const h = reqHandle(req) || cleanHandle(body.handle || '');
+          if (!h) return sendJson(res, { ok: false, error: 'identite manquante' });
+          if (isLoopback(req)) return sendJson(res, { ok: false, error: 'le poste local n a pas de session a quitter' });
+          PRESENCE.delete(h);
+          return sendJson(res, { ok: true });
+        }
         if (body.op === 'beat') {
           const h = cleanHandle(body.handle);
           if (h) {

@@ -8963,6 +8963,10 @@ function tryJoin() {
   if (!/^\d{4,8}$/.test(p1)) return err('pin : 4 a 8 chiffres');
   if (JOIN_MODE === 'signup' && p1 !== p2) return err('les deux pins different');
   $('jmGo').disabled = true;
+  // changement de pseudo en etant deja connecte : l'ancien quitte (presence
+  // purgee, pas de doublon). L'inscription reste en base : si la connexion
+  // echoue, le beat re-entre automatiquement avec l'ancien.
+  if (HANDLE && HANDLE !== h && !IS_LOCAL) jpost('/api/team', { op: 'leave', handle: HANDLE }).catch(() => {});
   jpost('/api/team', { op: 'join', handle: h, pin: p1 }).then(r => r.json()).then(j => {
     $('jmGo').disabled = false;
     if (!j.ok) return err(j.error || 'refuse');
@@ -9257,9 +9261,27 @@ $('tmMembers').addEventListener('click', e => {
 });
 function set(id, v) { const el = $(id); if (el) el.value = v; }
 $('tmSaveHandle').addEventListener('click', () => {
-  HANDLE = String($('tmHandleEl').value).replace(/[^\w \-.]/g, '').trim().slice(0, 16);
-  try { localStorage.setItem('c2ff-handle', HANDLE); } catch (e) {}
-  toast('TEAM', HANDLE ? T('tm_saved') + ' : ' + HANDLE : T('tm_no_handle'), HANDLE ? 'HIT' : 'P2');
+  const nh = String($('tmHandleEl').value).replace(/[^\w \-.]/g, '').trim().slice(0, 16);
+  if (!nh || nh.length < 2) { toast('TEAM', T('tm_no_handle'), 'P2'); return; }
+  if (nh === HANDLE) return;
+  if (IS_LOCAL) { // poste local : pas de session a quitter, identite directe
+    HANDLE = nh;
+    try { localStorage.setItem('c2ff-handle', HANDLE); } catch (e) {}
+    toast('TEAM', T('tm_saved') + ' : ' + HANDLE, 'HIT');
+    forceDraw = true; refresh();
+    return;
+  }
+  // changement de pseudo : l'ancien quitte la session (leave -> sort de la liste
+  // instantanement, plus de fantome actif ni de doublon), le nouveau passe par
+  // la modal creation/connexion - HANDLE ne bascule qu'a la reussite
+  const old = HANDLE;
+  if (old) jpost('/api/team', { op: 'leave', handle: old }).catch(() => {});
+  HANDLE = '';
+  try { localStorage.removeItem('c2ff-handle'); } catch (e) {}
+  JOIN_MODE = 'signup';
+  showJoin(false, 'nouveau pseudo : ' + nh + ' - confirme ton pin');
+  $('jmHandle').value = nh;
+  setTimeout(() => { try { $('jmPin').focus(); } catch (e) {} }, 80);
   forceDraw = true; refresh();
 });
 $('tmSave').addEventListener('click', () => {
