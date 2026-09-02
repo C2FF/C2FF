@@ -851,7 +851,10 @@ function apiState(res, req) {
       || (pr.owner && pr.owner === th) || rk >= pr.access);
   })();
   sendJson(res, {
-    now: new Date().toISOString(), runs, findings: state.findings, programs, chat: lastChat(80),
+    now: new Date().toISOString(), runs, findings: state.findings, programs,
+    // coordination = SEULEMENT les messages du canal prive (analyste IA,
+    // playbooks, notes) - jamais les wizz ni les messages des chats d'equipe
+    chat: lastChat(80).filter(m => m.kind === 'chat' || m.kind === 'queue' || m.from === 'ia' || m.from === 'claude').slice(-80),
     fleet: fleet.state(), modes: fleet.catalog(), team: teamState(req, th),
     ai: { enabled: ai.enabled, protocol: ai.protocol, baseURL: ai.baseURL, model: ai.model, provider: ai.provider, sysPrompt: ai.sysPrompt, ready: !!(ai.baseURL && ai.model) },
   });
