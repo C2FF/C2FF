@@ -21282,11 +21282,19 @@ function drawChats() {
     }).join('') +
       (rk >= 5 && tm.enabled ? '<span class="cht cht-add" id="chatAddBtn" style="border-style:dashed;color:hsl(var(--hue) 85% 68%)">+ chat</span>' : '');
   }
-  // micro vocal de session : bouton + etat des connexions (onglet CHATS)
+  // live vocal dedie a UN chat a la fois : sur le canal session, le bouton
+  // micro (live de session, mesh) ; sur un wispe, uniquement le bouton vocal
+  // prive - le micro global n'existe plus dans les conversations privees
+  const isPm = (CHAT_SEL || '').indexOf('pm-') === 0;
   const micBtn = $('tmMic');
-  if (micBtn) { micBtn.textContent = microOn ? T('tm_mic_off') : T('tm_mic_on'); micBtn.classList.toggle('mic-live', microOn); micBtn.hidden = !tm.enabled; }
+  if (micBtn) {
+    micBtn.textContent = microOn ? T('tm_mic_off') : T('tm_mic_on');
+    micBtn.classList.toggle('mic-live', microOn);
+    micBtn.hidden = !tm.enabled || isPm;
+    micBtn.title = 'live vocal du chat session uniquement - un seul live a la fois';
+  }
   const mi = $('micInfo');
-  if (mi) mi.textContent = !tm.enabled ? '' :
+  if (mi) mi.textContent = !tm.enabled || isPm ? '' :
     microOn ? (PCS.size ? T('mic_live').replace('{n}', PCS.size) : T('mic_wait')) : '';
   const blog = $('tmChatlog');
   if (!blog) return;
@@ -21319,7 +21327,6 @@ function drawChats() {
     if (!asked) { const qa = $('wizzAsk'); if (qa) qa.hidden = false; }
   }
   // vocal prive 1:1 : bouton actif uniquement sur un chat prive
-  const isPm = (CHAT_SEL || '').indexOf('pm-') === 0;
   const pmPeer = isPm ? (CHAT_SEL.slice(3).split('--').find(x => x !== HANDLE) || '') : '';
   const pcall = $('pmCall');
   if (pcall) {
@@ -21494,6 +21501,7 @@ function hqSdp(sdp) {
 async function micToggle() {
   if (microOn) return micOff();
   if (!HANDLE) return toast('SESSION', T('tm_no_handle'), 'P2');
+  if (PMC_PEER || PMC_IN) return toast('SESSION', 'un vocal privé est en cours : un seul live à la fois', 'P2');
   try { MIC = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS); }
   catch (e) { return toast('SESSION', T('tm_mic_denied'), 'P2'); }
   microOn = true;
@@ -21733,6 +21741,9 @@ async function pmStart(h) {
   // PMC_PEER pose AVANT l'attente du micro : un double-clic ne doit pas
   // creer deux PC et deux offres (l'ancien PC devenait orphelin, micro leak)
   PMC_PEER = h; PMC_AT = Date.now();
+  // un seul live a la fois : l'appel prive reprend le micro, le live de
+  // session (mesh) est coupe proprement
+  if (microOn) { micOff(); toast('WISPE', 'live de session coupe - vocal prive a la place', ''); }
   try { PMC_MIC = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS); }
   catch (e) { PMC_PEER = ''; forceDraw = true; drawChats(); return toast('WISPE', T('tm_mic_denied'), 'P2'); }
   const pc = newPCP(h);
@@ -21752,6 +21763,8 @@ async function pmAccept() {
     return toast('WISPE', T('tm_mic_denied'), 'P2');
   }
   PMC_PEER = from;
+  // un seul live a la fois (meme regle que pour l'appelant)
+  if (microOn) { micOff(); toast('WISPE', 'live de session coupe - vocal prive a la place', ''); }
   try {
     const pc = newPCP(from);
     await pc.setRemoteDescription(offer);
@@ -21831,10 +21844,13 @@ $('tmMembers').addEventListener('click', e => {
   if (wsp) {
     jpost('/api/team', { op: 'wsp', to: wsp.dataset.h, by: HANDLE }).then(r => r.json()).then(j => {
       if (!j.ok) return toast('WISPE', j.error || 'refuse', 'P2');
+      // appliquer la team recue AVANT de poser CHAT_SEL : sinon le pm est absent
+      // de la liste encore affichee et le fallback repasse sur 'session'
+      if (j.team) state.data.team = j.team;
       CHAT_SEL = j.ch; CHAT_DRAWN = '';
       setTab('chs');
+      forceDraw = true; drawChats(); refresh();
       toast('WISPE', 'conversation privee avec ' + wsp.dataset.h + ' - seuls vous deux la voient', 'HIT');
-      forceDraw = true; refresh();
     }).catch(() => {});
     return;
   }
