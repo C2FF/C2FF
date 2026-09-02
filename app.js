@@ -93,6 +93,7 @@ const I18N = {
     navchs: 'CHATS', chs_h2: 'Chats de session',
     chs_p: 'Un canal par sujet : le chat session est ouvert a tous, le proprietaire cree des chats reserves a un grade, et chaque challenge peut ouvrir son chat dedie - reserve aux participants.',
     chs_name_ph: 'nom du chat', chs_locked: 'chat verrouille : grade insuffisant ou participation a l event requise',
+    mic_live: 'vocal actif - {n} auditeur(s) en direct', mic_wait: 'vocal actif - en attente des autres membres…',
     tm_admin: 'admin', tm_guest: 'invite',
     tm_kick: 'KICK', tm_kick_ok: 'membre exclu de la salle (re-cliquer debloque)',
     tm_role_ok: 'role mis a jour', tm_mic_on: 'ACTIVER LE MICRO',
@@ -190,6 +191,7 @@ const I18N = {
     navchs: 'CHATS', chs_h2: 'Session chats',
     chs_p: 'One channel per topic: the session chat is open to everyone, the session owner creates grade-restricted chats, and each challenge can open its own chat - reserved to participants.',
     chs_name_ph: 'chat name', chs_locked: 'locked chat: insufficient grade or event participation required',
+    mic_live: 'voice live - {n} listener(s) connected', mic_wait: 'voice live - waiting for other members…',
     tm_admin: 'admin', tm_guest: 'guest',
     tm_kick: 'KICK', tm_kick_ok: 'member removed from the room (click again to unblock)',
     tm_role_ok: 'role updated', tm_mic_on: 'ENABLE MICROPHONE',
@@ -9307,8 +9309,7 @@ function drawTeam() {
       '<button class="ghost tmspy" data-h="' + esc(m.h) + '" style="padding:3px 8px;font-size:10.5px" title="voir son terminal perso en lecture seule">terminal</button>' : '') +
     '<small style="color:var(--faint);margin-left:auto">' + m.reqs + ' req</small></div>'
   ).join('') || '<div style="color:var(--faint);font-size:11.5px">' + T('tm_nobody') + '</div>';
-  const micBtn = $('tmMic');
-  if (micBtn) { micBtn.textContent = microOn ? T('tm_mic_off') : T('tm_mic_on'); micBtn.classList.toggle('mic-live', microOn); micBtn.hidden = !tm.enabled; }
+  // bouton micro : rendu dans l'onglet CHATS (drawChats)
   // lien d'invitation : le tunnel public gagne s'il existe (universel, hors LAN), sinon LAN/localhost.
   // URL SEULE dans la zone copiable - la note pseudo/pin vit a cote, jamais collée avec
   const world = tun && tun.startsWith('https://');
@@ -9356,6 +9357,12 @@ function drawChats() {
       '</span>').join('') +
       (rk >= 5 && tm.enabled ? '<span class="cht cht-add" id="chatAddBtn" style="border-style:dashed;color:hsl(var(--hue) 85% 68%)">+ chat</span>' : '');
   }
+  // micro vocal de session : bouton + etat des connexions (onglet CHATS)
+  const micBtn = $('tmMic');
+  if (micBtn) { micBtn.textContent = microOn ? T('tm_mic_off') : T('tm_mic_on'); micBtn.classList.toggle('mic-live', microOn); micBtn.hidden = !tm.enabled; }
+  const mi = $('micInfo');
+  if (mi) mi.textContent = !tm.enabled ? '' :
+    microOn ? (PCS.size ? T('mic_live').replace('{n}', PCS.size) : T('mic_wait')) : '';
   const blog = $('tmChatlog');
   if (!blog) return;
   blog.hidden = !tm.enabled;
@@ -9463,10 +9470,26 @@ $('tmLive').addEventListener('click', () => {
 let MIC = null, microOn = false;
 const PCS = new Map(); // handle -> RTCPeerConnection
 const RTCSEEN = new Set();
+// audio de qualite : 48 kHz mono, annulation d'echo + suppression de bruit +
+// controle de gain cote navigateur (traitement natif WebRTC, sans latence ajoutee)
+const MIC_CONSTRAINTS = {
+  audio: {
+    echoCancellation: true, noiseSuppression: true, autoGainControl: true,
+    sampleRate: 48000, sampleSize: 16, channelCount: 1,
+  },
+};
+// opus haut debit : 128 kbps fullband, sans discontinuite vocale (dtx off)
+function hqSdp(sdp) {
+  if (/a=fmtp:\d+ [^\r\n]*opus/i.test(sdp))
+    return sdp.replace(/a=fmtp:(\d+) ([^\r\n]*)/gi, (m, pt, p) =>
+      /opus/i.test(m) ? 'a=fmtp:' + pt + ' ' + p + ';maxaveragebitrate=128000;maxplaybackrate=48000;stereo=0;usedtx=0' : m);
+  return sdp.replace(/(a=rtpmap:(\d+) opus\/48000[^\r\n]*\r\n)/i,
+    (m, line, pt) => line + 'a=fmtp:' + pt + ' maxaveragebitrate=128000;maxplaybackrate=48000;stereo=0;usedtx=0\r\n');
+}
 async function micToggle() {
   if (microOn) return micOff();
   if (!HANDLE) return toast('SESSION', T('tm_no_handle'), 'P2');
-  try { MIC = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  try { MIC = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS); }
   catch (e) { return toast('SESSION', T('tm_mic_denied'), 'P2'); }
   microOn = true;
   micProposeAll();
@@ -9481,7 +9504,9 @@ function micOff() {
   forceDraw = true; refresh();
 }
 function newPC(h) {
-  const pc = new RTCPeerConnection();
+  // STUN : necessaire des que la session passe par le tunnel monde (reseaux
+  // differents) ; en LAN les candidats locaux suffisent deja
+  const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
   if (MIC) MIC.getTracks().forEach(t => pc.addTrack(t, MIC));
   pc.onicecandidate = e => { if (e.candidate) jpost('/api/team', { op: 'rtc', from: HANDLE, to: h, typ: 'ice', data: JSON.stringify(e.candidate) }).catch(() => {}); };
   pc.ontrack = e => {
@@ -9498,7 +9523,7 @@ function micProposeAll() {
   (tm.members || []).forEach(m => {
     if (m.h === HANDLE || !m.active || PCS.has(m.h)) return;
     const pc = newPC(m.h);
-    pc.createOffer().then(o => pc.setLocalDescription(o))
+    pc.createOffer().then(o => pc.setLocalDescription({ type: 'offer', sdp: hqSdp(o.sdp) }))
       .then(() => jpost('/api/team', { op: 'rtc', from: HANDLE, to: m.h, typ: 'sdp', data: JSON.stringify({ type: 'offer', sdp: pc.localDescription.sdp }) }))
       .catch(() => {});
   });
@@ -9517,7 +9542,7 @@ function rtcTick() {
         if (d.type === 'offer') {
           const pc = newPC(msg.from);
           pc.setRemoteDescription(d)
-            .then(() => pc.createAnswer()).then(a => pc.setLocalDescription(a))
+            .then(() => pc.createAnswer()).then(a => pc.setLocalDescription({ type: 'answer', sdp: hqSdp(a.sdp) }))
             .then(() => jpost('/api/team', { op: 'rtc', from: HANDLE, to: msg.from, typ: 'sdp', data: JSON.stringify({ type: 'answer', sdp: pc.localDescription.sdp }) }))
             .catch(() => {});
         } else if (d.type === 'answer' && PCS.has(msg.from)) {
