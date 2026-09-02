@@ -7794,6 +7794,20 @@ try {
   if (k) { TEAMKEY = k; localStorage.setItem('c2ff-key', k); history.replaceState(null, '', location.pathname); }
 } catch (e) {}
 const KHEAD = () => TEAMKEY ? { 'x-c2ff-key': TEAMKEY } : {};
+// banniere : masquable d'un clic (prefrence locale, persiste par navigateur)
+let BANNER_OFF = false;
+try { BANNER_OFF = localStorage.getItem('c2ff-banner') === '0'; } catch (e) {}
+function bannerApply() {
+  const w = $('bannerWrap'), s = $('bannerShow');
+  if (w) w.hidden = BANNER_OFF;
+  if (s) s.hidden = !BANNER_OFF;
+}
+function bannerToggle(off) {
+  BANNER_OFF = off;
+  try { localStorage.setItem('c2ff-banner', off ? '0' : '1'); } catch (e) {}
+  bannerApply();
+}
+bannerApply();
 function jget(url) { return fetch(url, { headers: { ...KHEAD(), 'x-c2ff-handle': HANDLE || '' } }); }
 function jpost(url, body) { return fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...KHEAD(), 'x-c2ff-handle': HANDLE || '' }, body: JSON.stringify(body) }); }
 const expanded = new Set();
@@ -9680,6 +9694,9 @@ if ((() => { try { return localStorage.getItem('c2ff-full') === 'on'; } catch (e
   };
   document.addEventListener('pointerdown', reenter, { once: true });
 }
+// banniere masquable : bouton sur l'image + petit bouton de rappel dessous
+$('bannerHide').addEventListener('click', () => bannerToggle(true));
+$('bannerShow').addEventListener('click', () => bannerToggle(false));
 
 // ---------- terminal de travail ----------
 // perso : shell reel PRIVE par membre (id = handle), personne n'y ecrit a part toi.

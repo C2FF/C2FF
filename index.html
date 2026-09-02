@@ -296,7 +296,11 @@ header,nav{border-bottom-color:transparent;
   <button class="ghost" id="fsBtn" style="padding:3px 10px;font-size:11px" title="plein ecran">⛶</button>
   <span class="clock" id="clock"></span>
 </header>
-<img class="banner" src="/banner_app.gif" alt="C2FF command & control framework" height="150">
+<div id="bannerWrap" style="position:relative">
+  <img class="banner" src="/banner_app.gif" alt="C2FF command & control framework" height="150">
+  <button class="ghost" id="bannerHide" title="cacher la banniere" style="position:absolute;top:6px;right:8px;padding:2px 9px;font-size:10px;opacity:.7">▲ masquer</button>
+</div>
+<button class="ghost" id="bannerShow" hidden title="reafficher la banniere" style="margin:0 0 6px;padding:2px 10px;font-size:10px;opacity:.7">▼ banniere</button>
 <nav>
   <button class="navbtn" data-tab="programs"><span data-i="navp">Programmes</span> <small id="nProg"></small></button>
   <button class="navbtn" data-tab="hunt"><span data-i="navh">HUNT</span> <small id="nRun"></small></button>
