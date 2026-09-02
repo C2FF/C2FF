@@ -21297,15 +21297,26 @@ function drawChats() {
         ? '<button class="ghost tmjoin" data-prog="' + esc(m.prog) + '" style="margin-left:10px;padding:2px 10px;font-size:10px">rejoindre le programme ›</button>'
         : ' <span class="pill" title="grade insuffisant pour rejoindre ce programme">grade requis</span>')
       : '';
-    // findings : replie par defaut (extrait) - un clic deroule / re-enroule
+    // findings + partages terminal : replies par defaut (extrait) - un clic
+    // deroule / re-enroule (FINDS_OPEN partage)
     let body = esc(m.text || '');
     let fold = '';
+    const isTerm = m.kind === 'term' ||
+      (m.kind === 'team' && (m.text || '').indexOf('terminal ▸ ') === 0); // anciens partages
     if (m.kind === 'finding' && m.id) {
       const open = FINDS_OPEN.has(m.id);
       if (!open && (m.text || '').length > 90) body = esc(m.text.slice(0, 90)) + ' …';
       fold = '<span class="cfold">' + (open ? '▴' : '▾') + '</span>';
+    } else if (isTerm) {
+      const lines = (m.text || '').split('\n');
+      const cmd = lines[0];
+      const out = m.kind === 'term' ? (m.out || '') : lines.slice(1).join('\n');
+      const open = FINDS_OPEN.has(m.id);
+      if (open) body = esc(cmd) + (out ? '\n' + esc(out) : '');
+      else body = esc(cmd.slice(0, 120)) + (cmd.length > 120 ? ' …' : '') + (out ? '  … sortie masquee' : '');
+      fold = '<span class="cfold">' + (open ? '▴' : '▾') + '</span>';
     }
-    return '<div class="' + cls + (m.kind === 'finding' ? ' tmfind' : '') + '" data-fid="' + esc(m.id || '') + '"><div class="who">' + esc(m.name || '?') + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + sev + votes + join + fold + '</div>' + body + '</div>';
+    return '<div class="' + cls + (m.kind === 'finding' ? ' tmfind' : '') + (isTerm ? ' tmfind msg-term' : '') + '" data-fid="' + esc(m.id || '') + '"><div class="who">' + esc(m.name || '?') + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + sev + votes + join + fold + '</div>' + body + '</div>';
   }).join('') || '<div class="msg claude">' + T('tm_chat_empty') + '</div>';
   if (stick) requestAnimationFrame(() => { blog.scrollTop = blog.scrollHeight; });
 }

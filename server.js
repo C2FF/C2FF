@@ -234,7 +234,7 @@ function teamState(req, h) {
         const cc = c.event ? ((t.chal || {})[c.event] || {}) : {};
         return chatOk(c.event ? { ...c, _parts: cc.parts || {} } : c, h, rk);
       }).map(c => c.id));
-      return lastChat(200).filter(m => (m.kind === 'team' || m.kind === 'finding') && okc.has(m.ch || 'session')).slice(-100).map(m => {
+      return lastChat(200).filter(m => (m.kind === 'team' || m.kind === 'finding' || m.kind === 'term') && okc.has(m.ch || 'session')).slice(-100).map(m => {
         const vv = V[m.id];
         if (!vv) return m;
         let up = 0, down = 0;
@@ -1371,10 +1371,12 @@ const MAIN = (req, res) => {
               if (g.err) return sendJson(res, { ok: false, error: g.err });
               if (g.cur2) saveTeamCfg(g.cur2);
             }
-            const txt = 'terminal ▸ ' + card.cmd + (card.out ? '\n' + card.out.slice(0, 800) : '') + (card.run ? '\n(en cours)' : '');
+            // partage repliable : le chat client replie par defaut (cmd visible,
+            // sortie deroulee sur clic, re-enroulable comme les findings)
             appendJsonl(CHAT_FILE, {
               t: Date.now(), id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), from: 'me',
-              name: h || 'host', kind: 'team', text: txt.slice(0, 4000), ch: chid,
+              name: h || 'host', kind: 'term', text: 'terminal ▸ ' + card.cmd + (card.run ? ' (en cours)' : ''),
+              out: (card.out || '').slice(0, 800) + (card.trunc ? '\n… sortie tronquee' : ''), ch: chid,
             });
             return sendJson(res, { ok: true });
           }
