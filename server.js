@@ -727,15 +727,28 @@ function sweep() {
 }
 
 // ---------- chat ----------
-function lastChat(n) {
-  const out = [];
+// cache du chat : chat.jsonl ne fait que grossir - le re-parser entierement a
+// CHAQUE poll (/api/state l'appelle 2x) bloque l'event loop et fait grimper la
+// latence avec l'historique. On ne relit que si le fichier a change.
+let CHAT_CACHE = { sz: -1, mt: -1, msgs: [] };
+function chatAll() {
   try {
-    for (const l of fs.readFileSync(CHAT_FILE, 'utf8').split('\n')) {
-      if (!l.trim()) continue;
-      try { out.push(JSON.parse(l)); } catch (e) {}
+    const st = fs.statSync(CHAT_FILE);
+    const sz = st.size, mt = st.mtimeMs;
+    if (sz !== CHAT_CACHE.sz || mt !== CHAT_CACHE.mt) {
+      const out = [];
+      for (const l of fs.readFileSync(CHAT_FILE, 'utf8').split('\n')) {
+        if (!l.trim()) continue;
+        try { out.push(JSON.parse(l)); } catch (e) {}
+      }
+      // cap de surete : le cache (et donc la memoire) reste borne
+      CHAT_CACHE = { sz, mt, msgs: out.slice(-6000) };
     }
-  } catch (e) {}
-  return out.slice(-n);
+  } catch (e) { CHAT_CACHE = { sz: -1, mt: -1, msgs: [] }; }
+  return CHAT_CACHE.msgs;
+}
+function lastChat(n) {
+  return chatAll().slice(-n);
 }
 
 // ---------- API ----------

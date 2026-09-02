@@ -19798,7 +19798,9 @@ function blurNow() {
 
 // ---------- rendu flux ----------
 function drawRuns(runs) {
-  const sig = JSON.stringify(runs.map(r => [r.id, r.label, r.program, r.n, r.done, r.list.map(a => [a.base, a.name, a.status, a.last])]));
+  // [...expanded] dans le sig : sans lui, le toggle d'un expander tombe sur
+  // l'early-return (sig identique) et le clic semble mort sur run termine
+  const sig = JSON.stringify([[...expanded], runs.map(r => [r.id, r.label, r.program, r.n, r.done, r.list.map(a => [a.base, a.name, a.status, a.last])])]);
   if (sig === drawn.runs && !forceDraw) return;
   if (focusInside('runList')) return;
   drawn.runs = sig;
@@ -20357,14 +20359,23 @@ function arCard(m) {
 function arExec(id) {
   if (ARS_BUSY) return;
   ARS_BUSY = true;
+  // feedback INSTANTANE : nuclei repond en fin de process (jusqu'a 2 min),
+  // sans cet etat le clic semble mort
+  sndPlay('click');
+  toast('ARSENAL', 'exploit lance - resultats a la fin du run', '');
+  const execBtns = document.querySelectorAll('.arExec');
+  execBtns.forEach(b => { b.disabled = true; b.dataset.t = b.textContent; b.textContent = '⟳ en cours…'; });
   jpost('/api/arsenal', { op: 'exec', name: arSel || (state.data.programs[0] || {}).id, id }).then(r => r.json()).then(j => {
     ARS_BUSY = false;
+    execBtns.forEach(b => { b.disabled = false; if (b.dataset.t) b.textContent = b.dataset.t; });
     if (!j.ok) { if (!demoErr(j, 'ARSENAL')) toast('ARSENAL', j.err || 'echec', 'P2'); sndPlay('err'); return; }
     if (j.manual) { toast('ARSENAL', 'commande prete : lis l exploit avant de tirer', ''); }
     else { sndPlay('p2'); toast('ARSENAL', 'nuclei termine - findings mis a jour', 'HIT'); }
     drawn.ars = ''; drawn.huntArs = '';
     fetch('/api/arsenal').then(r => r.json()).then(a => { ARS = a || {}; drawArsenal(); if (state.tab === 'hunt') drawHuntArs(); }).catch(() => {});
-  }).catch(() => { ARS_BUSY = false; sndPlay('err'); });
+  }).catch(() => { ARS_BUSY = false; sndPlay('err');
+    execBtns.forEach(b => { b.disabled = false; if (b.dataset.t) b.textContent = b.dataset.t; });
+  });
 }
 $('arSync').addEventListener('click', () => {
   const b = $('arSync');
@@ -20418,14 +20429,19 @@ function drawFast() {
   const tp = box.querySelector('.fastToProg');
   if (tp) tp.addEventListener('click', () => {
     const f = $('npName');
+    // feedback immediat + impossible a double-cliquer
+    tp.disabled = true; tp.textContent = '⟳ creation…';
+    sndPlay('click');
     jpost('/api/programs', { op: 'create', name: s.host, scope: s.host }).then(r => r.json()).then(j => {
-      if (!j.ok) { toast('FAST', j.error || 'echec', 'P2'); return; }
+      tp.disabled = false; tp.textContent = 'programme ›';
+      if (!j.ok) { sndPlay('err'); toast('FAST', j.error || 'echec', 'P2'); return; }
       if (j.id) setProg(j.id);
       setTab('programs');
       drawn.prog = ''; PIP_PROGS_SIG = '';
+      toast('PROGRAMMES', 'programme cree depuis FAST : ' + s.host, 'HIT');
       refresh();
       if (f) f.focus();
-    }).catch(() => {});
+    }).catch(() => { tp.disabled = false; tp.textContent = 'programme ›'; sndPlay('err'); toast('FAST', 'reseau injoignable', 'P2'); });
   });
 }
 $('fastGo').addEventListener('click', () => {
@@ -20636,7 +20652,8 @@ function drawAdv() {
   advFetch();
   const d = ADV_DATA && ADV_DATA.prog === huntSel ? ADV_DATA : null;
   const sig = JSON.stringify([d ? [d.cfg, d.baseline, d.report] : null, ADV_SEL, ADV_LAST, ADV_BUSY]);
-  if (sig === drawn.adv) return;
+  if (sig === drawn.adv && !forceDraw) return;
+  if (focusInside('huntAdvOut')) return; // checkbox focus : on ne detruit pas
   drawn.adv = sig;
   if (!d) { box.innerHTML = '<div class="card" style="margin-top:12px"><div class="subtle" style="color:var(--faint);font-size:11px">⟳ …</div></div>'; return; }
   const modes = d.modes || [];
@@ -20685,8 +20702,9 @@ function drawAdv() {
       '<div style="margin-top:6px;font-size:10.5px;color:var(--faint)">aucun rapport - RUN pour lancer les modes selectionnes</div>') +
     '</div>';
   box.querySelectorAll('.advSel').forEach(cb => cb.addEventListener('change', () => {
+    // etat local seul : PAS de rebuild - la checkbox garde le focus et les
+    // suivantes restent cliquables (le sig redraw la vue au prochain poll utile)
     ADV_SEL[cb.dataset.k] = cb.checked;
-    drawn.adv = ''; drawAdv();
   }));
   $('advBase').addEventListener('click', () => {
     const b = $('advBase'); b.disabled = true; b.textContent = '⟳ …';
@@ -20888,7 +20906,9 @@ function drawChat() {
     (m.kind === 'queue' ? T('w_launch') + ' ' : '') + esc(m.name || (m.from === 'me' ? T('w_me') : m.from === 'ia' ? T('w_ia') : T('w_claude'))) + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + '</div>' +
     esc(m.text || (m.playbook ? m.playbook + ' › ' + (m.program || '?') : '')) + '</div>'
   ).join('') || '<div class="msg claude">' + T('ch_empty') + '</div>';
-  log.scrollTop = log.scrollHeight;
+  // stick : coller en bas SEULEMENT si on y etait deja - sinon la lecture en
+  // haut du fil est interrompue a chaque nouveau message
+  if (log.scrollHeight - log.scrollTop - log.clientHeight < 60) log.scrollTop = log.scrollHeight;
 }
 $('srTab').addEventListener('click', () => sessRailToggle());
 $('srClose').addEventListener('click', () => sessRailClose());
@@ -21325,6 +21345,9 @@ function drawTeam() {
 // ouvrir son chat 'event', reserve aux participants (isolation serveur incluse).
 let CHAT_SEL = 'session';
 let CHAT_DRAWN = ''; // dernier canal rendu (pour le stick du scroll)
+let CHAT_MSIG = '';  // signature du fil rendu (evite le re-render destructeur chaque poll)
+let TAB_ARM = 0, TAB_SIG = ''; // gel de la liste canaux (mousedown) + derniere signature
+let LIVE_SIG = ''; // derniere signature de la pilule live (pas de rebuild inutile)
 const FINDS_OPEN = new Set(); // ids des findings deplies dans le chat
 const CHMIN = { 0: '', 1: 'member', 2: 'hunter', 3: 'co-admin', 4: 'admin' };
 function drawChats() {
@@ -21336,7 +21359,13 @@ function drawChats() {
   if (!list.find(c => c.id === CHAT_SEL && c.ok)) CHAT_SEL = (list.find(c => c.ok) || list[0]).id;
   if (tabs) {
     tabs.hidden = !tm.enabled;
-    tabs.innerHTML = list.map(c => {
+    // freeze 3 s apres mousedown : le poll ne doit pas detruire un canal sous
+    // le curseur entre mousedown et mouseup (clic perdu, re-clic necessaire)
+    if (Date.now() >= TAB_ARM) {
+      const tsig = tm.enabled + ':' + list.map(c => [c.id, c.ok, c.min, c.event]).join('|');
+      if (tsig !== TAB_SIG || forceDraw) {
+        TAB_SIG = tsig;
+        tabs.innerHTML = list.map(c => {
       const ispm = (c.id || '').indexOf('pm-') === 0;
       const peer = ispm ? (c.id.slice(3).split('--').find(x => x !== HANDLE) || '?') : '';
       const label = ispm ? peer : c.name;
@@ -21350,6 +21379,8 @@ function drawChats() {
       '</span>';
     }).join('') +
       (rk >= 5 && tm.enabled ? '<span class="cht cht-add" id="chatAddBtn">+ chat</span>' : '');
+      }
+    }
   }
   // en-tete du chat actif : nom + badges + sous-titre (grade requis / event)
   const curH = list.find(c => c.id === CHAT_SEL) || list[0] || {};
@@ -21398,6 +21429,12 @@ function drawChats() {
     return;
   }
   const bc = (tm.chat || []).filter(m => (m.ch || 'session') === CHAT_SEL);
+  // signature du fil : re-render SEULEMENT si un message/vote change - sans
+  // elle, la selection de texte et le scroll manuel sont detruits chaque poll
+  const msig = CHAT_SEL + ':' + bc.length + ':' + (bc.length ? bc[bc.length - 1].t + '|' + bc.map(m => m.v ? m.v.up + '/' + m.v.down : '').join('') : '');
+  if (msig === CHAT_MSIG && !forceDraw) { CHAT_DRAWN = CHAT_SEL; return; }
+  CHAT_MSIG = msig;
+  if (String(getSelection())) return; // copie en cours : on ne touche a rien
   // wizz : effet (secousse + son) sur les nouveaux, puis on les marque vus -
   // silence si j'ai desactive la reception
   const wizzMuted = !!(tm.wizz && tm.wizz.mute);
@@ -21462,6 +21499,7 @@ function drawChats() {
   }).join('') || '<div class="msg claude">' + T('tm_chat_empty') + '</div>';
   if (stick) requestAnimationFrame(() => { blog.scrollTop = blog.scrollHeight; });
 }
+$('chatTabs').addEventListener('mousedown', () => { TAB_ARM = Date.now() + 3000; });
 $('railTab').addEventListener('click', () => chatRailToggle());
 $('crClose').addEventListener('click', () => chatRailClose());
 $('railShade').addEventListener('click', () => chatRailClose()); // overlay : clic dehors = fermer
@@ -21790,6 +21828,12 @@ function renderLive() {
   // innerHTML detruirait le select et refermerait le menu a chaque poll
   const ae = document.activeElement;
   if (ae && ae.classList && ae.classList.contains('lv-sel')) return;
+  // signature de la pilule : a contenu identique on ne touche pas au DOM -
+  // reconstruire sous le curseur tue le clic en cours (lv-ok/lv-no/lv-mute/lv-end)
+  const partsSig = (LIVE.ringing ? 'ring:' + LIVE.ringing : LIVE.ch) + '|' + LIVE.muted + '|' +
+    ((tm.members || []).filter(m => m.active && m.lv === 'session').map(m => m.h).join(',') || '');
+  if (partsSig === LIVE_SIG && !forceDraw) return;
+  LIVE_SIG = partsSig;
   if (LIVE.ringing) {
     if (LIVE.rang !== LIVE.ringing) { LIVE.rang = LIVE.ringing; liveRing(); }
     bar.hidden = false; bar.className = 'ring';
@@ -21835,6 +21879,10 @@ $('liveBar').addEventListener('change', e => {
   const sel = e.target.closest('select.lv-sel');
   if (!sel || !sel.value || sel.value === LIVE.ch) return;
   liveJoin(sel.value);
+});
+['liveJoin', 'liveLeave', 'liveMute', 'liveAccept'].forEach(fn => {
+  const f = window[fn];
+  if (typeof f === 'function') window[fn] = function () { LIVE_SIG = ''; return f.apply(this, arguments); };
 });
 $('liveBar').addEventListener('focusout', e => {
   // menu referme : rattraper les changements ignores pendant l'ouverture
