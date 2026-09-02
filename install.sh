@@ -27,6 +27,26 @@ mkdir -p data
 [ -f data/fleet.json ]     || echo '{"enabled":false,"paused":false,"intervalMin":30,"budget":60}' > data/fleet.json
 echo "[+] data/ pret"
 
+# 2bis) sandbox optionnel du terminal groupe : image docker jetable
+if command -v docker >/dev/null 2>&1 && ! docker image inspect c2ff-sandbox >/dev/null 2>&1; then
+  echo "[*] construction de l image sandbox c2ff-sandbox (terminal groupe isole)..."
+  cat > /tmp/c2ff-sandbox.Dockerfile <<'EOF'
+FROM python:3.14-slim-trixie
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  curl nmap whois dnsutils netcat-openbsd jq git iputils-ping traceroute \
+  procps file unzip zip xxd openssl openssh-client ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+ENV HOME=/ws
+WORKDIR /ws
+EOF
+  if docker build -t c2ff-sandbox -f /tmp/c2ff-sandbox.Dockerfile "$DIR" > /tmp/C2FF-sandbox-build.log 2>&1; then
+    echo "[+] image c2ff-sandbox prete (terminal groupe isole)"
+  else
+    echo "[!] build sandbox echoue (log /tmp/C2FF-sandbox-build.log) - le terminal groupe retombera sur l hote"
+  fi
+  rm -f /tmp/c2ff-sandbox.Dockerfile
+fi
+
 # 3) test syntaxe puis lancement
 if ! node --check server.js >/dev/null 2>&1; then echo "[!] server.js invalide."; exit 1; fi
 

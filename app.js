@@ -9477,7 +9477,7 @@ function termSetMode(mode) {
   if (pill) { pill.textContent = TERM.mode === 'group' ? 'GROUPE' : 'SOLO'; pill.className = 'pill ' + (TERM.mode === 'group' ? 'p-prog' : 'p-live'); }
   const info = $('termModeInfo');
   if (info) info.textContent = TERM.mode === 'group'
-    ? 'cartes de commandes : pseudo + type affiches, sorties masquees par defaut (un clic pour reveler) - un seul point d execution, triche impossible'
+    ? 'cartes de commandes : pseudo + type, sorties masquees par defaut (un clic pour reveler) - execution isolee dans un conteneur jetable, seul le dossier de groupe est visible'
     : 'shell prive (admin) - les autres ne voient rien';
   termConnect();
 }
@@ -9509,6 +9509,7 @@ function termRender() {
     const head = '<div class="tcard-h"><b class="tcard-by">' + esc(k.by) + '$</b>'
       + '<span class="tcard-cmd" title="' + esc(k.cmd) + '">' + esc(k.cmd.length > 90 ? k.cmd.slice(0, 90) + '…' : k.cmd) + '</span>'
       + '<span class="pill p-prog">' + esc(k.type || '') + '</span>'
+      + (k.sbx === 'docker' ? '<span class="pill p-prog">sandbox</span>' : '<span class="pill p-warn">hote</span>')
       + (k.run ? '<span class="pill">en cours…</span>'
         : '<span class="pill ' + (k.exit === 0 ? 'p-live' : 'p-warn') + '">' + (k.exit === 0 ? 'ok' : (k.exit == null ? 'coupé' : 'exit ' + k.exit)) + '</span>')
       + '</div>';

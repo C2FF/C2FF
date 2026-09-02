@@ -15,5 +15,13 @@
       "oob_domain": "",
       "oob_check_url": ""
     }
+  },
+  "group_terminal": {
+    "sandbox": "auto",
+    "image": "c2ff-sandbox",
+    "memory": "1g",
+    "pids": 256,
+    "cpus": "2",
+    "toolbin": "go/bin"
   }
 }

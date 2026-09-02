@@ -272,6 +272,49 @@ const GROUP_WORKDIR = path.join(DATA, 'groupws');
 const GROUP_MAX_CARDS = 60, GROUP_OUT_MAX = 16000, GROUP_TIMEOUT = 60000, GROUP_COOLDOWN = 1500;
 let groupRunning = 0;
 try { fs.mkdirSync(GROUP_WORKDIR, { recursive: true }); } catch (e) {}
+// isolation reelle (prevention) : chaque commande groupe tourne dans un
+// conteneur docker jetable - systeme de fichiers de l image uniquement,
+// seul le dossier de travail est monte (rw), outils du chasseur montes ro,
+// caps droppes, quotas memoire/pids/cpu. config.json group_terminal.sandbox :
+// 'auto' (docker si dispo, sinon hote), 'docker' (refuse si absent), 'none'.
+function sandboxCfg() {
+  try {
+    const c = JSON.parse(fs.readFileSync(CFG_FILE, 'utf8'));
+    if (c && c.group_terminal) return c.group_terminal;
+  } catch (e) {}
+  return { sandbox: 'auto', image: 'c2ff-sandbox', memory: '1g', pids: 256, cpus: '2', toolbin: 'go/bin' };
+}
+let _dockerOk = null; // cache : -1 non, sinon chemin ok
+function dockerAvailable() {
+  if (_dockerOk !== null) return _dockerOk === 1;
+  try {
+    if (!fs.existsSync('/var/run/docker.sock')) { _dockerOk = -1; return false; }
+    const r = require('child_process').spawnSync('docker', ['version', '--format', 'ok'], { timeout: 5000 });
+    _dockerOk = r.status === 0 ? 1 : -1;
+  } catch (e) { _dockerOk = -1; }
+  return _dockerOk === 1;
+}
+function sandboxSpawn(cmd) {
+  const sc = sandboxCfg();
+  const mode = sc.sandbox === 'auto' ? (dockerAvailable() ? 'docker' : 'host') : (sc.sandbox === 'docker' ? (dockerAvailable() ? 'docker' : null) : 'host');
+  if (mode === null) return { err: 'sandbox docker demande mais indisponible - passe group_terminal.sandbox a auto/none' };
+  if (mode === 'host') {
+    return { mode, proc: require('child_process').spawn('/bin/bash', ['-c', cmd], { cwd: GROUP_WORKDIR, env: { ...process.env, TERM: 'dumb', HOME: GROUP_WORKDIR } }) };
+  }
+  const uid = typeof process.getuid === 'function' ? process.getuid() : 1000;
+  const gid = typeof process.getgid === 'function' ? process.getgid() : 1000;
+  const tool = path.join(ROOT, '..', sc.toolbin || 'go/bin'); // ~/go/bin monte en read-only
+  const cname = 'c2ff-g-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const argv = ['run', '--rm', '--name', cname, '--user', uid + ':' + gid,
+    '-v', GROUP_WORKDIR + ':/ws', '-w', '/ws',
+    '--memory', String(sc.memory || '1g'), '--pids-limit', String(sc.pids || 256), '--cpus', String(sc.cpus || '2'),
+    '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
+    '-e', 'PATH=/opt/gobin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin',
+    '-e', 'HOME=/ws', '-e', 'TERM=dumb', '-e', 'LANG=C.UTF-8'];
+  try { if (fs.existsSync(tool)) argv.push('-v', tool + ':/opt/gobin:ro'); } catch (e) {}
+  argv.push(String(sc.image || 'c2ff-sandbox'), '/bin/bash', '-c', cmd);
+  return { mode, cname, proc: require('child_process').spawn('docker', argv, { cwd: GROUP_WORKDIR }) };
+}
 const CMD_DESC = {
   curl: 'requete HTTP', wget: 'telechargement HTTP', httpx: 'sonde HTTP', nc: 'connexion reseau brute', ncat: 'connexion reseau brute', socat: 'connexion reseau brute',
   nmap: 'scan de ports', masscan: 'scan de ports', rustscan: 'scan de ports', naabu: 'scan de ports',
@@ -966,7 +1009,10 @@ const MAIN = (req, res) => {
           if (body.op === 'kill') {
             for (const [cid, pr] of GROUPPROCS) {
               const k = GROUPCARDS.find(x => x.id === cid);
-              if (k && k.by === (h || 'host')) { try { pr.kill('SIGKILL'); } catch (e) {} }
+              if (k && k.by === (h || 'host')) {
+                try { pr.proc.kill('SIGKILL'); } catch (e) {}
+                if (pr.cname) { try { require('child_process').spawn('docker', ['kill', pr.cname], { stdio: 'ignore' }); } catch (e) {} }
+              }
             }
             return sendJson(res, { ok: true });
           }
@@ -979,24 +1025,29 @@ const MAIN = (req, res) => {
             if (now - rt.last < GROUP_COOLDOWN) return sendJson(res, { ok: false, error: 'anti-flood : patiente une seconde entre deux commandes' });
             if (groupRunning >= 3) return sendJson(res, { ok: false, error: '3 commandes deja en cours sur le groupe - attends une fin' });
             const cl = cmdClass(cmd);
-            const card = { id: now.toString(36) + Math.random().toString(36).slice(2, 6), by: h || 'host', cmd, type: cl.type, desc: cl.desc, out: '', trunc: false, exit: null, run: true, t: now, ms: 0 };
+            const sb = sandboxSpawn(cmd);
+            if (sb.err) return sendJson(res, { ok: false, error: sb.err });
+            const card = { id: now.toString(36) + Math.random().toString(36).slice(2, 6), by: h || 'host', cmd, type: cl.type, desc: cl.desc, out: '', trunc: false, exit: null, run: true, t: now, ms: 0, sbx: sb.mode };
             GROUPCARDS.push(card);
             while (GROUPCARDS.length > GROUP_MAX_CARDS) GROUPCARDS.shift();
             GROUPRATE.set(h, { last: now, running: 1 });
             groupRunning++;
             groupBroadcast({ card });
             let out = '';
-            let proc;
-            try { proc = require('child_process').spawn('/bin/bash', ['-c', cmd], { cwd: GROUP_WORKDIR, env: { ...process.env, TERM: 'dumb', HOME: GROUP_WORKDIR } }); }
-            catch (e) {
+            const proc = sb.proc;
+            if (!proc || !proc.pid) {
               card.run = false; card.out = 'impossible de lancer la commande'; card.exit = -1;
               groupRunning = Math.max(0, groupRunning - 1);
               GROUPRATE.set(h, { last: now, running: 0 });
               groupBroadcast({ card });
               return sendJson(res, { ok: true, id: card.id });
             }
-            GROUPPROCS.set(card.id, proc);
-            const killTimer = setTimeout(() => { try { proc.kill('SIGKILL'); } catch (e) {} }, GROUP_TIMEOUT);
+            GROUPPROCS.set(card.id, { proc, cname: sb.cname });
+            const killOne = () => {
+              try { proc.kill('SIGKILL'); } catch (e) {}
+              if (sb.cname) { try { require('child_process').spawn('docker', ['kill', sb.cname], { stdio: 'ignore' }); } catch (e) {} }
+            };
+            const killTimer = setTimeout(killOne, GROUP_TIMEOUT);
             const feed = d => {
               if (out.length < GROUP_OUT_MAX) out += String(d);
               else card.trunc = true;
