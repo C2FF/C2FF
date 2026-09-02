@@ -255,58 +255,98 @@ audio.c2ffAudio{display:none}
 #chatinput::placeholder{color:var(--faint)}
 
 /* ── rail chats lateral deroulant ── */
-/* le chat quitte les onglets : un rail fixe a gauche, replie en strip 46px
-   (poignee 💬 + pastille non-lus), depliable en panneau 480px qui pousse le
-   contenu (margin-left transitionne). Deux colonnes : canaux + chat actif. */
-#chatRail{position:fixed;left:0;top:0;bottom:0;width:46px;z-index:70;display:flex;
+/* rail fixe a gauche : replie = strip 46px (poignee + pastille non-lus),
+   deplie = panneau 2 colonnes (canaux + chat). Desktop pousse le contenu,
+   ecran moyen = overlay avec fond assombri, mobile = plein ecran. */
+#chatRail{position:fixed;left:0;top:0;bottom:0;width:46px;z-index:70;display:flex;overflow:hidden;
   background:linear-gradient(180deg,hsl(var(--hue) 20% 6.5%),hsl(var(--hue) 14% 5%));
   border-right:1px solid var(--line);box-shadow:1px 0 18px hsl(var(--hue) 40% 20% / .12);
   transition:width .26s ease}
-body.rail-open #chatRail{width:478px}
+body.rail-open #chatRail{width:480px}
 #railStrip{width:46px;flex:none;display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:8px}
-#railTab{position:relative;width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:15px;
+#railTab{position:relative;width:32px;height:32px;flex:none;border-radius:9px;cursor:pointer;font-size:15px;line-height:1;
   border:1px solid var(--line-hi);background:var(--panel2);color:var(--text);transition:all .18s}
 #railTab:hover{border-color:hsl(var(--hue) 61% 48%);box-shadow:0 0 12px hsl(var(--hue) 50% 40% / .35);transform:translateY(-1px)}
 #railDot{position:absolute;top:-4px;right:-4px;width:9px;height:9px;border-radius:50%;background:var(--green);
   box-shadow:0 0 7px hsl(var(--hue) 60% 48% / .8)}
-#railBody{flex:1;display:none;min-width:0}
+#railBody{flex:1;display:none;min-width:0;min-height:0}
 body.rail-open #railBody{display:flex}
-.cr-chans{width:158px;flex:none;display:flex;flex-direction:column;border-right:1px solid var(--line);background:hsl(var(--hue) 16% 6% / .6)}
-.cr-brand{display:flex;align-items:center;gap:6px;padding:10px 8px 8px;font-size:12px;font-weight:700;letter-spacing:.08em;color:hsl(var(--hue) 61% 60%)}
-.cr-brand button{margin-left:auto}
-#chatTabs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;padding:2px 6px 8px}
-#chatTabs .cht{display:flex;gap:6px;align-items:center;font-size:11.5px;padding:7px 8px;border-radius:6px;cursor:pointer;
-  border:1px solid transparent;background:none;color:var(--muted);min-width:0}
+/* fond assombri en mode overlay (ecrans etroits) - affiche par media query,
+   jamais par l'attribut hidden (le CSS global [hidden] gagnerait) */
+#railShade{position:fixed;inset:0;z-index:65;display:none;background:hsl(var(--hue) 22% 3% / .6)}
+/* colonne canaux : hauteur maitrisee, la liste seule scrolle */
+.cr-chans{width:162px;flex:none;display:flex;flex-direction:column;min-height:0;
+  border-right:1px solid var(--line);background:hsl(var(--hue) 16% 6% / .6)}
+.cr-brand{flex:none;display:flex;align-items:center;gap:6px;height:38px;padding:0 8px;flex-wrap:nowrap;
+  font-size:12px;font-weight:700;letter-spacing:.08em;color:hsl(var(--hue) 61% 60%);border-bottom:1px solid var(--line)}
+.cr-brand button{margin-left:auto;flex:none}
+#chatTabs{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:2px;padding:6px}
+#chatTabs .cht{display:flex;align-items:center;gap:6px;flex:none;height:30px;padding:0 8px;border-radius:6px;cursor:pointer;
+  border:1px solid transparent;background:none;color:var(--muted);min-width:0;white-space:nowrap}
 #chatTabs .cht:hover{background:hsl(var(--hue) 40% 14% / .5);color:var(--text)}
 #chatTabs .cht.on{border-color:hsl(var(--hue) 50% 34% / .5);border-left:2px solid hsl(var(--hue) 61% 48%);
   color:hsl(var(--hue) 65% 69%);background:hsl(var(--hue) 43% 17% / .4)}
-#chatTabs .cht .cnm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-#chatTabs .cht .cg,#chatTabs .cht .cev{flex:none;font-size:8.5px;letter-spacing:.08em;border-radius:4px;padding:1px 4px}
+#chatTabs .cht .cnm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#chatTabs .cht .cg,#chatTabs .cht .cev{flex:none;font-size:8.5px;letter-spacing:.08em;border-radius:4px;padding:1px 4px;white-space:nowrap}
 #chatTabs .cht .cg{color:var(--muted);border:1px solid var(--line)}
 #chatTabs .cht .cev{color:hsl(30 95% 65%);border:1px solid hsl(30 90% 55% / .7)}
 #chatTabs .cht.locked{opacity:.45}
-#chatTabs .cht-del{color:var(--faint);font-size:11px;padding:0 2px;border:none;background:none;flex:none}
+#chatTabs .cht-del{color:var(--faint);font-size:11px;padding:0 2px;border:none;background:none;flex:none;min-width:16px}
 #chatTabs .cht-add{border:1px dashed var(--line-hi)!important;color:hsl(var(--hue) 61% 60%);justify-content:center}
-.cr-foot{flex:none;padding:8px;font-size:9px;letter-spacing:.14em;color:var(--faint);text-align:center;border-top:1px solid var(--line)}
-.cr-chat{flex:1;display:flex;flex-direction:column;min-width:0}
-.cr-chead{flex:none;display:flex;gap:8px;align-items:center;justify-content:space-between;
-  padding:9px 12px;border-bottom:1px solid var(--line);background:hsl(var(--hue) 18% 7% / .8)}
-.cr-chead .go,.cr-chead .ghost{padding:3px 10px;font-size:11px}
-#tmChatlog{flex:1;overflow-y:auto;padding:12px;background:var(--panel2);min-height:0}
-#tmMsgForm{flex:none;display:flex;gap:7px;padding:9px 10px;border-top:1px solid var(--line);background:var(--panel)}
-/* la pilule LIVE ne chevauche plus le rail quand il est ouvert */
-body.rail-open #liveBar{left:492px}
-body.rail-open .wrap{margin-left:478px}
+.cr-foot{flex:none;padding:7px 8px;font-size:9px;letter-spacing:.14em;color:var(--faint);text-align:center;border-top:1px solid var(--line)}
+/* colonne chat : head fixe, log flexible, input fixe */
+.cr-chat{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0}
+.cr-chead{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:nowrap;
+  min-height:46px;padding:6px 12px;border-bottom:1px solid var(--line);background:hsl(var(--hue) 18% 7% / .8)}
+.cr-hinfo{flex:1 1 auto;min-width:0}
+.cr-hacts{flex:none;display:flex;gap:6px}
+.cr-chead .go,.cr-chead .ghost{padding:3px 10px;font-size:11px;white-space:nowrap}
+#crTitle{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#crSub{font-size:10px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tmChatlog{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding:12px;background:var(--panel2)}
+#tmMsgForm{flex:none;display:flex;gap:7px;flex-wrap:nowrap;padding:9px 10px;border-top:1px solid var(--line);background:var(--panel)}
+#tmMsgForm input{flex:1 1 auto;min-width:0}
+#tmMsgForm .go{flex:none}
+/* modal nouveau canal : centre ecran, jamais tronque */
+#chatAddForm{position:fixed;inset:0;z-index:115;display:grid;place-items:center;
+  background:hsl(var(--hue) 22% 3% / .8);padding:16px}
+.cr-modal{width:min(380px,94vw);max-height:86vh;overflow-y:auto;background:var(--panel);
+  border:1px solid hsl(var(--hue) 58% 42% / .6);border-radius:10px;padding:20px 22px;
+  box-shadow:0 12px 40px hsl(var(--hue) 40% 12% / .6)}
+.cr-modal input,.cr-modal select{width:100%}
+.cr-modal-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.cr-modal-acts .go{min-width:90px}
+/* la pilule LIVE ne chevauche plus le rail ouvert */
+body.rail-open #liveBar{left:494px}
+/* grand ecran : le rail pousse le contenu */
+body.rail-open .wrap{margin-left:480px}
 .wrap{margin-left:46px;transition:margin-left .26s ease}
-@media (max-width:900px){
-  #chatRail{top:8px;bottom:auto;width:42px;border:1px solid var(--line);border-radius:10px;
-    box-shadow:0 4px 16px hsl(var(--hue) 40% 18% / .3);overflow:hidden}
-  #railStrip{padding:5px 0}
-  #railTab{width:30px;height:30px}
-  body.rail-open #chatRail{width:100vw;height:100vh;top:0;border-radius:0}
-  body.rail-open .wrap{margin-left:0}
+/* nav : jamais de noms sur 2 lignes, scroll horizontal si troit */
+nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;align-items:stretch}
+nav::-webkit-scrollbar{display:none}
+.navbtn{flex:none;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+
+/* ── palier moyen : overlay, le contenu ne bouge plus ── */
+@media (max-width:1080px){
+  body.rail-open #chatRail{width:min(430px,88vw)}
+  body.rail-open .wrap{margin-left:46px}
   body.rail-open #liveBar{left:14px}
-  .cr-chans{width:128px}
+  body.rail-open #railShade{display:block}
+  .cr-chans{width:140px}
+}
+/* ── mobile : poignee flottante, panneau plein ecran ── */
+@media (max-width:640px){
+  .wrap{margin-left:0}
+  #chatRail{top:auto;bottom:12px;width:44px;height:auto;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 4px 16px hsl(var(--hue) 40% 18% / .3)}
+  #railStrip{padding:5px 0}
+  #railTab{width:32px;height:32px}
+  body.rail-open #chatRail{width:100vw;height:100vh;top:0;bottom:0;border-radius:0;border:none}
+  body.rail-open #liveBar{left:14px}
+  .cr-chans{width:112px}
+  #chatTabs .cht{padding:0 6px}
+  #chatTabs .cht .cg{display:none}
+  .cr-chead{flex-wrap:wrap}
 }
 
 /* ── toasts ── */
@@ -660,38 +700,45 @@ header,nav{border-bottom-color:transparent;
     <div class="cr-chans">
       <div class="cr-brand">💬 <span data-i="navchs">Chats</span><button class="ghost" id="crClose" title="replier le rail" style="border:none;padding:2px 7px;font-size:13px">«</button></div>
       <div id="chatTabs"></div>
-      <form id="chatAddForm" hidden style="display:flex;flex-direction:column;gap:7px;margin:8px;padding:9px;border:1px dashed var(--line-hi);border-radius:8px;background:var(--panel2)">
-        <input type="text" id="chatAddName" maxlength="24" data-ip="chs_name_ph" placeholder="nom du chat" style="width:100%">
-        <select id="chatAddMin" style="width:100%">
-          <option value="0" data-i="chs_min_all">tous les membres</option>
-          <option value="1" data-i="chs_min_1">member et +</option>
-          <option value="2" data-i="chs_min_2">hunter et +</option>
-          <option value="3" data-i="chs_min_3">co-admin et +</option>
-          <option value="4" data-i="chs_min_4">admin et +</option>
-        </select>
-        <div style="display:flex;gap:7px">
-          <button class="go" type="submit" data-i="chs_create" style="flex:1">creer</button>
-          <button class="ghost" type="button" id="chatAddCancel" data-i="chs_cancel">annuler</button>
-        </div>
-      </form>
       <div class="cr-foot">C2FF · canaux live</div>
     </div>
     <div class="cr-chat">
       <div class="cr-chead">
-        <div style="min-width:0">
-          <div id="crTitle" style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-          <div id="crSub" style="font-size:10px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+        <div class="cr-hinfo">
+          <div id="crTitle"></div>
+          <div id="crSub"></div>
         </div>
-        <div style="display:flex;gap:6px;flex:none">
+        <div class="cr-hacts">
           <button class="go need-member" id="liveBtn">🎙 LIVE</button>
           <button class="ghost need-member" id="tmWizz" title="attirer l'attention de ce canal - 1 wizz par minute">⚡</button>
         </div>
       </div>
-      <div id="tmChatlog" style="height:auto"></div>
-      <form id="tmMsgForm" class="need-member"><input type="text" id="tmMsg" data-ip="tm_msg_ph" autocomplete="off" style="flex:1"><button class="go" type="submit" data-i="ch_send">Envoyer</button></form>
+      <div id="tmChatlog"></div>
+      <form id="tmMsgForm" class="need-member"><input type="text" id="tmMsg" data-ip="tm_msg_ph" autocomplete="off"><button class="go" type="submit" data-i="ch_send">Envoyer</button></form>
     </div>
   </div>
 </aside>
+<div id="railShade"></div>
+
+<form id="chatAddForm" hidden>
+  <div class="cr-modal">
+    <h3 style="margin:0 0 12px;font-size:14px;letter-spacing:.08em">NOUVEAU CANAL</h3>
+    <label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">nom du canal</label>
+    <input type="text" id="chatAddName" maxlength="24" data-ip="chs_name_ph" placeholder="nom du chat" style="width:100%">
+    <label style="display:block;font-size:10.5px;color:var(--muted);margin:10px 0 4px">acces minimum</label>
+    <select id="chatAddMin" style="width:100%">
+      <option value="0" data-i="chs_min_all">tous les membres</option>
+      <option value="1" data-i="chs_min_1">member et +</option>
+      <option value="2" data-i="chs_min_2">hunter et +</option>
+      <option value="3" data-i="chs_min_3">co-admin et +</option>
+      <option value="4" data-i="chs_min_4">admin et +</option>
+    </select>
+    <div class="cr-modal-acts">
+      <button class="ghost" type="button" id="chatAddCancel" data-i="chs_cancel">annuler</button>
+      <button class="go" type="submit" data-i="chs_create">creer</button>
+    </div>
+  </div>
+</form>
 
 <div id="liveBar" hidden></div>
 

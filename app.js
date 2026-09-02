@@ -21426,6 +21426,7 @@ function drawChats() {
 }
 $('railTab').addEventListener('click', () => chatRailToggle());
 $('crClose').addEventListener('click', () => chatRailClose());
+$('railShade').addEventListener('click', () => chatRailClose()); // overlay : clic dehors = fermer
 $('chatTabs').addEventListener('click', e => {
   const del = e.target.closest('button.cht-del');
   if (del) {
