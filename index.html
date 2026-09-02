@@ -392,6 +392,32 @@ body.srail-open .wrap{margin-right:430px}
 #srPanel{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding:12px}
 #srPanel .card{max-width:none;margin-bottom:0}
 #srPanel input,#srPanel select{max-width:100%}
+/* forms du team re-adaptes au rail etroit : label au-dessus, champ fluide,
+   boutons sur leur propre ligne si besoin - jamais de troncature */
+#srPanel .sr-fld{margin-bottom:12px;min-width:0}
+#srPanel .sr-lbl{color:var(--muted);font-size:11px}
+#srPanel .sr-fld > .sr-lbl{display:block;margin-bottom:5px}
+#srPanel .sr-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;min-width:0}
+#srPanel .sr-row input,#srPanel .sr-row select{flex:1 1 120px;width:auto;min-width:0}
+#srPanel .sr-row .go,#srPanel .sr-row .ghost{flex:none}
+#srPanel .sr-kv{font-size:12px;line-height:1.8}
+#srPanel .sr-kv > div{min-width:0}
+#srPanel .sr-key{color:var(--green);word-break:break-all}
+#srPanel .sr-code{flex:1 1 100%;min-width:0;color:var(--green-dim);font-size:11px;word-break:break-all}
+#srPanel .sr-box{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0 12px;background:var(--panel2)}
+#srPanel .sr-boxt{font-size:10.5px;letter-spacing:.08em;color:hsl(var(--hue) 65% 62%);margin-bottom:8px}
+#srPanel .sr-box-danger{border-color:hsl(0 85% 45% / .55);background:hsl(0 70% 14% / .35)}
+#srPanel .sr-boxt-danger{color:hsl(0 95% 70%)}
+#srPanel #tmAlert{background:hsl(0 80% 40%);border-color:hsl(0 80% 40%)}
+#srPanel .sr-tinfo{color:var(--muted);font-size:11.5px}
+/* rangnees membres : carte compacte qui se plie proprement dans 330px */
+#srPanel .tm-m{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:7px 9px;margin-bottom:6px;
+  border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+#srPanel .tm-m b{max-width:calc(100% - 12px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#srPanel .tm-m select{flex:none;max-width:130px}
+#srPanel .tm-m small:last-child{margin-left:auto}
+/* header du rail session : les pills passent a la ligne au lieu de tronquer */
+#srBody .cr-chead{flex-wrap:wrap}
 .cr-hacts{flex:none;display:flex;gap:6px;align-items:center}
 /* ── feedback de pression universel ── */
 /* chaque clic repond INSTANTANEMENT : le bouton s'enfonce et s'eclaircit
@@ -775,58 +801,63 @@ header,nav{border-bottom-color:transparent;
     </div>
     <div id="srPanel"><div id="srCard" class="card">
     <p id="tmP" data-i="tm_p" style="margin:0 0 12px;font-size:12px;color:hsl(var(--hue) 43% 75%)"></p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-      <span style="color:var(--muted);font-size:11.5px" data-i="tm_handle">Ton pseudo (16 caracteres max)</span>
-      <input type="text" id="tmHandleEl" maxlength="16" style="width:170px" placeholder="pseudo">
-      <button class="ghost" id="tmSaveHandle" data-i="tm_save_h">Choisir</button>
+    <div class="sr-fld">
+      <span class="sr-lbl" data-i="tm_handle">Ton pseudo (16 caracteres max)</span>
+      <div class="sr-row">
+        <input type="text" id="tmHandleEl" maxlength="16" placeholder="pseudo">
+        <button class="ghost" id="tmSaveHandle" data-i="tm_save_h">Choisir</button>
+      </div>
     </div>
-    <div class="need-admin" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-      <select id="tmOn" style="width:180px">
-        <option value="off">OFF</option>
-        <option value="on">ON</option>
-      </select>
-      <input type="text" id="tmRoomEl" data-ip="tm_room_ph" style="width:230px">
-      <button class="go" id="tmSave" data-i="tm_save">Appliquer</button>
-      <button class="ghost" id="tmRegen" data-i="tm_regen">Regenerer la cle</button>
-      <button class="go" id="tmLive">OUVRIR AU RESEAU</button>
+    <div class="sr-fld need-admin">
+      <div class="sr-row">
+        <select id="tmOn"><option value="off">OFF</option><option value="on">ON</option></select>
+        <input type="text" id="tmRoomEl" data-ip="tm_room_ph">
+        <button class="go" id="tmSave" data-i="tm_save">Appliquer</button>
+      </div>
+      <div class="sr-row" style="margin-top:8px">
+        <button class="ghost" id="tmRegen" data-i="tm_regen">Regenerer la cle</button>
+        <button class="go" id="tmLive">OUVRIR AU RESEAU</button>
+      </div>
     </div>
-    <div class="need-admin" style="font-size:12px;margin-bottom:6px">
-      <span style="color:var(--muted)" data-i="tm_room">Salle</span> : <b id="tmRoom" style="color:var(--text)">-</b>
-      &nbsp;|&nbsp; <span style="color:var(--muted)" data-i="tm_key">Cle de salle</span> : <b id="tmKey" style="color:var(--green);word-break:break-all">-</b>
+    <div class="sr-fld sr-kv need-admin">
+      <div><span class="sr-lbl" data-i="tm_room">Salle</span> : <b id="tmRoom" style="color:var(--text)">-</b></div>
+      <div><span class="sr-lbl" data-i="tm_key">Cle de salle</span> : <b id="tmKey" class="sr-key">-</b></div>
     </div>
-    <div class="need-admin" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 12px">
-      <span style="color:var(--muted);font-size:11.5px" data-i="tm_invite">Lien d invitation</span>
-      <code id="tmInvite" style="color:var(--green-dim);font-size:11px;word-break:break-all;flex:1;min-width:180px"></code>
-      <button class="go" id="tmCopy" data-i="tm_copy" style="flex:none;padding:5px 12px;font-size:11.5px">Copier</button>
+    <div class="sr-fld need-admin">
+      <span class="sr-lbl" data-i="tm_invite">Lien d invitation</span>
+      <div class="sr-row">
+        <code id="tmInvite" class="sr-code"></code>
+        <button class="go" id="tmCopy" data-i="tm_copy" style="flex:none;padding:5px 12px;font-size:11.5px">Copier</button>
+      </div>
     </div>
     <div id="tmInviteNote" class="need-admin" hidden style="font-size:11px;color:var(--faint);margin:-4px 0 10px">l'URL seule suffit : pseudo et pin se choisissent a l'arrivee (modal de connexion)</div>
-    <div class="need-admin" style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0 12px;background:var(--panel2)">
-      <div style="font-size:11px;letter-spacing:.1em;color:hsl(var(--hue) 65% 62%);margin-bottom:8px">MESSAGE DE BIENVENUE - visible de tous (bandeau + modal d'entree)</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <input type="text" id="tmWelcome" maxlength="200" placeholder="message de bienvenue de la session" style="flex:1;min-width:220px">
+    <div class="sr-box need-admin">
+      <div class="sr-boxt">MESSAGE DE BIENVENUE - visible de tous (bandeau + modal d'entree)</div>
+      <div class="sr-row">
+        <input type="text" id="tmWelcome" maxlength="200" placeholder="message de bienvenue de la session">
         <button class="go" id="tmWelcomeSave">Enregistrer</button>
       </div>
     </div>
-    <div id="alertRow" hidden style="border:1px solid hsl(0 85% 45% / .55);border-radius:8px;padding:10px 12px;margin:0 0 12px;background:hsl(0 70% 14% / .35)">
-      <div style="font-size:11px;letter-spacing:.1em;color:hsl(0 95% 70%);margin-bottom:8px">ALERTE GÉNÉRALE - privilège du propriétaire : plein écran chez tous les invités, sirène + écran rouge. Une seule fois toutes les 30 minutes (bloqué côté serveur)</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <input type="text" id="alertMsg" maxlength="200" placeholder="message prédéfini de l'alerte (affiché en plein milieu)" style="flex:1;min-width:220px">
-        <button class="go" id="tmAlert" style="background:hsl(0 80% 40%);border-color:hsl(0 80% 40%)">🚨 ALERTE</button>
+    <div id="alertRow" class="sr-box sr-box-danger" hidden>
+      <div class="sr-boxt sr-boxt-danger">ALERTE GÉNÉRALE - privilège du propriétaire : plein écran chez tous les invités, sirène + écran rouge. Une seule fois toutes les 30 minutes (bloqué côté serveur)</div>
+      <div class="sr-row">
+        <input type="text" id="alertMsg" maxlength="200" placeholder="message prédéfini de l'alerte (affiché en plein milieu)">
+        <button class="go" id="tmAlert">🚨 ALERTE</button>
       </div>
     </div>
     <h2 style="margin:14px 0 6px" data-i="tm_members">Membres</h2>
     <div id="tmPending" style="font-size:12px;margin-bottom:10px"></div>
     <div id="tmMembers" style="font-size:12px"></div>
-    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <button class="go need-admin" id="tmTunnel">OUVRIR AU MONDE (tunnel)</button>
-      <small id="tmTunnelInfo" style="color:var(--muted);font-size:11.5px;flex:1;min-width:200px"></small>
-      <button class="go need-admin" id="tmTunnelCopy" data-i="tm_copy" hidden style="flex:none;padding:5px 12px;font-size:11.5px">Copier</button>
+    <div class="sr-fld" style="margin-top:14px;margin-bottom:0">
+      <button class="go need-admin" id="tmTunnel" style="width:100%">OUVRIR AU MONDE (tunnel)</button>
+      <small id="tmTunnelInfo" class="sr-tinfo" style="display:block;margin-top:6px"></small>
+      <button class="go need-admin" id="tmTunnelCopy" data-i="tm_copy" hidden style="margin-top:6px">Copier</button>
     </div>
   </div>
   </div>
   </div>
-</aside>
-<div id="sessShade"></div><div id="sessShade"></div>
+  </aside>
+<div id="sessShade"></div>
 
 <section class="view" id="v-chat">
   <h2 data-i="h2c">Coordination - canal privé</h2>
