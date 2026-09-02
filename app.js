@@ -21290,14 +21290,22 @@ function drawChats() {
     return;
   }
   const bc = (tm.chat || []).filter(m => (m.ch || 'session') === CHAT_SEL);
-  // wizz : effet (secousse + son) sur les nouveaux, puis on les marque vus
+  // wizz : effet (secousse + son) sur les nouveaux, puis on les marque vus -
+  // silence si j'ai desactive la reception
+  const wizzMuted = !!(tm.wizz && tm.wizz.mute);
   for (const m of bc) {
     if (m.kind === 'wizz' && m.t > WIZZ_LAST) {
-      if (WIZZ_INIT && m.name !== HANDLE) doWizz(m.name);
+      if (WIZZ_INIT && m.name !== HANDLE && !wizzMuted) doWizz(m.name);
       WIZZ_LAST = m.t;
     }
   }
   WIZZ_INIT = true;
+  // premier wizz recu : la question desactivation se pose UNE fois, ici
+  if (tm.wizz && tm.wizz.rcv > 0 && !wizzMuted) {
+    let asked = false;
+    try { asked = localStorage.getItem('c2ff-wizz-ask') === '1'; } catch (e) {}
+    if (!asked) { const qa = $('wizzAsk'); if (qa) qa.hidden = false; }
+  }
   // vocal prive 1:1 : bouton actif uniquement sur un chat prive
   const isPm = (CHAT_SEL || '').indexOf('pm-') === 0;
   const pmPeer = isPm ? (CHAT_SEL.slice(3).split('--').find(x => x !== HANDLE) || '') : '';
@@ -21307,7 +21315,13 @@ function drawChats() {
     pcall.textContent = PMC_PEER === pmPeer && PMC_PEER ? 'RACCROCHER 📞' : '📞 VOCAL PRIVÉ';
   }
   const wizzBtn = $('tmWizz');
-  if (wizzBtn) wizzBtn.hidden = !tm.enabled;
+  if (wizzBtn) {
+    // session : admin/proprietaire seulement - prive : tous, conversation entamee
+    wizzBtn.hidden = !tm.enabled || (!isPm && rk < 4);
+    wizzBtn.title = isPm
+      ? 'attirer l\'attention en prive - 1 wizz / 30 s'
+      : (rk >= 5 ? 'wizz de session - proprietaire : 1/min' : 'wizz de session - admin : 1/3 min');
+  }
   const pbar = $('pmBar');
   if (pbar) {
     if (PMC_IN && !PMC_PEER) {
@@ -21656,6 +21670,19 @@ $('pmCall').addEventListener('click', () => {
 $('pmBar').addEventListener('click', e => {
   if (e.target.closest('.pm-ok')) pmAccept();
   else if (e.target.closest('.pm-no') || e.target.closest('.pm-end')) pmEnd();
+});
+// premier wizz recu : desactiver definitivement, ou rester averti
+$('wizzAsk').addEventListener('click', e => {
+  const off = e.target.closest('.wizz-off'), keep = e.target.closest('.wizz-keep');
+  if (!off && !keep) return;
+  try { localStorage.setItem('c2ff-wizz-ask', '1'); } catch (e) {}
+  $('wizzAsk').hidden = true;
+  if (off) jpost('/api/team', { op: 'wizzmute', mute: true, by: HANDLE }).then(r => r.json()).then(j => {
+    if (j.team) state.data.team = j.team;
+    toast('WIZZ', j.ok ? 'reception des wizz desactivee pour toi' : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2');
+    forceDraw = true; refresh();
+  }).catch(() => {});
+  else toast('WIZZ', 'les wizz continuent de t\'avertir', 'HIT');
 });
 // roles + kick : delegation sur la liste membres
 $('tmMembers').addEventListener('change', e => {

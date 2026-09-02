@@ -216,6 +216,7 @@ function teamState(req, h) {
     enabled: t.enabled, room: t.room, protected: t.enabled,
     roles: t.roles, blocked: t.blocked,
     welcome: t.welcome || '',
+    wizz: (() => { const mm = (h && (t.members || {})[h]) || null; return { mute: !!(mm && mm.wizz_mute), rcv: (mm && mm.wizz_rcv) || 0 }; })(),
     news: (t.news || []).map(n => (t.chal || {})[n.id] ? (() => {
       const c = (t.chal || {})[n.id] || {};
       return { ...n, limit: c.limit || 0, nparts: Object.keys(c.parts || {}).length,
@@ -1111,6 +1112,18 @@ const MAIN = (req, res) => {
           }
           return sendJson(res, { ok: true, ch: pid, team: teamState(req, by) });
         }
+        // desactivation de la reception des wizz : accessible seulement apres
+        // avoir deja recu au moins un wizz (le premier debloque le choix)
+        if (body.op === 'wizzmute') {
+          const by = cleanHandle(body.by || body.handle);
+          const cur = teamCfg();
+          const mm = (cur.members || {})[by];
+          if (!mm) return sendJson(res, { ok: false, error: 'inscris-toi d abord (pseudo + pin)' });
+          if (!(mm.wizz_rcv > 0)) return sendJson(res, { ok: false, error: 'recois d abord un wizz avant de pouvoir desactiver' });
+          const mem2 = { ...cur.members, [by]: { ...mm, wizz_mute: body.mute !== false } };
+          saveTeamCfg({ ...cur, members: mem2 });
+          return sendJson(res, { ok: true, team: teamState(req, by) });
+        }
         // welcome / pin / unpin : message de bienvenue + epinglage d'actu ou de
         // programme prioritaire, affiches dans le bandeau visible sur TOUS les
         // onglets. decision admin uniquement (le proprietaire, grade ultime, passe).
@@ -1496,13 +1509,47 @@ const MAIN = (req, res) => {
             return sendJson(res, { ok: false, error: cc.event ? 'chat reserve aux participants de l event' : 'grade insuffisant pour ce chat' });
           _cid = cc.id;
         }
-        // wizz (nudge MSN) : attention-ne-pas-dormir, mais FLOOD-PROOF :
-        // un seul wizz par minute et par membre, aucune derogation de grade.
+        // wizz (nudge MSN) - regles serrees, enforcees serveur :
+        // chat de session (et tout chat non prive) : admin et proprietaire
+        // SEULEMENT - admin 1 wizz / 3 min, proprietaire 1 wizz / min ;
+        // chat prive : possible seulement si la conversation est deja entamee
+        // (au moins un message dans le canal), chaque participant, 1/30 s,
+        // et refuse si le destinataire a desactive la reception des wizz.
         if (body.kind === 'wizz') {
           const nw = Date.now();
-          if (nw - (WIZZRATE.get(_ch) || 0) < 60000)
-            return sendJson(res, { ok: false, error: 'un wizz par minute maximum - laisse les dormir' });
-          WIZZRATE.set(_ch, nw);
+          if (_cid.indexOf('pm-') === 0) {
+            const _started = lastChat(200).some(m => m.ch === _cid);
+            if (!_started) return sendJson(res, { ok: false, error: 'wizz possible seulement dans une conversation privee deja entamee' });
+            const _peer = _cid.slice(3).split('--').find(x => x !== _ch);
+            if (_peer && ((_cur.members || {})[_peer] || {}).wizz_mute)
+              return sendJson(res, { ok: false, error: _peer + ' a desactive la reception des wizz' });
+            if (nw - (WIZZRATE.get(_cid) || 0) < 30000)
+              return sendJson(res, { ok: false, error: 'un wizz toutes les 30 secondes maximum en prive' });
+            WIZZRATE.set(_cid, nw);
+          } else {
+            const _rkw = rankOf(req, _ch);
+            if (_rkw < 4) return sendJson(res, { ok: false, error: 'wizz reserve aux admins et au proprietaire' });
+            const _win = _rkw >= 5 ? 60000 : 180000;
+            const _last = WIZZRATE.get(_ch) || 0;
+            if (nw - _last < _win)
+              return sendJson(res, { ok: false, error: 'prochain wizz dans ' + Math.ceil((_win - (nw - _last)) / 1000) + ' s' });
+            WIZZRATE.set(_ch, nw);
+          }
+          // compteur de wizz recus : le premier wizz recu debloque chez chacun
+          // le choix de desactiver (ou non) la reception
+          const _targets = _cid.indexOf('pm-') === 0
+            ? [_cid.slice(3).split('--').find(x => x !== _ch)].filter(Boolean)
+            : Object.keys(_cur.members || {}).filter(x => x !== _ch
+              && ((_cur.members || {})[x] || {}).status === 'approved');
+          const _mem2 = { ..._cur.members };
+          let _touched = false;
+          for (const _hh of _targets) {
+            const _m0 = _mem2[_hh];
+            if (!_m0 || typeof _m0 !== 'object') continue;
+            _mem2[_hh] = { ..._m0, wizz_rcv: (_m0.wizz_rcv || 0) + 1 };
+            _touched = true;
+          }
+          if (_touched) saveTeamCfg({ ..._cur, members: _mem2 });
         }
         // limite de findings par participant, avec le marqueur de participation
         // (op chaljoin), sans contournement possible - trois portes verrouillees :
