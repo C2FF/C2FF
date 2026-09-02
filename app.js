@@ -21230,6 +21230,7 @@ function drawTeam() {
 // ouvrir son chat 'event', reserve aux participants (isolation serveur incluse).
 let CHAT_SEL = 'session';
 let CHAT_DRAWN = ''; // dernier canal rendu (pour le stick du scroll)
+const FINDS_OPEN = new Set(); // ids des findings deplies dans le chat
 const CHMIN = { 0: '', 1: 'member', 2: 'hunter', 3: 'co-admin', 4: 'admin' };
 function drawChats() {
   const tm = state.data.team || {};
@@ -21283,7 +21284,15 @@ function drawChats() {
         ? '<button class="ghost tmjoin" data-prog="' + esc(m.prog) + '" style="margin-left:10px;padding:2px 10px;font-size:10px">rejoindre le programme ›</button>'
         : ' <span class="pill" title="grade insuffisant pour rejoindre ce programme">grade requis</span>')
       : '';
-    return '<div class="' + cls + '"><div class="who">' + esc(m.name || '?') + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + sev + votes + join + '</div>' + esc(m.text || '') + '</div>';
+    // findings : replie par defaut (extrait) - un clic deroule / re-enroule
+    let body = esc(m.text || '');
+    let fold = '';
+    if (m.kind === 'finding' && m.id) {
+      const open = FINDS_OPEN.has(m.id);
+      if (!open && (m.text || '').length > 90) body = esc(m.text.slice(0, 90)) + ' …';
+      fold = '<span class="cfold">' + (open ? '▴' : '▾') + '</span>';
+    }
+    return '<div class="' + cls + (m.kind === 'finding' ? ' tmfind' : '') + '" data-fid="' + esc(m.id || '') + '"><div class="who">' + esc(m.name || '?') + ' · ' + new Date(m.t).toLocaleTimeString('fr-FR') + sev + votes + join + fold + '</div>' + body + '</div>';
   }).join('') || '<div class="msg claude">' + T('tm_chat_empty') + '</div>';
   if (stick) requestAnimationFrame(() => { blog.scrollTop = blog.scrollHeight; });
 }
@@ -21330,6 +21339,14 @@ $('tmChatlog').addEventListener('click', e => {
     setProg(jn.dataset.prog);
     setTab('programs');
     toast('PROGRAMME', 'programme actif : ' + jn.dataset.prog, 'HIT');
+    return;
+  }
+  // derouler / re-enrouler un finding du chat (hors boutons et votes)
+  const fm = e.target.closest('.msg.tmfind');
+  if (fm && fm.dataset.fid && !e.target.closest('.tmv') && !e.target.closest('button')) {
+    if (FINDS_OPEN.has(fm.dataset.fid)) FINDS_OPEN.delete(fm.dataset.fid);
+    else FINDS_OPEN.add(fm.dataset.fid);
+    drawChats();
     return;
   }
   const v = e.target.closest('.tmv');

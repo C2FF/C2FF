@@ -38,6 +38,9 @@ body[data-rank="3"] .need-admin { display:none !important }
 
 /* message finding partage dans le chat de session : mis en valeur, votable */
 #tmChatlog .msg-finding{border-left:3px solid var(--warn);background:var(--green-soft)}
+#tmChatlog .msg.tmfind{cursor:pointer}
+#tmChatlog .msg.tmfind:hover{filter:brightness(1.15)}
+#tmChatlog .cfold{color:hsl(var(--hue) 85% 68%);cursor:pointer;font-size:10px;margin-left:8px}
 
 /* balayage CRT lent, la console vit */
 body::after{content:"";position:fixed;left:0;right:0;height:120px;pointer-events:none;z-index:0;
