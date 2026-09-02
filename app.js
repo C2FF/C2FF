@@ -19827,10 +19827,22 @@ function toast(title, text, cls) {
   }
   box.appendChild(el);
   toastHeader();
-  // disparition auto : PAUSE au survol (on lit, la barre et le chrono attendent)
+  // disparition auto : PAUSE au survol. La fermeture est pilotee par la barre
+  // elle-meme (Web Animations API) : au retour du curseur, le chrono reprend
+  // EXACTEMENT ou la barre s'est figee - jamais de decalage barre/delai.
+  const bar = el.querySelector('.tbar');
   let tm = setTimeout(close, life);
-  el.addEventListener('mouseenter', () => clearTimeout(tm));
-  el.addEventListener('mouseleave', () => { tm = setTimeout(close, 3500); });
+  el.addEventListener('mouseenter', () => {
+    clearTimeout(tm);
+    const a = bar && bar.getAnimations ? bar.getAnimations()[0] : null;
+    if (a) a.pause();
+  });
+  el.addEventListener('mouseleave', () => {
+    const a = bar && bar.getAnimations ? bar.getAnimations()[0] : null;
+    const rest = a && typeof a.currentTime === 'number' ? Math.max(300, life - a.currentTime) : 3500;
+    if (a) a.play();
+    tm = setTimeout(close, rest);
+  });
 }
 
 // ---------- rendu differentiel ----------
