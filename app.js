@@ -21017,8 +21017,8 @@ function drawPin() {
       (chal && expand.exp ? '<span class="sn-clock">⏱ ' + snClock(expand) + '</span>' : (d ? '<span class="sn-dur">⏳ ' + d + '</span>' : '')) +
       (gated && expand.nparts ? '<span class="sn-dur">' + expand.nparts + ' participant' + (expand.nparts > 1 ? 's' : '') + '</span>' : '') +
       (gated && joined ? '<span class="pill ' + (lim && cnt >= lim ? 'p-warn' : 'p-live') + '">' + (lim ? cnt + '/' + lim + ' findings' : cnt + ' envoyé' + (cnt > 1 ? 's' : '')) + '</span>' : '') +
-      (p ? '<button class="go sn-join" data-prog="' + esc(p.id) + '">rejoindre ›</button>' : '') +
-      (gated && !joined && myRk >= 1 ? '<button class="go sn-part" data-id="' + esc(expand.id) + '">participer ›</button>' : '') +
+      (p ? '<button class="go sn-join" data-prog="' + esc(p.id) + '" title="ouvrir la fiche du programme (HUNT)">ouvrir ›</button>' : '') +
+      (gated && !joined && myRk >= 1 ? '<button class="ghost sn-part" data-id="' + esc(expand.id) + '" title="marquer ta participation : tes findings partiront dans le chat de l\'event" style="padding:2px 10px">participer ›</button>' : '') +
       (canEdit ? '<button class="ghost sn-del" data-id="' + esc(expand.id) + '" title="retirer l\'epingle">✕</button>' : '') +
       '</div>';
   }
