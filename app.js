@@ -19758,7 +19758,7 @@ try {
 
 function setTab(t) {
   if (t === 'chats') { chatRailToggle(); return; } // plus un onglet : la poignee bascule le rail
-  if (t === 'chat') { sessRailToggle(); return; } // rail session a droite
+  if (t === 'team') { sessRailToggle(); return; } // rail session (gestion) a droite
   if (t !== state.tab) sndPlay('tab');
   state.tab = t;
   document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
@@ -20881,12 +20881,7 @@ function drawChat() {
   const sig = c.length + ':' + (c.length ? (c[c.length - 1].t + (c[c.length - 1].text || '')).slice(-60) : '');
   if (sig === drawn.chat && !forceDraw) return;
   drawn.chat = sig;
-  // en-tete du rail session + pastille non-lus (rail replie)
-  const st = $('srTitle');
-  if (st) st.textContent = '# session · ' + c.length;
-  const dot = $('srDot');
-  if (dot) dot.hidden = document.body.classList.contains('srail-open') ||
-    !c.length || c[c.length - 1].t <= SRAIL_SEEN;
+  $('nChat').textContent = String(c.length);
   const log = $('chatlog');
   log.innerHTML = c.map(m =>
     '<div class="msg ' + esc(m.from) + (m.kind === 'queue' ? ' queue' : '') + '"><div class="who">' +
@@ -20896,6 +20891,7 @@ function drawChat() {
   log.scrollTop = log.scrollHeight;
 }
 $('srTab').addEventListener('click', () => sessRailToggle());
+$('srClose').addEventListener('click', () => sessRailClose());
 $('sessShade').addEventListener('click', () => sessRailClose());
 $('chatform').addEventListener('submit', e => {
   e.preventDefault();
@@ -21245,7 +21241,7 @@ function drawTeam() {
   $('tmRoom').textContent = tm.room || '-';
   $('tmKey').textContent = tm.enabled ? (TEAMKEY || '-') : '-';
   // config : ne jamais ecraser pendant la saisie
-  if (!focusInside('v-team')) {
+  if (!focusInside('srPanel')) {
     set('tmHandleEl', HANDLE ? HANDLE : '');
     set('tmRoomEl', tm.room || '');
     set('tmOn', tm.enabled ? 'on' : 'off');
@@ -21263,6 +21259,9 @@ function drawTeam() {
   if (alRow) alRow.hidden = !(tm.enabled && rk >= 5);
   const alBtn = $('tmAlert');
   if (alBtn) alBtn.textContent = (tm.alert && tm.alert.on) ? 'lever l\'alerte' : '🚨 ALERTE';
+  // pastille du rail session : demandes d'acces en attente (rail replie)
+  const _sd = $('srDot');
+  if (_sd) _sd.hidden = document.body.classList.contains('srail-open') || !reqs.length;
   const pendEl = $('tmPending');
   if (pendEl) {
     pendEl.hidden = !tm.enabled || !reqs.length;

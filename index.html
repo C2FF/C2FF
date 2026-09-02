@@ -388,6 +388,11 @@ body.srail-open .wrap{margin-right:430px}
   body.srail-open .wrap{margin-right:0}
 }
 
+/* panneau session du rail droit : colonne scrollable, forms du team dedans */
+#srPanel{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding:12px}
+#srPanel .card{max-width:none;margin-bottom:0}
+#srPanel input,#srPanel select{max-width:100%}
+.cr-hacts{flex:none;display:flex;gap:6px;align-items:center}
 /* ── toasts ── */
 #toasts{position:fixed;right:16px;top:16px;z-index:20;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .toast{pointer-events:auto;min-width:290px;max-width:400px;background:var(--panel2);border:1px solid var(--line);
@@ -475,8 +480,8 @@ header,nav{border-bottom-color:transparent;
   <button class="navbtn" data-tab="findings"><span data-i="navfd">Findings</span> <small id="nFnd"></small></button>
   <button class="navbtn" data-tab="fast"><span>FAST</span></button>
   <button class="navbtn" data-tab="ai"><span data-i="navai">IA</span></button>
+  <button class="navbtn" data-tab="chat"><span data-i="navc">Coordination</span> <small id="nChat"></small></button>
   <button class="navbtn" data-tab="term"><span>TERMINAUX</span></button>
-  <button class="navbtn" data-tab="team"><span data-i="navt">Team</span></button>
   </nav>
 <div id="sessPin" hidden></div>
 <style>
@@ -640,63 +645,7 @@ header,nav{border-bottom-color:transparent;
   </div>
 </section>
 
-<section class="view" id="v-team">
-  <h2 data-i="tm_h2">Mode team - sessions de groupe a distance</h2>
-  <div class="card" style="max-width:980px">
-    <p id="tmP" data-i="tm_p" style="margin:0 0 12px;font-size:12px;color:hsl(var(--hue) 43% 75%)"></p>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-      <span class="pill p-done" id="tmStatus">?</span>
-      <span class="pill p-done" id="tmBind" hidden></span>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-      <span style="color:var(--muted);font-size:11.5px" data-i="tm_handle">Ton pseudo (16 caracteres max)</span>
-      <input type="text" id="tmHandleEl" maxlength="16" style="width:170px" placeholder="pseudo">
-      <button class="ghost" id="tmSaveHandle" data-i="tm_save_h">Choisir</button>
-    </div>
-    <div class="need-admin" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-      <select id="tmOn" style="width:180px">
-        <option value="off">OFF</option>
-        <option value="on">ON</option>
-      </select>
-      <input type="text" id="tmRoomEl" data-ip="tm_room_ph" style="width:230px">
-      <button class="go" id="tmSave" data-i="tm_save">Appliquer</button>
-      <button class="ghost" id="tmRegen" data-i="tm_regen">Regenerer la cle</button>
-      <button class="go" id="tmLive">OUVRIR AU RESEAU</button>
-    </div>
-    <div class="need-admin" style="font-size:12px;margin-bottom:6px">
-      <span style="color:var(--muted)" data-i="tm_room">Salle</span> : <b id="tmRoom" style="color:var(--text)">-</b>
-      &nbsp;|&nbsp; <span style="color:var(--muted)" data-i="tm_key">Cle de salle</span> : <b id="tmKey" style="color:var(--green);word-break:break-all">-</b>
-    </div>
-    <div class="need-admin" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 12px">
-      <span style="color:var(--muted);font-size:11.5px" data-i="tm_invite">Lien d invitation</span>
-      <code id="tmInvite" style="color:var(--green-dim);font-size:11px;word-break:break-all;flex:1;min-width:180px"></code>
-      <button class="go" id="tmCopy" data-i="tm_copy" style="flex:none;padding:5px 12px;font-size:11.5px">Copier</button>
-    </div>
-    <div id="tmInviteNote" class="need-admin" hidden style="font-size:11px;color:var(--faint);margin:-4px 0 10px">l'URL seule suffit : pseudo et pin se choisissent a l'arrivee (modal de connexion)</div>
-    <div class="need-admin" style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0 12px;background:var(--panel2)">
-      <div style="font-size:11px;letter-spacing:.1em;color:hsl(var(--hue) 65% 62%);margin-bottom:8px">MESSAGE DE BIENVENUE - visible de tous (bandeau + modal d'entree)</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <input type="text" id="tmWelcome" maxlength="200" placeholder="message de bienvenue de la session" style="flex:1;min-width:220px">
-        <button class="go" id="tmWelcomeSave">Enregistrer</button>
-      </div>
-    </div>
-    <div id="alertRow" hidden style="border:1px solid hsl(0 85% 45% / .55);border-radius:8px;padding:10px 12px;margin:0 0 12px;background:hsl(0 70% 14% / .35)">
-      <div style="font-size:11px;letter-spacing:.1em;color:hsl(0 95% 70%);margin-bottom:8px">ALERTE GÉNÉRALE - privilège du propriétaire : plein écran chez tous les invités, sirène + écran rouge. Une seule fois toutes les 30 minutes (bloqué côté serveur)</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <input type="text" id="alertMsg" maxlength="200" placeholder="message prédéfini de l'alerte (affiché en plein milieu)" style="flex:1;min-width:220px">
-        <button class="go" id="tmAlert" style="background:hsl(0 80% 40%);border-color:hsl(0 80% 40%)">🚨 ALERTE</button>
-      </div>
-    </div>
-    <h2 style="margin:14px 0 6px" data-i="tm_members">Membres</h2>
-    <div id="tmPending" style="font-size:12px;margin-bottom:10px"></div>
-    <div id="tmMembers" style="font-size:12px"></div>
-    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <button class="go need-admin" id="tmTunnel">OUVRIR AU MONDE (tunnel)</button>
-      <small id="tmTunnelInfo" style="color:var(--muted);font-size:11.5px;flex:1;min-width:200px"></small>
-      <button class="go need-admin" id="tmTunnelCopy" data-i="tm_copy" hidden style="flex:none;padding:5px 12px;font-size:11.5px">Copier</button>
-    </div>
-  </div>
-</section>
+
 
 <section class="view" id="v-term">
   <h2>Terminaux - solo prive, ou groupe partage : tout le monde tape, tout le monde voit</h2>
@@ -801,22 +750,86 @@ header,nav{border-bottom-color:transparent;
 
 <aside id="sessRail">
   <div id="srStrip">
-    <button id="srTab" title="session - coordination">🛰<i id="srDot" hidden></i></button>
+    <button id="srTab" title="session - gestion">⚙<i id="srDot" hidden></i></button>
   </div>
   <div id="srBody">
-    <div class="cr-chat">
-      <div class="cr-chead">
-        <div class="cr-hinfo">
-          <div id="srTitle"># session</div>
-          <div id="srSub">coordination - agent d'analyse</div>
-        </div>
+    <div class="cr-chead">
+      <div class="cr-hinfo">
+        <div id="srTitle">session</div>
+        <div id="srSub">tunnel, membres, grades, alerte</div>
       </div>
-      <div id="chatlog"></div>
-      <form id="chatform" class="need-member"><input id="chatinput" data-ip="ch_ph" placeholder="root@c2ff:~# message vers l'agent d'analyse…" autocomplete="off"><button class="go" type="submit" data-i="ch_send">Envoyer</button></form>
+      <div class="cr-hacts">
+        <span class="pill p-done" id="tmStatus">?</span>
+        <span class="pill p-done" id="tmBind" hidden></span>
+        <button class="ghost" id="srClose" title="replier" style="border:none;padding:2px 7px;font-size:13px">✕</button>
+      </div>
+    </div>
+    <div id="srPanel"><div id="srCard" class="card">
+    <p id="tmP" data-i="tm_p" style="margin:0 0 12px;font-size:12px;color:hsl(var(--hue) 43% 75%)"></p>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+      <span class="pill p-done" id="tmStatus">?</span>
+      <span class="pill p-done" id="tmBind" hidden></span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <span style="color:var(--muted);font-size:11.5px" data-i="tm_handle">Ton pseudo (16 caracteres max)</span>
+      <input type="text" id="tmHandleEl" maxlength="16" style="width:170px" placeholder="pseudo">
+      <button class="ghost" id="tmSaveHandle" data-i="tm_save_h">Choisir</button>
+    </div>
+    <div class="need-admin" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <select id="tmOn" style="width:180px">
+        <option value="off">OFF</option>
+        <option value="on">ON</option>
+      </select>
+      <input type="text" id="tmRoomEl" data-ip="tm_room_ph" style="width:230px">
+      <button class="go" id="tmSave" data-i="tm_save">Appliquer</button>
+      <button class="ghost" id="tmRegen" data-i="tm_regen">Regenerer la cle</button>
+      <button class="go" id="tmLive">OUVRIR AU RESEAU</button>
+    </div>
+    <div class="need-admin" style="font-size:12px;margin-bottom:6px">
+      <span style="color:var(--muted)" data-i="tm_room">Salle</span> : <b id="tmRoom" style="color:var(--text)">-</b>
+      &nbsp;|&nbsp; <span style="color:var(--muted)" data-i="tm_key">Cle de salle</span> : <b id="tmKey" style="color:var(--green);word-break:break-all">-</b>
+    </div>
+    <div class="need-admin" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 12px">
+      <span style="color:var(--muted);font-size:11.5px" data-i="tm_invite">Lien d invitation</span>
+      <code id="tmInvite" style="color:var(--green-dim);font-size:11px;word-break:break-all;flex:1;min-width:180px"></code>
+      <button class="go" id="tmCopy" data-i="tm_copy" style="flex:none;padding:5px 12px;font-size:11.5px">Copier</button>
+    </div>
+    <div id="tmInviteNote" class="need-admin" hidden style="font-size:11px;color:var(--faint);margin:-4px 0 10px">l'URL seule suffit : pseudo et pin se choisissent a l'arrivee (modal de connexion)</div>
+    <div class="need-admin" style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0 12px;background:var(--panel2)">
+      <div style="font-size:11px;letter-spacing:.1em;color:hsl(var(--hue) 65% 62%);margin-bottom:8px">MESSAGE DE BIENVENUE - visible de tous (bandeau + modal d'entree)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="tmWelcome" maxlength="200" placeholder="message de bienvenue de la session" style="flex:1;min-width:220px">
+        <button class="go" id="tmWelcomeSave">Enregistrer</button>
+      </div>
+    </div>
+    <div id="alertRow" hidden style="border:1px solid hsl(0 85% 45% / .55);border-radius:8px;padding:10px 12px;margin:0 0 12px;background:hsl(0 70% 14% / .35)">
+      <div style="font-size:11px;letter-spacing:.1em;color:hsl(0 95% 70%);margin-bottom:8px">ALERTE GÉNÉRALE - privilège du propriétaire : plein écran chez tous les invités, sirène + écran rouge. Une seule fois toutes les 30 minutes (bloqué côté serveur)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="alertMsg" maxlength="200" placeholder="message prédéfini de l'alerte (affiché en plein milieu)" style="flex:1;min-width:220px">
+        <button class="go" id="tmAlert" style="background:hsl(0 80% 40%);border-color:hsl(0 80% 40%)">🚨 ALERTE</button>
+      </div>
+    </div>
+    <h2 style="margin:14px 0 6px" data-i="tm_members">Membres</h2>
+    <div id="tmPending" style="font-size:12px;margin-bottom:10px"></div>
+    <div id="tmMembers" style="font-size:12px"></div>
+    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="go need-admin" id="tmTunnel">OUVRIR AU MONDE (tunnel)</button>
+      <small id="tmTunnelInfo" style="color:var(--muted);font-size:11.5px;flex:1;min-width:200px"></small>
+      <button class="go need-admin" id="tmTunnelCopy" data-i="tm_copy" hidden style="flex:none;padding:5px 12px;font-size:11.5px">Copier</button>
     </div>
   </div>
+  </div>
+  </div>
 </aside>
-<div id="sessShade"></div>
+<div id="sessShade"></div><div id="sessShade"></div>
+
+<section class="view" id="v-chat">
+  <h2 data-i="h2c">Coordination - canal privé</h2>
+  <div id="chatbox">
+    <div id="chatlog"></div>
+    <form id="chatform" class="need-member"><input id="chatinput" data-ip="ch_ph" placeholder="root@c2ff:~# message vers l'agent d'analyse…" autocomplete="off"><button class="go" type="submit" data-i="ch_send">Envoyer</button></form>
+  </div>
+</section>
 
 <footer><b>C2FF</b> <span class="vtag">v2.0</span> <span data-i="ft">100% local - probes déterministes, sans tokens ni dépendances externes</span></footer>
 </div>
