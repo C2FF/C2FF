@@ -284,7 +284,12 @@ function teamState(req, h) {
         const cc = c.event ? ((t.chal || {})[c.event] || {}) : {};
         return chatOk(c.event ? { ...c, _parts: cc.parts || {} } : c, h, rk);
       }).map(c => c.id));
-      return lastChat(200).filter(m => (m.kind === 'team' || m.kind === 'finding' || m.kind === 'term' || m.kind === 'wizz') && okc.has(m.ch || 'session')).slice(-100).map(m => {
+      // isolation temporelle : un membre ne decouvre que ce qui s'est dit
+      // DEPUIS son entree - pas les anciens wizz ni les vieux fils des invites
+      // precedents (staff >= admin garde l'historique complet pour moderer)
+      const _me = (h && (t.members || {})[h]) || null;
+      const _myT = rk >= 4 ? 0 : (_me && _me.status === 'approved' ? (_me.t || 0) : Date.now());
+      return lastChat(200).filter(m => (m.kind === 'team' || m.kind === 'finding' || m.kind === 'term' || m.kind === 'wizz') && okc.has(m.ch || 'session') && m.t >= _myT).slice(-100).map(m => {
         const vv = V[m.id];
         if (!vv) return m;
         let up = 0, down = 0;
@@ -1199,11 +1204,6 @@ const MAIN = (req, res) => {
           const by = cleanHandle(body.by || body.handle);
           if (rankOf(req, by) < 5) return sendJson(res, { ok: false, error: 'alerte generale : privilege du proprietaire uniquement' });
           const cur = teamCfg();
-          if (cur.alert && cur.alert.on) {
-            // meme op pour lever l'alerte (proprietaire seulement, pas de cooldown pour lever)
-            saveTeamCfg({ ...cur, alert: { ...cur.alert, on: false } });
-            return sendJson(res, { ok: true, team: teamState(req, by) });
-          }
           const nw = Date.now();
           const last = (cur.alert || {}).t || 0;
           if (nw - last < 1800000)

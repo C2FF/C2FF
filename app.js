@@ -21423,7 +21423,7 @@ function drawTeam() {
   const alRow = $('alertRow');
   if (alRow) alRow.hidden = !(tm.enabled && rk >= 5);
   const alBtn = $('tmAlert');
-  if (alBtn) alBtn.textContent = (tm.alert && tm.alert.on) ? 'lever l\'alerte' : '🚨 ALERTE';
+  if (alBtn) alBtn.textContent = '🚨 ALERTE';
   // pastille du rail session : demandes d'acces en attente (rail replie)
   const _sd = $('srDot');
   if (_sd) _sd.hidden = document.body.classList.contains('srail-open') || !reqs.length;
@@ -22185,15 +22185,6 @@ function fireAlert(al) {
 // bouton proprietaire (onglet team) : declencher avec le message predefini,
 // ou lever l'alerte si elle est active
 $('tmAlert').addEventListener('click', () => {
-  const al = (state.data.team || {}).alert;
-  if (al && al.on) {
-    jpost('/api/team', { op: 'alert', by: HANDLE }).then(r => r.json()).then(j => {
-      if (j.team) state.data.team = j.team;
-      alertCheck();
-      toast('ALERTE', j.ok ? 'alerte generale levee' : (j.error || 'refuse'), j.ok ? 'HIT' : 'P2');
-    }).catch(() => {});
-    return;
-  }
   const msg = String($('alertMsg').value || '').trim();
   if (!msg) return toast('ALERTE', 'definis d abord le message predefini de l\'alerte', 'P2');
   if (!confirm('ALERTE GENERALE\n\n"' + msg + '"\n\nPlein ecran chez tous les invites : sirene + ecran rouge. Une seule fois toutes les 30 minutes. Confirmer ?')) return;
